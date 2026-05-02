@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import {
+  Image,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -226,9 +227,14 @@ export default function HomeScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Logout bar */}
+      {/* Top bar */}
       <View style={[styles.topBar, { backgroundColor: roleColor }]}>
-        <Text style={styles.topBarTitle}>PharmaSign</Text>
+        <Image
+          source={require('@/assets/images/logo.png')}
+          style={styles.topBarLogo}
+          resizeMode="contain"
+          accessibilityLabel="Logo PharmaSign"
+        />
         <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn} accessibilityRole="button">
           <Text style={styles.logoutText}>Déconnexion</Text>
         </TouchableOpacity>
@@ -254,7 +260,7 @@ const styles = StyleSheet.create({
     paddingTop: 52,
     paddingBottom: Spacing.sm,
   },
-  topBarTitle: { fontSize: FontSize.lg, fontWeight: '800', color: Colors.white },
+  topBarLogo: { width: 120, height: 120 },
   logoutBtn: {
     backgroundColor: 'rgba(255,255,255,0.2)',
     paddingHorizontal: Spacing.md,

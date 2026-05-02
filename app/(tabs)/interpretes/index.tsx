@@ -47,7 +47,7 @@ export default function InterpretesHome() {
               <Marker
                 key={demande.id}
                 coordinate={{ latitude: demande.latitude, longitude: demande.longitude }}
-                pinColor={demande.urgence ? '#EF4444' : '#0077CC'}
+                pinColor={demande.urgence ? '#EF4444' : '#2A9D8F'}
                 onPress={() => setSelected(demande)}
               >
                 <Callout tooltip>
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   mapWrapper: { height: 240, position: 'relative' },
   mapFallback: {
     flex: 1,
-    backgroundColor: '#C8EAD8',
+    backgroundColor: '#C8E6E3',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,

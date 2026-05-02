@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -52,9 +53,12 @@ export default function LoginScreen() {
         >
           {/* Logo */}
           <View style={styles.logoArea}>
-            <View style={styles.logoCircle}>
-              <Text style={styles.logoEmoji}>🤲</Text>
-            </View>
+            <Image
+              source={require('@/assets/images/logo.png')}
+              style={styles.logo}
+              resizeMode="contain"
+              accessibilityLabel="Logo PharmaSign"
+            />
             <Text style={styles.appName}>PharmaSign</Text>
             <Text style={styles.tagline}>L'accès aux soins pour tous</Text>
           </View>
@@ -165,15 +169,11 @@ const styles = StyleSheet.create({
   },
 
   logoArea: { alignItems: 'center', gap: Spacing.sm },
-  logoCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
+  logo: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
   },
-  logoEmoji: { fontSize: 48 },
   appName: {
     fontSize: FontSize.xxxl,
     fontWeight: '800',
