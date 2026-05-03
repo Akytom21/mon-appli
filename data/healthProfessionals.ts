@@ -19,6 +19,7 @@ export type HealthProfessional = {
   longitude: number;
   phone: string;
   hours: string;
+  specialite?: string;
 };
 
 export const HEALTH_PROFESSIONALS: HealthProfessional[] = [
