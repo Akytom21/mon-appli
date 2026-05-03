@@ -5,7 +5,8 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "Bash(git push *)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "PowerShell(cd \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\"; npx tsc --noEmit 2>&1 | Where-Object { $_ -notmatch \"collapsible|use-theme-color|Property 'light'\" })"
     ]
   }
 }

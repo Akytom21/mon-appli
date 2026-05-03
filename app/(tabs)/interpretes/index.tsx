@@ -12,6 +12,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
 import { DEMANDES_NICE, NICE_CENTER, type DemandeRDV } from '@/data/mockData';
+import { useAppointments } from '@/hooks/useAppointments';
 
 let MapView: any, Marker: any, Callout: any;
 if (Platform.OS !== 'web') {
@@ -23,6 +24,7 @@ if (Platform.OS !== 'web') {
 
 export default function InterpretesHome() {
   const { user } = useAuth();
+  const { pending } = useAppointments();
   const [selected, setSelected] = useState<DemandeRDV | null>(null);
   const prenom = user?.name?.split(' ')[0] ?? '';
 
@@ -131,7 +133,14 @@ export default function InterpretesHome() {
             activeOpacity={0.8}
             accessibilityRole="button"
           >
-            <Text style={styles.actionEmoji}>🎯</Text>
+            <View style={styles.actionIconWrap}>
+              <Text style={styles.actionEmoji}>🎯</Text>
+              {pending.length > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{pending.length}</Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.actionLabel}>Toutes les missions</Text>
           </TouchableOpacity>
         </View>
@@ -295,7 +304,21 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
+  actionIconWrap: { position: 'relative', alignItems: 'center' },
   actionEmoji: { fontSize: 26 },
+  badge: {
+    position: 'absolute',
+    top: -6,
+    right: -10,
+    backgroundColor: Colors.error,
+    borderRadius: Radius.full,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  badgeText: { fontSize: 10, fontWeight: '800', color: Colors.white },
   actionLabel: { fontSize: FontSize.sm, fontWeight: '700', color: Colors.interpretes, textAlign: 'center' },
 
   section: { gap: Spacing.sm },

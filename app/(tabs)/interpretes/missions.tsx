@@ -1,319 +1,456 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
+  Animated,
+  FlatList,
+  Platform,
   SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import * as Location from 'expo-location';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
+import { useAppointments, type Appointment, type AppointmentType } from '@/hooks/useAppointments';
 
-type Mission = {
-  id: string;
-  besoin: string;
-  patient: string;
-  lieu: string;
-  distance: string;
-  heure: string;
-  date: string;
-  duree: string;
-  urgence: boolean;
-  statut: 'disponible' | 'acceptée' | 'refusée';
+type Tab = 'disponibles' | 'missions' | 'historique';
+
+const TYPE_INFO: Record<AppointmentType, { label: string; icon: string }> = {
+  generaliste: { label: 'Médecin généraliste', icon: '🩺' },
+  urgences: { label: 'Urgences', icon: '🚨' },
+  specialiste: { label: 'Spécialiste', icon: '👨‍⚕️' },
+  pharmacie: { label: 'Pharmacie', icon: '💊' },
 };
 
-const MISSIONS_INIT: Mission[] = [
-  {
-    id: '1',
-    besoin: 'Consultation générale',
-    patient: 'Patient A.',
-    lieu: 'Cabinet Dr. Petit, Paris 12e',
-    distance: '0.5 km',
-    heure: '10h30',
-    date: "Aujourd'hui",
-    duree: '1h',
-    urgence: false,
-    statut: 'disponible',
-  },
-  {
-    id: '2',
-    besoin: 'Psychiatrie',
-    patient: 'Patient B.',
-    lieu: 'Centre médical Nation',
-    distance: '1.1 km',
-    heure: '11h00',
-    date: "Aujourd'hui",
-    duree: '1h30',
-    urgence: true,
-    statut: 'disponible',
-  },
-  {
-    id: '3',
-    besoin: 'Spécialiste — Cardiologie',
-    patient: 'Patient C.',
-    lieu: 'Hôpital Saint-Antoine, Paris 12e',
-    distance: '2.3 km',
-    heure: '14h00',
-    date: 'Demain',
-    duree: '2h',
-    urgence: false,
-    statut: 'disponible',
-  },
-  {
-    id: '4',
-    besoin: 'Ophtalmologie',
-    patient: 'Patient D.',
-    lieu: 'Clinique des Quinze-Vingts',
-    distance: '3.0 km',
-    heure: '09h00',
-    date: 'Demain',
-    duree: '45 min',
-    urgence: false,
-    statut: 'disponible',
-  },
-];
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function formatDate(dateStr: string): string {
+  const [, m, d] = dateStr.split('-');
+  const months = [
+    'jan.', 'fév.', 'mars', 'avr.', 'mai', 'juin',
+    'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.',
+  ];
+  return `${parseInt(d)} ${months[parseInt(m) - 1]}`;
+}
 
 export default function MissionsScreen() {
-  const [missions, setMissions] = useState<Mission[]>(MISSIONS_INIT);
+  const { pending, myMissions, history, loading, acceptMission, declineMission } =
+    useAppointments();
+  const [activeTab, setActiveTab] = useState<Tab>('disponibles');
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [accepting, setAccepting] = useState<string | null>(null);
+  const acceptAnim = useRef(new Animated.Value(0)).current;
 
-  const handleAction = (id: string, action: 'acceptée' | 'refusée') => {
-    setMissions((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, statut: action } : m))
-    );
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      const loc = await Location.getCurrentPositionAsync({});
+      setUserCoords({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+    })();
+  }, []);
+
+  const handleAccept = (id: string) => {
+    setAccepting(id);
+    acceptAnim.setValue(0);
+    Animated.sequence([
+      Animated.timing(acceptAnim, { toValue: 1, duration: 280, useNativeDriver: true }),
+      Animated.delay(750),
+      Animated.timing(acceptAnim, { toValue: 0, duration: 250, useNativeDriver: true }),
+    ]).start(() => {
+      acceptMission(id);
+      setAccepting(null);
+    });
   };
 
-  const disponibles = missions.filter((m) => m.statut === 'disponible');
-  const traitees = missions.filter((m) => m.statut !== 'disponible');
+  const getDistanceLabel = (coords: { lat: number; lng: number }): string => {
+    if (!userCoords) return '';
+    const km = haversineKm(userCoords.lat, userCoords.lng, coords.lat, coords.lng);
+    return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
+  };
+
+  const tabs: { id: Tab; label: string; count: number }[] = [
+    { id: 'disponibles', label: 'Disponibles', count: pending.length },
+    { id: 'missions', label: 'Mes missions', count: myMissions.length },
+    { id: 'historique', label: 'Historique', count: history.length },
+  ];
+
+  const currentList =
+    activeTab === 'disponibles'
+      ? pending
+      : activeTab === 'missions'
+      ? myMissions
+      : history;
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={styles.loadingText}>Chargement des missions…</Text>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Stats bar */}
-        <View style={styles.statsBar}>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>{disponibles.length}</Text>
-            <Text style={styles.statLabel}>En attente</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>
-              {missions.filter((m) => m.statut === 'acceptée').length}
-            </Text>
-            <Text style={styles.statLabel}>Acceptées</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>
-              {missions.filter((m) => m.statut === 'refusée').length}
-            </Text>
-            <Text style={styles.statLabel}>Refusées</Text>
-          </View>
-        </View>
-
-        {/* Available missions */}
-        {disponibles.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Missions disponibles</Text>
-            {disponibles.map((mission) => (
-              <View key={mission.id} style={styles.missionCard}>
-                {mission.urgence && (
-                  <View style={styles.urgenceBar}>
-                    <Text style={styles.urgenceText}>🚨 MISSION URGENTE</Text>
-                  </View>
-                )}
-                <View style={styles.missionTop}>
-                  <Text style={styles.missionBesoin}>{mission.besoin}</Text>
-                  <Text style={styles.missionPatient}>👤 {mission.patient}</Text>
-                </View>
-                <View style={styles.missionMeta}>
-                  <Text style={styles.metaItem}>📍 {mission.lieu}</Text>
-                  <Text style={styles.metaItem}>
-                    📏 {mission.distance} · 📅 {mission.date} à {mission.heure} · ⏱ {mission.duree}
-                  </Text>
-                </View>
-                <View style={styles.missionActions}>
-                  <TouchableOpacity
-                    style={styles.refuserBtn}
-                    onPress={() => handleAction(mission.id, 'refusée')}
-                    accessibilityRole="button"
-                    accessibilityLabel="Refuser cette mission"
-                  >
-                    <Text style={styles.refuserText}>Refuser</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.accepterBtn}
-                    onPress={() => handleAction(mission.id, 'acceptée')}
-                    accessibilityRole="button"
-                    accessibilityLabel="Accepter cette mission"
-                  >
-                    <Text style={styles.accepterText}>✓  Accepter</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* Processed missions */}
-        {traitees.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Missions traitées</Text>
-            {traitees.map((mission) => (
-              <View key={mission.id} style={styles.traiteeCard}>
-                <View style={styles.traiteeInfo}>
-                  <Text style={styles.traiteeBesoin}>{mission.besoin}</Text>
-                  <Text style={styles.traiteeDate}>
-                    {mission.date} à {mission.heure}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.traiteeStatut,
-                    {
-                      backgroundColor:
-                        mission.statut === 'acceptée' ? Colors.interpretesLight : '#FEE2E2',
-                    },
-                  ]}
-                >
-                  <Text
+      {/* Barre d'onglets */}
+      <View style={styles.tabBar}>
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <TouchableOpacity
+              key={tab.id}
+              style={[styles.tab, isActive && styles.tabActive]}
+              onPress={() => setActiveTab(tab.id)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isActive }}
+            >
+              <View style={styles.tabInner}>
+                <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                  {tab.label}
+                </Text>
+                {tab.count > 0 && (
+                  <View
                     style={[
-                      styles.traiteeStatutText,
-                      {
-                        color: mission.statut === 'acceptée' ? Colors.interpretes : Colors.error,
-                      },
+                      styles.tabBadge,
+                      isActive ? styles.tabBadgeActive : styles.tabBadgeInactive,
                     ]}
                   >
-                    {mission.statut === 'acceptée' ? '✓ Acceptée' : '✗ Refusée'}
-                  </Text>
-                </View>
+                    <Text
+                      style={[
+                        styles.tabBadgeText,
+                        isActive ? styles.tabBadgeTextActive : styles.tabBadgeTextInactive,
+                      ]}
+                    >
+                      {tab.count}
+                    </Text>
+                  </View>
+                )}
               </View>
-            ))}
-          </View>
-        )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
 
-        {disponibles.length === 0 && traitees.length === missions.length && (
+      <FlatList
+        data={currentList}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        renderItem={({ item }) => (
+          <AppointmentCard
+            appt={item}
+            tab={activeTab}
+            distance={getDistanceLabel(item.coordinates)}
+            isAccepting={accepting === item.id}
+            acceptAnim={acceptAnim}
+            onAccept={() => handleAccept(item.id)}
+            onDecline={() => declineMission(item.id)}
+          />
+        )}
+        ListEmptyComponent={() => (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyEmoji}>🎉</Text>
-            <Text style={styles.emptyTitle}>Toutes les missions traitées !</Text>
-            <Text style={styles.emptyText}>Revenez plus tard pour de nouvelles demandes.</Text>
+            <Text style={styles.emptyIcon}>
+              {activeTab === 'disponibles' ? '🎉' : activeTab === 'missions' ? '📅' : '📋'}
+            </Text>
+            <Text style={styles.emptyTitle}>
+              {activeTab === 'disponibles'
+                ? 'Aucune demande disponible'
+                : activeTab === 'missions'
+                ? 'Aucune mission en cours'
+                : 'Aucun historique'}
+            </Text>
+            <Text style={styles.emptySub}>
+              {activeTab === 'disponibles'
+                ? 'Revenez plus tard pour voir de nouvelles demandes.'
+                : activeTab === 'missions'
+                ? "Acceptez des demandes dans l'onglet Disponibles."
+                : 'Vos missions passées apparaîtront ici.'}
+            </Text>
           </View>
         )}
-      </ScrollView>
+      />
     </SafeAreaView>
   );
 }
 
+type CardProps = {
+  appt: Appointment;
+  tab: Tab;
+  distance: string;
+  isAccepting: boolean;
+  acceptAnim: Animated.Value;
+  onAccept: () => void;
+  onDecline: () => void;
+};
+
+function AppointmentCard({
+  appt,
+  tab,
+  distance,
+  isAccepting,
+  acceptAnim,
+  onAccept,
+  onDecline,
+}: CardProps) {
+  const info = TYPE_INFO[appt.type];
+  const isUrgent = appt.type === 'urgences';
+
+  return (
+    <View style={[styles.card, isUrgent && styles.cardUrgent]}>
+      {/* Overlay de confirmation d'acceptation */}
+      {isAccepting && (
+        <Animated.View style={[styles.acceptOverlay, { opacity: acceptAnim }]}>
+          <Text style={styles.acceptOverlayText}>✓ Mission acceptée !</Text>
+        </Animated.View>
+      )}
+
+      {/* En-tête : type + badge urgent + distance */}
+      <View style={styles.cardHeader}>
+        <View style={styles.typeRow}>
+          <Text style={styles.typeIcon}>{info.icon}</Text>
+          <Text style={[styles.typeLabel, isUrgent && styles.typeLabelUrgent]}>
+            {info.label}
+          </Text>
+          {isUrgent && (
+            <View style={styles.urgentBadge}>
+              <Text style={styles.urgentText}>URGENT</Text>
+            </View>
+          )}
+        </View>
+        {!!distance && <Text style={styles.distanceLabel}>📍 {distance}</Text>}
+      </View>
+
+      {/* Patient */}
+      <Text style={styles.patientName}>👤 {appt.patientName}</Text>
+
+      {/* Date + heure */}
+      <View style={styles.metaRow}>
+        <Text style={styles.metaItem}>🗓 {formatDate(appt.date)}</Text>
+        <Text style={styles.metaItem}>🕐 {appt.time}</Text>
+      </View>
+
+      {/* Lieu */}
+      <View style={styles.locationBox}>
+        <Text style={styles.locationName} numberOfLines={1}>
+          {appt.location}
+        </Text>
+        <Text style={styles.locationAddress} numberOfLines={1}>
+          {appt.address}
+        </Text>
+      </View>
+
+      {/* Actions ou statut */}
+      {tab === 'disponibles' ? (
+        <View style={styles.actions}>
+          <TouchableOpacity
+            style={styles.declineBtn}
+            onPress={onDecline}
+            accessibilityRole="button"
+          >
+            <Text style={styles.declineBtnText}>✗  Refuser</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.acceptBtn}
+            onPress={onAccept}
+            accessibilityRole="button"
+          >
+            <Text style={styles.acceptBtnText}>✓  Accepter</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View
+          style={[
+            styles.statusChip,
+            appt.status === 'accepted' ? styles.statusAccepted : styles.statusDeclined,
+          ]}
+        >
+          <Text style={styles.statusChipText}>
+            {appt.status === 'accepted' ? '✓ Acceptée' : '✗ Refusée'}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.interpretes },
-  scroll: { flex: 1, backgroundColor: Colors.background },
-  content: { paddingBottom: Spacing.xxl },
-
-  statsBar: {
-    flexDirection: 'row',
-    backgroundColor: Colors.interpretes,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.lg,
-    justifyContent: 'space-around',
+  safe: { flex: 1, backgroundColor: Colors.background },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
+    gap: Spacing.md,
+    backgroundColor: Colors.background,
   },
-  stat: { alignItems: 'center' },
-  statValue: { fontSize: FontSize.xxl, fontWeight: '800', color: Colors.white },
-  statLabel: { fontSize: FontSize.xs, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
-  statDivider: { width: 1, height: 36, backgroundColor: 'rgba(255,255,255,0.3)' },
+  loadingText: { fontSize: FontSize.sm, color: Colors.textSecondary },
 
-  section: { padding: Spacing.lg, gap: Spacing.sm },
-  sectionTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginBottom: Spacing.xs,
+  /* Tab bar */
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    paddingHorizontal: Spacing.sm,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+    borderBottomWidth: 2.5,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: { borderBottomColor: Colors.primary },
+  tabInner: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  tabText: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.textSecondary },
+  tabTextActive: { color: Colors.primary },
+  tabBadge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  tabBadgeActive: { backgroundColor: Colors.primary },
+  tabBadgeInactive: { backgroundColor: Colors.border },
+  tabBadgeText: { fontSize: 10, fontWeight: '800' },
+  tabBadgeTextActive: { color: Colors.white },
+  tabBadgeTextInactive: { color: Colors.textSecondary },
+
+  /* List */
+  listContent: {
+    padding: Spacing.md,
+    paddingBottom: Spacing.xxl,
+    gap: Spacing.md,
   },
 
-  missionCard: {
+  /* Empty state */
+  emptyState: {
+    paddingVertical: Spacing.xxl,
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  emptyIcon: { fontSize: 48 },
+  emptyTitle: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.textPrimary },
+  emptySub: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    paddingHorizontal: Spacing.lg,
+  },
+
+  /* Card */
+  card: {
     backgroundColor: Colors.white,
     borderRadius: Radius.lg,
-    overflow: 'hidden',
+    padding: Spacing.md,
+    gap: Spacing.sm,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.07,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 2,
+    overflow: 'hidden',
   },
-  urgenceBar: {
+  cardUrgent: {
+    borderColor: Colors.error + '80',
+    borderWidth: 2,
+  },
+
+  /* Accept overlay */
+  acceptOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: Colors.primary + 'EC',
+    borderRadius: Radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  acceptOverlayText: {
+    fontSize: FontSize.xl,
+    fontWeight: '800',
+    color: Colors.white,
+    letterSpacing: 0.5,
+  },
+
+  /* Card content */
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  typeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    flex: 1,
+    flexWrap: 'wrap',
+  },
+  typeIcon: { fontSize: 18 },
+  typeLabel: { fontSize: FontSize.md, fontWeight: '700', color: Colors.textPrimary },
+  typeLabelUrgent: { color: Colors.error },
+  urgentBadge: {
     backgroundColor: '#FEE2E2',
+    borderRadius: Radius.full,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+  },
+  urgentText: { fontSize: FontSize.xs, fontWeight: '800', color: Colors.error, letterSpacing: 0.5 },
+  distanceLabel: { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: '500' },
+
+  patientName: { fontSize: FontSize.md, fontWeight: '600', color: Colors.textPrimary },
+
+  metaRow: { flexDirection: 'row', gap: Spacing.md },
+  metaItem: { fontSize: FontSize.sm, color: Colors.textSecondary },
+
+  locationBox: { gap: 2 },
+  locationName: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.textPrimary },
+  locationAddress: { fontSize: FontSize.xs, color: Colors.textSecondary },
+
+  /* Action buttons */
+  actions: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.xs },
+  declineBtn: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: Colors.error,
+  },
+  declineBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: Colors.error },
+  acceptBtn: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    backgroundColor: Colors.primary,
+  },
+  acceptBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: Colors.white },
+
+  /* Status chip */
+  statusChip: {
+    alignSelf: 'flex-start',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
-  },
-  urgenceText: { fontSize: FontSize.sm, fontWeight: '700', color: Colors.error },
-  missionTop: {
-    padding: Spacing.md,
-    paddingBottom: Spacing.xs,
-    gap: 3,
-  },
-  missionBesoin: { fontSize: FontSize.md, fontWeight: '700', color: Colors.textPrimary },
-  missionPatient: { fontSize: FontSize.sm, color: Colors.textSecondary },
-  missionMeta: {
-    paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.md,
-    gap: 3,
-  },
-  metaItem: { fontSize: FontSize.sm, color: Colors.textSecondary },
-  missionActions: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-  },
-  refuserBtn: {
-    flex: 1,
-    padding: Spacing.md,
-    alignItems: 'center',
-    borderRightWidth: 1,
-    borderRightColor: Colors.border,
-  },
-  refuserText: { fontSize: FontSize.md, fontWeight: '600', color: Colors.textSecondary },
-  accepterBtn: {
-    flex: 2,
-    padding: Spacing.md,
-    alignItems: 'center',
-    backgroundColor: Colors.interpretes,
-  },
-  accepterText: { fontSize: FontSize.md, fontWeight: '700', color: Colors.white },
-
-  traiteeCard: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  traiteeInfo: { gap: 2, flex: 1 },
-  traiteeBesoin: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.textPrimary },
-  traiteeDate: { fontSize: FontSize.xs, color: Colors.textSecondary },
-  traiteeStatut: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
     borderRadius: Radius.full,
-    flexShrink: 0,
+    marginTop: Spacing.xs,
   },
-  traiteeStatutText: { fontSize: FontSize.xs, fontWeight: '700' },
-
-  emptyState: {
-    padding: Spacing.xxl,
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  emptyEmoji: { fontSize: 48 },
-  emptyTitle: { fontSize: FontSize.xl, fontWeight: '700', color: Colors.textPrimary },
-  emptyText: { fontSize: FontSize.md, color: Colors.textSecondary, textAlign: 'center' },
+  statusAccepted: { backgroundColor: Colors.primaryLight },
+  statusDeclined: { backgroundColor: '#FEE2E2' },
+  statusChipText: { fontSize: FontSize.sm, fontWeight: '700', color: Colors.textPrimary },
 });
