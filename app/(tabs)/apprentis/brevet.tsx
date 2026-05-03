@@ -69,8 +69,8 @@ export default function BrevetScreen() {
 
   const canSubmit = niveau && organisme && annee.length === 4 && numero.trim().length > 3;
 
-  const handleSubmit = () => {
-    submitBrevet();
+  const handleSubmit = async () => {
+    await submitBrevet();
     setSubmitted(true);
   };
 

@@ -59,11 +59,11 @@ export default function RegisterScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!role) { setError('Veuillez choisir votre rôle.'); return; }
     setError(null);
     setLoading(true);
-    const err = register(name, email.trim(), password, role);
+    const err = await register(name, email.trim(), password, role);
     setLoading(false);
     if (err) {
       setError(err);

@@ -22,22 +22,16 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setError(null);
     setLoading(true);
-    const err = login(email.trim(), password);
+    const err = await login(email.trim(), password);
     setLoading(false);
     if (err) {
       setError(err);
     } else {
       router.replace('/(tabs)');
     }
-  };
-
-  const fillDemo = (role: 'sourd' | 'interprete' | 'apprenti') => {
-    setEmail(`${role}@demo.fr`);
-    setPassword('demo');
-    setError(null);
   };
 
   return (
@@ -124,34 +118,6 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Demo accounts */}
-          <View style={styles.demoBox}>
-            <Text style={styles.demoTitle}>💡 Comptes de démonstration</Text>
-            <View style={styles.demoButtons}>
-              <TouchableOpacity
-                style={[styles.demoBtn, { backgroundColor: Colors.malentendantsLight }]}
-                onPress={() => fillDemo('sourd')}
-                accessibilityRole="button"
-              >
-                <Text style={[styles.demoBtnText, { color: Colors.malentendants }]}>🤟 Sourd</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.demoBtn, { backgroundColor: Colors.interpretesLight }]}
-                onPress={() => fillDemo('interprete')}
-                accessibilityRole="button"
-              >
-                <Text style={[styles.demoBtnText, { color: Colors.interpretes }]}>👐 Interprète</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.demoBtn, { backgroundColor: Colors.apprentisLight }]}
-                onPress={() => fillDemo('apprenti')}
-                accessibilityRole="button"
-              >
-                <Text style={[styles.demoBtnText, { color: Colors.apprentis }]}>📚 Apprenti</Text>
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.demoHint}>Mot de passe : demo</Text>
-          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -238,22 +204,4 @@ const styles = StyleSheet.create({
   registerLinkText: { fontSize: FontSize.sm, color: Colors.textSecondary },
   registerLinkBold: { fontWeight: '700', color: Colors.primary },
 
-  demoBox: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    gap: Spacing.sm,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  demoTitle: { fontSize: FontSize.sm, color: Colors.white, fontWeight: '600' },
-  demoButtons: { flexDirection: 'row', gap: Spacing.sm },
-  demoBtn: {
-    flex: 1,
-    padding: Spacing.sm,
-    borderRadius: Radius.md,
-    alignItems: 'center',
-  },
-  demoBtnText: { fontSize: FontSize.xs, fontWeight: '700' },
-  demoHint: { fontSize: FontSize.xs, color: 'rgba(255,255,255,0.7)', textAlign: 'center' },
 });
