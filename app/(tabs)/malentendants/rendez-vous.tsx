@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -13,6 +14,8 @@ import {
 } from 'react-native';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
+import { HEALTH_PROFESSIONALS } from '@/data/healthProfessionals';
+import { useHealthProfessionalsSearch } from '@/hooks/useHealthProfessionals';
 
 /* ─── Locale française ─────────────────────────────────── */
 LocaleConfig.locales['fr'] = {
@@ -41,7 +44,7 @@ for (let h = 8; h <= 19; h++) {
   if (h < 19) TIME_SLOTS.push(`${String(h).padStart(2, '0')}:30`);
 }
 
-/* ─── Base de données fictive — professionnels de Nice ──── */
+/* ─── Type interne Provider (vue formulaire) ─────────────── */
 type Provider = {
   id: string;
   name: string;
@@ -49,36 +52,6 @@ type Provider = {
   type: CategoryId;
   specialite?: string;
 };
-
-const PROVIDERS: Provider[] = [
-  // Médecins généralistes
-  { id: 'g1',  name: 'Dr. Martin Lefèvre',    address: '12 rue de la Préfecture, Nice 06000',    type: 'generaliste' },
-  { id: 'g2',  name: 'Dr. Sophie Arnaud',      address: '3 av. Jean Médecin, Nice 06000',         type: 'generaliste' },
-  { id: 'g3',  name: 'Dr. Pierre Dumont',      address: '27 bd Gambetta, Nice 06000',             type: 'generaliste' },
-  { id: 'g4',  name: 'Dr. Claire Moreau',      address: '15 rue Masséna, Nice 06000',             type: 'generaliste' },
-  { id: 'g5',  name: 'Dr. Antoine Roux',       address: '8 bd Victor Hugo, Nice 06000',           type: 'generaliste' },
-  { id: 'g6',  name: 'Dr. Marie Fontaine',     address: '22 av. Borriglione, Nice 06000',         type: 'generaliste' },
-  { id: 'g7',  name: 'Dr. Lucas Bernard',      address: '5 rue Gounod, Nice 06000',               type: 'generaliste' },
-  { id: 'g8',  name: 'Dr. Emma Tissot',        address: '31 av. de la Californie, Nice 06200',    type: 'generaliste' },
-  { id: 'g9',  name: 'Dr. Nicolas Garnier',    address: '14 rue Gubernatis, Nice 06000',          type: 'generaliste' },
-  { id: 'g10', name: 'Dr. Isabelle Dupuis',    address: '9 bd Carabacel, Nice 06000',             type: 'generaliste' },
-  // Urgences / Hôpitaux
-  { id: 'u1',  name: 'CHU de Nice Pasteur',    address: '30 av. de la Voie Romaine, Nice 06001',  type: 'urgences' },
-  { id: 'u2',  name: 'Hôpital Saint-Roch',     address: '5 rue Pierre Dévoluy, Nice 06000',       type: 'urgences' },
-  { id: 'u3',  name: 'Clinique Saint-George',  address: '2 av. de Cimiez, Nice 06000',            type: 'urgences' },
-  // Spécialistes
-  { id: 's1',  name: 'Dr. Jean Moreau',        address: '17 bd Gambetta, Nice 06000',             type: 'specialiste', specialite: 'Cardiologue' },
-  { id: 's2',  name: 'Dr. Alice Petit',        address: '8 rue de la Liberté, Nice 06000',        type: 'specialiste', specialite: 'Dermatologue' },
-  { id: 's3',  name: 'Dr. Paul Chen',          address: '42 av. Jean Médecin, Nice 06000',        type: 'specialiste', specialite: 'Ophtalmologue' },
-  { id: 's4',  name: 'Dr. Sarah Müller',       address: '6 rue Smolett, Nice 06300',              type: 'specialiste', specialite: 'ORL' },
-  { id: 's5',  name: 'Dr. Marc Blanc',         address: '19 av. Borriglione, Nice 06000',         type: 'specialiste', specialite: 'Gynécologue' },
-  // Pharmacies
-  { id: 'p1',  name: 'Pharmacie Centrale',     address: '10 av. Jean Médecin, Nice 06000',        type: 'pharmacie' },
-  { id: 'p2',  name: 'Pharmacie du Port',      address: '3 quai des Deux Emmanuel, Nice 06300',   type: 'pharmacie' },
-  { id: 'p3',  name: 'Pharmacie de Cimiez',    address: '23 av. de Cimiez, Nice 06000',           type: 'pharmacie' },
-  { id: 'p4',  name: 'Pharmacie Masséna',      address: '1 place Masséna, Nice 06000',            type: 'pharmacie' },
-  { id: 'p5',  name: 'Pharmacie Victor Hugo',  address: '15 bd Victor Hugo, Nice 06000',          type: 'pharmacie' },
-];
 
 const CATEGORY_EMOJI: Record<CategoryId, string> = {
   generaliste: '🩺',
@@ -91,25 +64,48 @@ const TODAY = new Date().toISOString().split('T')[0];
 
 /* ─── Composant ──────────────────────────────────────────── */
 export default function RendezVousScreen() {
+  const { professionals, loading: profLoading } = useHealthProfessionalsSearch();
+
   const [selectedCategory, setSelectedCategory] = useState<CategoryId | null>(null);
   const [searchQuery, setSearchQuery]           = useState('');
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
   const [selectedDate, setSelectedDate]         = useState('');
   const [selectedTime, setSelectedTime]         = useState('');
 
+  /* Mapping Firestore → Provider */
+  const allProviders = useMemo<Provider[]>(() => {
+    const firestoreProviders: Provider[] = professionals
+      .filter((p) => p.category !== 'hospital')
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        address: p.address,
+        type: p.category === 'doctor'     ? 'generaliste'
+            : p.category === 'specialist' ? 'specialiste'
+            : 'pharmacie',
+        specialite: p.specialite || undefined,
+      }));
+
+    const hospitals: Provider[] = HEALTH_PROFESSIONALS
+      .filter((p) => p.category === 'hospital')
+      .map((p) => ({ id: p.id, name: p.name, address: p.address, type: 'urgences' as CategoryId }));
+
+    return [...hospitals, ...firestoreProviders];
+  }, [professionals]);
+
   /* Suggestions filtrées */
   const suggestions = useMemo<Provider[]>(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q || selectedProvider) return [];
-    return PROVIDERS.filter((p) => {
+    return allProviders.filter((p) => {
       const matchType = !selectedCategory || p.type === selectedCategory;
       const matchText =
         p.name.toLowerCase().includes(q) ||
         p.address.toLowerCase().includes(q) ||
         (p.specialite?.toLowerCase().includes(q) ?? false);
       return matchType && matchText;
-    }).slice(0, 5);
-  }, [searchQuery, selectedCategory, selectedProvider]);
+    }).slice(0, 6);
+  }, [searchQuery, selectedCategory, selectedProvider, allProviders]);
 
   const handleSelectCategory = (id: CategoryId) => {
     setSelectedCategory(id);
@@ -197,7 +193,7 @@ export default function RendezVousScreen() {
                 : 'Tapez un nom ou une adresse à Nice'}
             </Text>
 
-            {/* Input with clear */}
+            {/* Input with clear / loading */}
             <View style={styles.searchRow}>
               <TextInput
                 style={[styles.searchInput, selectedProvider && styles.searchInputFilled]}
@@ -206,16 +202,20 @@ export default function RendezVousScreen() {
                   setSearchQuery(t);
                   if (selectedProvider) setSelectedProvider(null);
                 }}
-                placeholder="Ex : Dr. Lefèvre, Pharmacie Masséna…"
+                placeholder={profLoading ? 'Chargement des professionnels…' : 'Ex : Dr. Lefèvre, Pharmacie Masséna…'}
                 placeholderTextColor={Colors.textSecondary}
                 autoCorrect={false}
+                editable={!profLoading}
                 accessibilityLabel="Rechercher un professionnel de santé"
               />
-              {(searchQuery.length > 0) && (
-                <TouchableOpacity style={styles.clearBtn} onPress={handleClearProvider} accessibilityLabel="Effacer">
-                  <Text style={styles.clearBtnText}>✕</Text>
-                </TouchableOpacity>
-              )}
+              {profLoading
+                ? <ActivityIndicator style={styles.clearBtn} color={Colors.malentendants} size="small" />
+                : searchQuery.length > 0 && (
+                    <TouchableOpacity style={styles.clearBtn} onPress={handleClearProvider} accessibilityLabel="Effacer">
+                      <Text style={styles.clearBtnText}>✕</Text>
+                    </TouchableOpacity>
+                  )
+              }
             </View>
 
             {/* Suggestions dropdown */}

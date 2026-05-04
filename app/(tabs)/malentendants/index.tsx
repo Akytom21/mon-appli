@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import * as Location from 'expo-location';
 import { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Platform,
   SafeAreaView,
@@ -17,10 +18,10 @@ import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
 import { INTERPRETES_NICE, NICE_CENTER, type Interprete } from '@/data/mockData';
 import {
   CATEGORY_CONFIG,
-  HEALTH_PROFESSIONALS,
   type HealthCategory,
   type HealthProfessional,
 } from '@/data/healthProfessionals';
+import { useHealthProfessionals } from '@/hooks/useHealthProfessionals';
 
 let MapView: any, Marker: any;
 if (Platform.OS !== 'web') {
@@ -366,6 +367,20 @@ function DetailSheet({
 export default function MalentendantsHome() {
   const { user } = useAuth();
   const prenom = user?.name?.split(' ')[0] ?? '';
+  const { professionals, loading: profLoading } = useHealthProfessionals();
+
+  useEffect(() => {
+    console.log('[MalentendantsHome] MONTÉ');
+    console.log('[MalentendantsHome] Marker importé:', typeof Marker);
+  }, []);
+
+  useEffect(() => {
+    if (!profLoading && professionals.length > 0) {
+      setMarkerTracking(true);
+      const t = setTimeout(() => setMarkerTracking(false), 800);
+      return () => clearTimeout(t);
+    }
+  }, [profLoading, professionals.length]);
 
   const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locationError, setLocationError] = useState(false);
@@ -374,6 +389,9 @@ export default function MalentendantsHome() {
   const [activeFilters, setActiveFilters] = useState<Set<FilterId>>(
     () => new Set(['interprete', 'hospital', 'pharmacy', 'doctor', 'specialist'] as FilterId[]),
   );
+  /* tracksViewChanges fix : démarre à true pour laisser les vues enfants se peindre,
+     passe à false 800 ms après le chargement pour économiser les re-renders */
+  const [markerTracking, setMarkerTracking] = useState(true);
   const mapRef = useRef<any>(null);
 
   /* Geolocation */
@@ -410,7 +428,22 @@ export default function MalentendantsHome() {
   const visibleInterpreters = activeFilters.has('interprete') ? INTERPRETES_NICE : [];
   const clusters = computeClusters(visibleInterpreters, mapRegion.latitudeDelta);
 
-  const visibleHealth = HEALTH_PROFESSIONALS.filter((h) => activeFilters.has(h.category));
+  const visibleHealth = professionals.filter(
+    (h) => activeFilters.has(h.category) && !isNaN(h.latitude) && !isNaN(h.longitude),
+  );
+
+  console.log(
+    `[Carte] professionals=${professionals.length}` +
+    ` visibleHealth=${visibleHealth.length}` +
+    ` loading=${profLoading}` +
+    ` markerTracking=${markerTracking}`,
+  );
+  if (visibleHealth.length > 0) {
+    const sample = visibleHealth.slice(0, 3);
+    console.log('[Carte] Coords échantillon:', sample.map(p =>
+      `[${p.id}] lat=${p.latitude} lng=${p.longitude} cat=${p.category}`
+    ));
+  }
 
   const distanceKm =
     selectedItem && userCoords
@@ -473,13 +506,13 @@ export default function MalentendantsHome() {
               </Marker>
             )}
 
-            {/* Health professionals (rendered under interpreters) */}
+            {/* Health professionals */}
             {visibleHealth.map((prof) => (
               <Marker
                 key={prof.id}
                 coordinate={{ latitude: prof.latitude, longitude: prof.longitude }}
                 onPress={() => setSelectedItem({ type: 'health', data: prof })}
-                tracksViewChanges={false}
+                tracksViewChanges={markerTracking}
                 anchor={{ x: 0.5, y: 0.5 }}
               >
                 <HealthMarkerView category={prof.category} />
@@ -528,7 +561,7 @@ export default function MalentendantsHome() {
             <Text style={styles.mapFallbackEmoji}>🗺️</Text>
             <Text style={styles.mapFallbackText}>Carte disponible sur mobile</Text>
             <Text style={styles.mapFallbackSub}>
-              {HEALTH_PROFESSIONALS.length} établissements · {INTERPRETES_NICE.length} interprètes
+              {professionals.length} établissements · {INTERPRETES_NICE.length} interprètes
             </Text>
           </View>
         )}
@@ -583,7 +616,7 @@ export default function MalentendantsHome() {
           <View style={styles.statCard}>
             <Text style={styles.statEmoji}>🏥</Text>
             <Text style={styles.statValue}>
-              {HEALTH_PROFESSIONALS.filter((h) => h.category === 'hospital').length}
+              {professionals.filter((h) => h.category === 'hospital').length}
             </Text>
             <Text style={styles.statLabel}>Hôpitaux</Text>
           </View>
@@ -642,11 +675,17 @@ export default function MalentendantsHome() {
         )}
 
         {/* Health professionals list — grouped by visible category */}
+        {profLoading && (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator color={Colors.primary} />
+            <Text style={styles.loadingText}>Chargement des professionnels…</Text>
+          </View>
+        )}
         {(['hospital', 'pharmacy', 'doctor', 'specialist'] as HealthCategory[])
           .filter((cat) => activeFilters.has(cat))
           .map((cat) => {
             const cfg = CATEGORY_CONFIG[cat];
-            const items = HEALTH_PROFESSIONALS.filter((h) => h.category === cat);
+            const items = professionals.filter((h) => h.category === cat);
             return (
               <View key={cat} style={styles.section}>
                 <Text style={styles.sectionTitle}>
@@ -1023,6 +1062,15 @@ const styles = StyleSheet.create({
   healthInfoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
   healthInfoIcon: { fontSize: 14, width: 20, textAlign: 'center', marginTop: 1 },
   healthInfoText: { flex: 1, fontSize: FontSize.sm, color: Colors.textSecondary, lineHeight: 20 },
+
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    justifyContent: 'center',
+  },
+  loadingText: { fontSize: FontSize.sm, color: Colors.textSecondary },
 
   /* RDV button in sheet */
   rdvBtn: {
