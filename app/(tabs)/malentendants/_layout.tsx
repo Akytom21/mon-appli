@@ -14,6 +14,7 @@ export default function MalentendantsLayout() {
       <Stack.Screen name="index" options={{ title: '🤟 Espace Malentendants' }} />
       <Stack.Screen name="rendez-vous" options={{ title: 'Prendre un rendez-vous' }} />
       <Stack.Screen name="confirmation" options={{ title: 'Confirmation', headerBackVisible: false }} />
+      <Stack.Screen name="mes-rdv" options={{ title: 'Mes rendez-vous' }} />
     </Stack>
   );
 }

@@ -10,9 +10,13 @@ import {
 } from 'react-native';
 import { useAuth, User } from '@/context/AuthContext';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
+import { usePatientAppointments } from '@/hooks/useAppointments';
 
 /* ── Sourd home ─────────────────────────────────────────── */
 function SourdHome({ user }: { user: User }) {
+  const { appointments } = usePatientAppointments();
+  const pendingCount = appointments.filter((a) => a.status === 'pending').length;
+
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: Colors.malentendants }]}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -34,6 +38,34 @@ function SourdHome({ user }: { user: User }) {
               <Text style={styles.mainActionSub}>Carte · Disponibilités · Prise de RDV</Text>
             </View>
             <Text style={styles.mainActionArrow}>›</Text>
+          </TouchableOpacity>
+
+          {/* Mes rendez-vous — accès direct avec badge en attente */}
+          <TouchableOpacity
+            style={styles.myRdvBtn}
+            onPress={() => router.push('/(tabs)/malentendants/mes-rdv')}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+          >
+            <Text style={styles.myRdvBtnEmoji}>📋</Text>
+            <View style={styles.myRdvBtnText}>
+              <Text style={styles.myRdvBtnTitle}>Mes rendez-vous</Text>
+              <Text style={styles.myRdvBtnSub}>
+                {appointments.length === 0
+                  ? 'Aucune demande en cours'
+                  : pendingCount > 0
+                  ? `${pendingCount} en attente d'interprète`
+                  : `${appointments.length} rendez-vous`}
+              </Text>
+            </View>
+            <View style={styles.myRdvBtnRight}>
+              {pendingCount > 0 && (
+                <View style={styles.pendingBadge}>
+                  <Text style={styles.pendingBadgeText}>{pendingCount}</Text>
+                </View>
+              )}
+              <Text style={styles.myRdvBtnArrow}>›</Text>
+            </View>
           </TouchableOpacity>
 
           <View style={styles.infoRow}>
@@ -327,6 +359,38 @@ const styles = StyleSheet.create({
   mainActionTitle: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.white },
   mainActionSub: { fontSize: FontSize.sm, color: 'rgba(255,255,255,0.85)' },
   mainActionArrow: { fontSize: 28, color: Colors.white, flexShrink: 0, lineHeight: 32 },
+
+  myRdvBtn: {
+    backgroundColor: Colors.white,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    borderWidth: 2,
+    borderColor: Colors.malentendants,
+    shadowColor: Colors.malentendants,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  myRdvBtnEmoji: { fontSize: 26, flexShrink: 0 },
+  myRdvBtnText: { flex: 1, gap: 2 },
+  myRdvBtnTitle: { fontSize: FontSize.md, fontWeight: '700', color: Colors.malentendants },
+  myRdvBtnSub: { fontSize: FontSize.sm, color: Colors.textSecondary },
+  myRdvBtnRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, flexShrink: 0 },
+  pendingBadge: {
+    backgroundColor: Colors.warning,
+    borderRadius: Radius.full,
+    minWidth: 22,
+    height: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
+  },
+  pendingBadgeText: { fontSize: 11, fontWeight: '800', color: Colors.white },
+  myRdvBtnArrow: { fontSize: 24, color: Colors.malentendants, fontWeight: '700', lineHeight: 28 },
 
   infoRow: { flexDirection: 'row', gap: Spacing.sm },
   infoCard: {

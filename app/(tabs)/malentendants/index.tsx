@@ -22,6 +22,7 @@ import {
   type HealthProfessional,
 } from '@/data/healthProfessionals';
 import { useHealthProfessionals } from '@/hooks/useHealthProfessionals';
+import { usePatientAppointments } from '@/hooks/useAppointments';
 
 let MapView: any, Marker: any;
 if (Platform.OS !== 'web') {
@@ -368,6 +369,8 @@ export default function MalentendantsHome() {
   const { user } = useAuth();
   const prenom = user?.name?.split(' ')[0] ?? '';
   const { professionals, loading: profLoading } = useHealthProfessionals();
+  const { appointments: myRdv } = usePatientAppointments();
+  const pendingRdvCount = myRdv.filter((a) => a.status === 'pending').length;
 
   useEffect(() => {
     console.log('[MalentendantsHome] MONTÉ');
@@ -589,7 +592,7 @@ export default function MalentendantsHome() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* CTA */}
+        {/* CTAs */}
         <TouchableOpacity
           style={styles.rdvMainBtn}
           onPress={() => router.push('/(tabs)/malentendants/rendez-vous')}
@@ -597,6 +600,20 @@ export default function MalentendantsHome() {
           accessibilityRole="button"
         >
           <Text style={styles.rdvMainBtnText}>📅  Prendre un rendez-vous</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.rdvSecondBtn}
+          onPress={() => router.push('/(tabs)/malentendants/mes-rdv')}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+        >
+          <Text style={styles.rdvSecondBtnText}>📋  Mes rendez-vous</Text>
+          {pendingRdvCount > 0 && (
+            <View style={styles.rdvBadge}>
+              <Text style={styles.rdvBadgeText}>{pendingRdvCount}</Text>
+            </View>
+          )}
         </TouchableOpacity>
 
         {/* Stats */}
@@ -917,6 +934,34 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   rdvMainBtnText: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.white },
+
+  rdvSecondBtn: {
+    backgroundColor: Colors.white,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  rdvSecondBtnText: { fontSize: FontSize.md, fontWeight: '700', color: Colors.primary },
+  rdvBadge: {
+    backgroundColor: Colors.warning,
+    borderRadius: Radius.full,
+    minWidth: 22,
+    height: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
+  },
+  rdvBadgeText: { fontSize: 11, fontWeight: '800', color: Colors.white },
 
   statsRow: { flexDirection: 'row', gap: Spacing.sm },
   statCard: {

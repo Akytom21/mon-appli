@@ -8,7 +8,11 @@
       "Bash(npm install *)",
       "PowerShell(cd \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\"; npx tsc --noEmit 2>&1 | Where-Object { $_ -notmatch \"collapsible|use-theme-color|Property 'light'\" })",
       "PowerShell(Get-Item *)",
-      "PowerShell($lines = Get-Content \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\\\\data\\\\pros_sante_nice.csv\" -Encoding Unicode -TotalCount 3; $lines | ForEach-Object { $fields = $_ -split '\\\\|'; for\\($i=0; $i -lt [Math]::Min\\($fields.Count, 45\\); $i++\\) { Write-Host \"[$i] $\\($fields[$i].Trim\\(\\)\\)\" }; Write-Host \"---\" })"
+      "PowerShell($lines = Get-Content \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\\\\data\\\\pros_sante_nice.csv\" -Encoding Unicode -TotalCount 3; $lines | ForEach-Object { $fields = $_ -split '\\\\|'; for\\($i=0; $i -lt [Math]::Min\\($fields.Count, 45\\); $i++\\) { Write-Host \"[$i] $\\($fields[$i].Trim\\(\\)\\)\" }; Write-Host \"---\" })",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Sort-Object)",
+      "PowerShell(tree \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\" -L 3 -I \"node_modules|.expo|.vscode|.next|.git\" -A)"
     ]
   }
 }

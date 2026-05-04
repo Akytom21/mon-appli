@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -16,6 +17,7 @@ import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
 import { HEALTH_PROFESSIONALS } from '@/data/healthProfessionals';
 import { useHealthProfessionalsSearch } from '@/hooks/useHealthProfessionals';
+import { useCreateAppointment } from '@/hooks/useAppointments';
 
 /* ─── Locale française ─────────────────────────────────── */
 LocaleConfig.locales['fr'] = {
@@ -51,6 +53,8 @@ type Provider = {
   address: string;
   type: CategoryId;
   specialite?: string;
+  latitude?: number;
+  longitude?: number;
 };
 
 const CATEGORY_EMOJI: Record<CategoryId, string> = {
@@ -65,12 +69,14 @@ const TODAY = new Date().toISOString().split('T')[0];
 /* ─── Composant ──────────────────────────────────────────── */
 export default function RendezVousScreen() {
   const { professionals, loading: profLoading } = useHealthProfessionalsSearch();
+  const createAppointment = useCreateAppointment();
 
   const [selectedCategory, setSelectedCategory] = useState<CategoryId | null>(null);
   const [searchQuery, setSearchQuery]           = useState('');
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
   const [selectedDate, setSelectedDate]         = useState('');
   const [selectedTime, setSelectedTime]         = useState('');
+  const [submitting, setSubmitting]             = useState(false);
 
   /* Mapping Firestore → Provider */
   const allProviders = useMemo<Provider[]>(() => {
@@ -84,11 +90,20 @@ export default function RendezVousScreen() {
             : p.category === 'specialist' ? 'specialiste'
             : 'pharmacie',
         specialite: p.specialite || undefined,
+        latitude: (p as any).latitude,
+        longitude: (p as any).longitude,
       }));
 
     const hospitals: Provider[] = HEALTH_PROFESSIONALS
       .filter((p) => p.category === 'hospital')
-      .map((p) => ({ id: p.id, name: p.name, address: p.address, type: 'urgences' as CategoryId }));
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        address: p.address,
+        type: 'urgences' as CategoryId,
+        latitude: p.latitude,
+        longitude: p.longitude,
+      }));
 
     return [...hospitals, ...firestoreProviders];
   }, [professionals]);
@@ -109,7 +124,6 @@ export default function RendezVousScreen() {
 
   const handleSelectCategory = (id: CategoryId) => {
     setSelectedCategory(id);
-    // Reset provider if it doesn't match the new category
     if (selectedProvider && selectedProvider.type !== id) {
       setSelectedProvider(null);
       setSearchQuery('');
@@ -132,8 +146,36 @@ export default function RendezVousScreen() {
 
   const canSubmit = selectedCategory && selectedProvider && selectedDate && selectedTime;
 
-  const handleSubmit = () => {
-    if (canSubmit) router.push('/(tabs)/malentendants/confirmation');
+  const handleSubmit = async () => {
+    if (!canSubmit || submitting) return;
+    setSubmitting(true);
+    try {
+      await createAppointment({
+        professionalName: selectedProvider!.name,
+        professionalAddress: selectedProvider!.address,
+        professionalType: selectedCategory!,
+        date: selectedDate,
+        time: selectedTime,
+        coordinates: selectedProvider!.latitude
+          ? { lat: selectedProvider!.latitude!, lng: selectedProvider!.longitude! }
+          : undefined,
+      });
+
+      router.push({
+        pathname: '/(tabs)/malentendants/confirmation',
+        params: {
+          type: selectedCategory!,
+          professionalName: selectedProvider!.name,
+          address: selectedProvider!.address,
+          date: selectedDate,
+          time: selectedTime,
+        },
+      });
+    } catch {
+      Alert.alert('Erreur', 'Impossible de créer le rendez-vous. Vérifiez votre connexion.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -148,6 +190,16 @@ export default function RendezVousScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {/* Lien vers historique */}
+          <TouchableOpacity
+            style={styles.myRdvLink}
+            onPress={() => router.push('/(tabs)/malentendants/mes-rdv')}
+            accessibilityRole="button"
+          >
+            <Text style={styles.myRdvLinkText}>📋 Voir mes rendez-vous</Text>
+            <Text style={styles.myRdvLinkArrow}>›</Text>
+          </TouchableOpacity>
+
           {/* Intro */}
           <View style={styles.intro}>
             <Text style={styles.introText}>
@@ -193,7 +245,6 @@ export default function RendezVousScreen() {
                 : 'Tapez un nom ou une adresse à Nice'}
             </Text>
 
-            {/* Input with clear / loading */}
             <View style={styles.searchRow}>
               <TextInput
                 style={[styles.searchInput, selectedProvider && styles.searchInputFilled]}
@@ -218,7 +269,6 @@ export default function RendezVousScreen() {
               }
             </View>
 
-            {/* Suggestions dropdown */}
             {suggestions.length > 0 && (
               <View style={styles.suggestions}>
                 {suggestions.map((p, idx) => (
@@ -245,7 +295,6 @@ export default function RendezVousScreen() {
               </View>
             )}
 
-            {/* No results */}
             {searchQuery.length > 1 && !selectedProvider && suggestions.length === 0 && (
               <View style={styles.noResult}>
                 <Text style={styles.noResultText}>
@@ -255,7 +304,6 @@ export default function RendezVousScreen() {
               </View>
             )}
 
-            {/* Selected provider card */}
             {selectedProvider && (
               <View style={styles.selectedCard}>
                 <Text style={styles.selectedEmoji}>{CATEGORY_EMOJI[selectedProvider.type]}</Text>
@@ -365,15 +413,19 @@ export default function RendezVousScreen() {
 
           {/* ── Bouton submit ── */}
           <TouchableOpacity
-            style={[styles.submitBtn, !canSubmit && styles.submitBtnDisabled]}
+            style={[styles.submitBtn, (!canSubmit || submitting) && styles.submitBtnDisabled]}
             onPress={handleSubmit}
-            disabled={!canSubmit}
+            disabled={!canSubmit || submitting}
             accessibilityRole="button"
             accessibilityLabel="Confirmer la demande de rendez-vous"
           >
-            <Text style={styles.submitText}>
-              {canSubmit ? '✓  Confirmer la demande' : 'Complétez tous les champs'}
-            </Text>
+            {submitting ? (
+              <ActivityIndicator color={Colors.white} />
+            ) : (
+              <Text style={styles.submitText}>
+                {canSubmit ? '✓  Confirmer la demande' : 'Complétez tous les champs'}
+              </Text>
+            )}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -387,6 +439,20 @@ const styles = StyleSheet.create({
   scroll:  { flex: 1, backgroundColor: Colors.background },
   content: { padding: Spacing.lg, paddingBottom: Spacing.xxl, gap: Spacing.xl },
 
+  myRdvLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.malentendantsLight,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.malentendants,
+  },
+  myRdvLinkText: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.malentendantsDark },
+  myRdvLinkArrow: { fontSize: FontSize.lg, color: Colors.malentendants, fontWeight: '700' },
+
   intro: {
     backgroundColor: Colors.malentendantsLight,
     borderRadius: Radius.md,
@@ -396,17 +462,11 @@ const styles = StyleSheet.create({
   },
   introText: { fontSize: FontSize.sm, color: Colors.malentendantsDark, lineHeight: 20 },
 
-  /* Section */
   section: { gap: Spacing.sm },
   sectionTitle: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.textPrimary },
   sectionSub:   { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: -4 },
 
-  /* ── Catégories ── */
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
+  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   categoryCard: {
     width: '47.5%',
     backgroundColor: Colors.white,
@@ -451,7 +511,6 @@ const styles = StyleSheet.create({
   },
   categoryCheckText: { fontSize: 11, fontWeight: '800', color: Colors.white },
 
-  /* ── Recherche lieu ── */
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -531,7 +590,6 @@ const styles = StyleSheet.create({
   },
   selectedClearText: { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: '700' },
 
-  /* ── Calendrier ── */
   calendarWrapper: {
     borderRadius: Radius.lg,
     overflow: 'hidden',
@@ -545,12 +603,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
 
-  /* ── Créneaux horaires ── */
-  timeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
+  timeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   timeSlot: {
     width: '22%',
     paddingVertical: Spacing.sm,
@@ -573,7 +626,6 @@ const styles = StyleSheet.create({
   timeSlotText:       { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: '500' },
   timeSlotTextActive: { color: Colors.white, fontWeight: '700' },
 
-  /* ── Récapitulatif ── */
   recap: {
     backgroundColor: Colors.malentendantsLight,
     borderRadius: Radius.lg,
@@ -585,7 +637,6 @@ const styles = StyleSheet.create({
   recapTitle: { fontSize: FontSize.md, fontWeight: '700', color: Colors.malentendantsDark, marginBottom: 4 },
   recapLine:  { fontSize: FontSize.sm, color: Colors.malentendantsDark, lineHeight: 22 },
 
-  /* ── Submit ── */
   submitBtn: {
     backgroundColor: Colors.malentendants,
     borderRadius: Radius.lg,

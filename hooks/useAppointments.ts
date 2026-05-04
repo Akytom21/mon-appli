@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import {
+  addDoc,
   arrayUnion,
   collection,
   doc,
   onSnapshot,
+  query,
+  serverTimestamp,
   updateDoc,
+  where,
   writeBatch,
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
@@ -25,10 +29,12 @@ export type Appointment = {
   coordinates: { lat: number; lng: number };
   status: AppointmentStatus;
   interpreterId: string | null;
+  interpreterName?: string | null;
   declinedBy?: string[];
+  createdAt?: { toMillis?: () => number };
 };
 
-const TODAY = '2026-05-03';
+const TODAY = new Date().toISOString().split('T')[0];
 
 export function useAppointments() {
   const { user } = useAuth();
@@ -82,19 +88,19 @@ export function useAppointments() {
             patientName: 'Antoine Lefevre', patientId: 'p006', type: 'generaliste',
             date: '2026-05-12', time: '08:45', location: 'Maison médicale Vieux-Nice',
             address: '5 rue du Marché, Nice', coordinates: { lat: 43.6952, lng: 7.2772 },
-            status: 'accepted', interpreterId: uid,
+            status: 'accepted', interpreterId: uid, interpreterName: 'Jean-Pierre Moreau',
           },
           {
             patientName: 'Claire Morin', patientId: 'p007', type: 'generaliste',
             date: '2026-04-28', time: '09:00', location: 'Cabinet Dr. Blanc',
             address: '8 rue de France, Nice', coordinates: { lat: 43.6967, lng: 7.2627 },
-            status: 'accepted', interpreterId: uid,
+            status: 'accepted', interpreterId: uid, interpreterName: 'Jean-Pierre Moreau',
           },
           {
             patientName: 'Pierre Fabre', patientId: 'p008', type: 'specialiste',
             date: '2026-04-25', time: '14:30', location: 'Hôpital Pasteur',
             address: '30 av. de la Voie Romaine, Nice', coordinates: { lat: 43.7095, lng: 7.256 },
-            status: 'accepted', interpreterId: uid,
+            status: 'accepted', interpreterId: uid, interpreterName: 'Jean-Pierre Moreau',
           },
         ];
 
@@ -121,6 +127,7 @@ export function useAppointments() {
     await updateDoc(doc(db, 'appointments', id), {
       status: 'accepted',
       interpreterId: user.id,
+      interpreterName: user.name,
     });
   };
 
@@ -148,4 +155,73 @@ export function useAppointments() {
   );
 
   return { appointments, pending, myMissions, history, loading, acceptMission, declineMission };
+}
+
+/* ── Création d'un RDV par le patient ─────────────────────── */
+export function useCreateAppointment() {
+  const { user } = useAuth();
+
+  return async (data: {
+    professionalName: string;
+    professionalAddress: string;
+    professionalType: AppointmentType;
+    date: string;
+    time: string;
+    coordinates?: { lat: number; lng: number };
+  }): Promise<string> => {
+    if (!user) throw new Error('Non authentifié');
+
+    const docRef = await addDoc(collection(db, 'appointments'), {
+      patientId: user.id,
+      patientName: user.name,
+      type: data.professionalType,
+      date: data.date,
+      time: data.time,
+      location: data.professionalName,
+      address: data.professionalAddress,
+      coordinates: data.coordinates ?? { lat: 43.7102, lng: 7.262 },
+      status: 'pending',
+      interpreterId: null,
+      interpreterName: null,
+      declinedBy: [],
+      createdAt: serverTimestamp(),
+    });
+
+    return docRef.id;
+  };
+}
+
+/* ── RDV du patient en temps réel ─────────────────────────── */
+export function usePatientAppointments() {
+  const { user } = useAuth();
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    const q = query(
+      collection(db, 'appointments'),
+      where('patientId', '==', user.id)
+    );
+
+    const unsub = onSnapshot(q, (snap) => {
+      const docs = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() } as Appointment))
+        .sort((a, b) => {
+          const ta = a.createdAt?.toMillis?.() ?? 0;
+          const tb = b.createdAt?.toMillis?.() ?? 0;
+          return tb - ta;
+        });
+      setAppointments(docs);
+      setLoading(false);
+    });
+
+    return unsub;
+  }, [user?.id]);
+
+  return { appointments, loading };
 }
