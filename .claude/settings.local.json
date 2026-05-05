@@ -12,7 +12,9 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\" -Recurse -Directory)",
       "Bash(Select-Object -ExpandProperty FullName)",
       "Bash(Sort-Object)",
-      "PowerShell(tree \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\" -L 3 -I \"node_modules|.expo|.vscode|.next|.git\" -A)"
+      "PowerShell(tree \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\" -L 3 -I \"node_modules|.expo|.vscode|.next|.git\" -A)",
+      "WebSearch",
+      "WebFetch(domain:www.youtube.com)"
     ]
   }
 }
