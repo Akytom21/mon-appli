@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<title>PharmaSign — Home (Sourd)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: #EEF1F4;
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    color: #0F1B2D;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  #root { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
+  .stage { display: flex; gap: 32px; align-items: center; transform-origin: center center; }
+  .label {
+    text-align: center; font-size: 13px; font-weight: 500;
+    color: #64748B; letter-spacing: 0.04em; text-transform: uppercase; margin-top: 14px;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="android-frame.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="home-sourd.jsx"></script>
+
+<script type="text/babel" data-presets="env,react">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "density": "compact"
+}/*EDITMODE-END*/;
+
+function App() {
+  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const stageRef = React.useRef(null);
+  const [scale, setScale] = React.useState(1);
+  React.useEffect(() => {
+    const fit = () => {
+      const el = stageRef.current; if (!el) return;
+      const w = el.scrollWidth, h = el.scrollHeight;
+      const s = Math.min(window.innerWidth / (w + 80), window.innerHeight / (h + 80), 1);
+      setScale(s);
+    };
+    fit();
+    window.addEventListener('resize', fit);
+    return () => window.removeEventListener('resize', fit);
+  }, []);
+
+  return (
+    <React.Fragment>
+      <div className="stage" ref={stageRef} style={{ transform: `scale(${scale})` }}>
+        <div data-screen-label="Home Sourd">
+          <AndroidDevice width={412} height={892}>
+            <div style={{ height: '100%', overflow: 'hidden' }}>
+              <HomeSourd density={tweaks.density}/>
+            </div>
+          </AndroidDevice>
+          <div className="label">PharmaSign · Home Sourd · {tweaks.density === 'compact' ? 'Compact' : 'Aéré'}</div>
+        </div>
+      </div>
+
+      <TweaksPanel title="Tweaks">
+        <TweakSection title="Densité">
+          <TweakRadio
+            value={tweaks.density}
+            onChange={(v) => setTweak('density', v)}
+            options={[
+              { value: 'aere',    label: 'Aéré' },
+              { value: 'compact', label: 'Compact' },
+            ]}
+          />
+        </TweakSection>
+      </TweaksPanel>
+    </React.Fragment>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

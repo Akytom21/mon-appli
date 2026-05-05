@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<title>PharmaSign — Carte & Prise de RDV</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: #EEF1F4;
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    color: #0F1B2D;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  #root { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
+  .stage { display: flex; gap: 36px; align-items: flex-start; transform-origin: center center; }
+  .device-col { display: flex; flex-direction: column; align-items: center; }
+  .label {
+    text-align: center; font-size: 13px; font-weight: 500;
+    color: #64748B; letter-spacing: 0.04em; text-transform: uppercase; margin-top: 14px;
+  }
+  .label .strong { color: #0F1B2D; font-weight: 600; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="android-frame.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="map-rdv.jsx"></script>
+
+<script type="text/babel" data-presets="env,react">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "display": "trio",
+  "active": "map"
+}/*EDITMODE-END*/;
+
+function App() {
+  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const stageRef = React.useRef(null);
+  const [scale, setScale] = React.useState(1);
+
+  React.useEffect(() => {
+    const fit = () => {
+      const el = stageRef.current; if (!el) return;
+      const w = el.scrollWidth, h = el.scrollHeight;
+      const s = Math.min(window.innerWidth / (w + 80), window.innerHeight / (h + 80), 1);
+      setScale(s);
+    };
+    fit();
+    window.addEventListener('resize', fit);
+    return () => window.removeEventListener('resize', fit);
+  }, [tweaks.display]);
+
+  const W = 412, H = 892;
+
+  const Frame = ({ label, children, screenLabel }) => (
+    <div className="device-col" data-screen-label={screenLabel}>
+      <AndroidDevice width={W} height={H}>
+        <div style={{ height: '100%', overflow: 'hidden' }}>
+          {children}
+        </div>
+      </AndroidDevice>
+      <div className="label">
+        PharmaSign · <span className="strong">{label}</span>
+      </div>
+    </div>
+  );
+
+  // Mode "trio" = on montre les 3 vues côte à côte (statiques, navigation désactivée)
+  // Mode "single" = une seule vue avec navigation interactive
+  if (tweaks.display === 'trio') {
+    // États locaux par vue détail/booking — on partage l'interprète choisi
+    const interp = MR_INTERPRETES[0];
+    return (
+      <React.Fragment>
+        <div className="stage" ref={stageRef} style={{ transform: `scale(${scale})` }}>
+          <Frame label="Carte & filtres" screenLabel="Carte">
+            <MapScreen onSelectInterp={() => {}}/>
+          </Frame>
+          <Frame label="Détail interprète" screenLabel="Détail">
+            <DetailScreen interp={interp} onBack={() => {}} onBook={() => {}}/>
+          </Frame>
+          <Frame label="Prise de RDV" screenLabel="Prise de RDV">
+            <BookingScreen interp={interp} onBack={() => {}} onConfirm={() => {}}/>
+          </Frame>
+        </div>
+        <ControlsPanel tweaks={tweaks} setTweak={setTweak}/>
+      </React.Fragment>
+    );
+  }
+
+  // Mode single — la nav entre les 3 vues fonctionne
+  const labelMap = { map: 'Carte & filtres', detail: 'Détail interprète', booking: 'Prise de RDV' };
+  return (
+    <React.Fragment>
+      <div className="stage" ref={stageRef} style={{ transform: `scale(${scale})` }}>
+        <Frame label={labelMap[tweaks.active]} screenLabel={labelMap[tweaks.active]}>
+          <MapRDVFlow
+            view={tweaks.active}
+            onViewChange={(v) => setTweak('active', v)}
+          />
+        </Frame>
+      </div>
+      <ControlsPanel tweaks={tweaks} setTweak={setTweak}/>
+    </React.Fragment>
+  );
+}
+
+function ControlsPanel({ tweaks, setTweak }) {
+  return (
+    <TweaksPanel title="Tweaks">
+      <TweakSection title="Affichage">
+        <TweakRadio
+          value={tweaks.display}
+          onChange={(v) => setTweak('display', v)}
+          options={[
+            { value: 'trio',   label: 'Les 3 écrans' },
+            { value: 'single', label: 'Un seul (interactif)' },
+          ]}
+        />
+      </TweakSection>
+      {tweaks.display === 'single' && (
+        <TweakSection title="Écran actif">
+          <TweakRadio
+            value={tweaks.active}
+            onChange={(v) => setTweak('active', v)}
+            options={[
+              { value: 'map',     label: 'Carte' },
+              { value: 'detail',  label: 'Détail' },
+              { value: 'booking', label: 'RDV' },
+            ]}
+          />
+        </TweakSection>
+      )}
+    </TweaksPanel>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
