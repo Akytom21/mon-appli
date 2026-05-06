@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -7,75 +9,62 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { collection, doc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/config/firebase';
+import { useAuth } from '@/context/AuthContext';
+import { useFormations, type Formation } from '@/hooks/useFormations';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
 
-type Session = {
-  id: string;
-  titre: string;
-  niveau: string;
-  formateur: string;
-  date: string;
-  heure: string;
-  places: number;
-  lieu: string;
-  description: string;
-  prix: string;
-};
-
-const SESSIONS: Session[] = [
-  {
-    id: '1',
-    titre: 'Mises en situation clinique',
-    niveau: 'Intermédiaire',
-    formateur: 'Dr. Claire Lefèvre',
-    date: 'Samedi 10 mai 2026',
-    heure: '09h00 – 13h00',
-    places: 3,
-    lieu: 'Centre de formation LSF, Paris 9e',
-    description:
-      'Entraînement pratique avec des médecins partenaires. Simulations de consultations réelles en LSF avec retour personnalisé.',
-    prix: 'Gratuit (formation agréée)',
-  },
-  {
-    id: '2',
-    titre: 'Vocabulaire médical avancé',
-    niveau: 'Avancé',
-    formateur: 'Antoine Garnier',
-    date: 'Dimanche 11 mai 2026',
-    heure: '14h00 – 18h00',
-    places: 5,
-    lieu: 'En visioconférence',
-    description:
-      'Approfondissement du vocabulaire médical en LSF : cardiologie, neurologie, psychiatrie. Exercices interactifs en groupe.',
-    prix: 'Gratuit (formation agréée)',
-  },
-  {
-    id: '3',
-    titre: 'Urgences et soins intensifs',
-    niveau: 'Expert',
-    formateur: 'Sarah Nguyen',
-    date: 'Samedi 17 mai 2026',
-    heure: '09h00 – 17h00',
-    places: 1,
-    lieu: 'Hôpital de simulation, Paris 15e',
-    description:
-      'Formation intensive en environnement hospitalier simulé. Gestion des situations d\'urgence en LSF.',
-    prix: 'Gratuit (formation agréée)',
-  },
-];
-
 const NIVEAU_COLOR: Record<string, string> = {
+  Débutant: '#10B981',
   Intermédiaire: Colors.warning,
   Avancé: Colors.malentendants,
   Expert: Colors.error,
 };
 
 export default function FormationScreen() {
+  const { user } = useAuth();
+  const { formations, loading } = useFormations();
   const [selected, setSelected] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [confirmedSession, setConfirmedSession] = useState<Formation | null>(null);
 
-  if (confirmed) {
-    const session = SESSIONS.find((s) => s.id === selected)!;
+  const handleConfirm = async () => {
+    if (!selected || !user) return;
+    setConfirming(true);
+    try {
+      const formation = formations.find((f) => f.id === selected)!;
+      const formationRef = doc(db, 'formations', selected);
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(formationRef);
+        if (!snap.exists()) throw new Error('introuvable');
+        const places = snap.data().places as number;
+        if (places <= 0) throw new Error('complet');
+        const resRef = doc(collection(db, 'reservations'));
+        tx.set(resRef, {
+          userId: user.id,
+          formationId: selected,
+          status: 'confirmed',
+          createdAt: serverTimestamp(),
+        });
+        tx.update(formationRef, { places: places - 1 });
+      });
+      setConfirmedSession(formation);
+      setConfirmed(true);
+    } catch (err: any) {
+      Alert.alert(
+        'Réservation impossible',
+        err?.message === 'complet'
+          ? 'Cette session est complète.'
+          : 'Une erreur est survenue. Veuillez réessayer.'
+      );
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  if (confirmed && confirmedSession) {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.successContainer}>
@@ -83,22 +72,20 @@ export default function FormationScreen() {
             <Text style={styles.successEmoji}>🎓</Text>
           </View>
           <Text style={styles.successTitle}>Formation réservée !</Text>
-          <Text style={styles.successText}>
-            Votre place est confirmée pour la session :
-          </Text>
+          <Text style={styles.successText}>Votre place est confirmée pour la session :</Text>
           <View style={styles.successCard}>
-            <Text style={styles.successSession}>{session.titre}</Text>
-            <Text style={styles.successMeta}>📅 {session.date}</Text>
-            <Text style={styles.successMeta}>🕐 {session.heure}</Text>
-            <Text style={styles.successMeta}>📍 {session.lieu}</Text>
-            <Text style={styles.successMeta}>👤 {session.formateur}</Text>
+            <Text style={styles.successSession}>{confirmedSession.titre}</Text>
+            <Text style={styles.successMeta}>📅 {confirmedSession.date}</Text>
+            <Text style={styles.successMeta}>🕐 {confirmedSession.heure}</Text>
+            <Text style={styles.successMeta}>📍 {confirmedSession.lieu}</Text>
+            <Text style={styles.successMeta}>👤 {confirmedSession.formateur}</Text>
           </View>
           <Text style={styles.successNote}>
             Vous recevrez une confirmation et les instructions de connexion par notification.
           </Text>
           <TouchableOpacity
             style={styles.retourBtn}
-            onPress={() => setConfirmed(false)}
+            onPress={() => { setConfirmed(false); setSelected(null); }}
             accessibilityRole="button"
           >
             <Text style={styles.retourBtnText}>Réserver une autre session</Text>
@@ -122,93 +109,93 @@ export default function FormationScreen() {
           </Text>
         </View>
 
-        <View style={styles.sessions}>
-          {SESSIONS.map((session) => {
-            const isSelected = selected === session.id;
-            const isFull = session.places === 0;
-            return (
-              <TouchableOpacity
-                key={session.id}
-                style={[
-                  styles.sessionCard,
-                  isSelected && styles.sessionCardSelected,
-                  isFull && styles.sessionCardFull,
-                ]}
-                onPress={() => !isFull && setSelected(session.id)}
-                disabled={isFull}
-                activeOpacity={0.8}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: isSelected, disabled: isFull }}
-              >
-                {/* Header */}
-                <View style={styles.sessionHeader}>
-                  <View style={styles.sessionTitleRow}>
-                    <Text style={styles.sessionTitre}>{session.titre}</Text>
-                    {isSelected && <Text style={styles.checkmark}>✓</Text>}
+        {loading ? (
+          <ActivityIndicator
+            color={Colors.apprentis}
+            size="large"
+            style={{ marginTop: Spacing.xl }}
+          />
+        ) : (
+          <View style={styles.sessions}>
+            {formations.map((session) => {
+              const isSelected = selected === session.id;
+              const isFull = session.places <= 0;
+              const niveauColor = NIVEAU_COLOR[session.niveau] ?? Colors.apprentis;
+              return (
+                <TouchableOpacity
+                  key={session.id}
+                  style={[
+                    styles.sessionCard,
+                    isSelected && styles.sessionCardSelected,
+                    isFull && styles.sessionCardFull,
+                  ]}
+                  onPress={() => !isFull && setSelected(session.id)}
+                  disabled={isFull}
+                  activeOpacity={0.8}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: isSelected, disabled: isFull }}
+                >
+                  <View style={styles.sessionHeader}>
+                    <View style={styles.sessionTitleRow}>
+                      <Text style={styles.sessionTitre}>{session.titre}</Text>
+                      {isSelected && <Text style={styles.checkmark}>✓</Text>}
+                    </View>
+                    <View
+                      style={[styles.niveauBadge, { backgroundColor: niveauColor + '22' }]}
+                    >
+                      <Text style={[styles.niveauText, { color: niveauColor }]}>
+                        {session.niveau}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.sessionDesc}>{session.description}</Text>
+                  <View style={styles.sessionMeta}>
+                    <Text style={styles.metaItem}>👤 {session.formateur}</Text>
+                    <Text style={styles.metaItem}>
+                      📅 {session.date} · {session.heure}
+                    </Text>
+                    <Text style={styles.metaItem}>📍 {session.lieu}</Text>
+                    <Text style={styles.metaItem}>💰 {session.prix}</Text>
                   </View>
                   <View
                     style={[
-                      styles.niveauBadge,
-                      { backgroundColor: (NIVEAU_COLOR[session.niveau] ?? Colors.apprentis) + '22' },
+                      styles.placesBadge,
+                      { backgroundColor: session.places <= 2 ? '#FEE2E2' : Colors.apprentisLight },
                     ]}
                   >
                     <Text
                       style={[
-                        styles.niveauText,
-                        { color: NIVEAU_COLOR[session.niveau] ?? Colors.apprentis },
+                        styles.placesText,
+                        { color: session.places <= 2 ? Colors.error : Colors.apprentis },
                       ]}
                     >
-                      {session.niveau}
+                      {isFull
+                        ? 'Complet'
+                        : `${session.places} place${session.places > 1 ? 's' : ''} restante${session.places > 1 ? 's' : ''}`}
                     </Text>
                   </View>
-                </View>
-
-                {/* Description */}
-                <Text style={styles.sessionDesc}>{session.description}</Text>
-
-                {/* Meta */}
-                <View style={styles.sessionMeta}>
-                  <Text style={styles.metaItem}>👤 {session.formateur}</Text>
-                  <Text style={styles.metaItem}>📅 {session.date} · {session.heure}</Text>
-                  <Text style={styles.metaItem}>📍 {session.lieu}</Text>
-                  <Text style={styles.metaItem}>💰 {session.prix}</Text>
-                </View>
-
-                {/* Places */}
-                <View
-                  style={[
-                    styles.placesBadge,
-                    {
-                      backgroundColor:
-                        session.places <= 2 ? '#FEE2E2' : Colors.apprentisLight,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.placesText,
-                      {
-                        color: session.places <= 2 ? Colors.error : Colors.apprentis,
-                      },
-                    ]}
-                  >
-                    {session.places} place{session.places > 1 ? 's' : ''} restante{session.places > 1 ? 's' : ''}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
 
         <TouchableOpacity
-          style={[styles.confirmBtn, !selected && styles.confirmBtnDisabled]}
-          onPress={() => selected && setConfirmed(true)}
-          disabled={!selected}
+          style={[
+            styles.confirmBtn,
+            (!selected || confirming) && styles.confirmBtnDisabled,
+          ]}
+          onPress={handleConfirm}
+          disabled={!selected || confirming}
           accessibilityRole="button"
         >
-          <Text style={styles.confirmBtnText}>
-            {selected ? '🎓  Confirmer la réservation' : 'Sélectionnez une session'}
-          </Text>
+          {confirming ? (
+            <ActivityIndicator color={Colors.white} />
+          ) : (
+            <Text style={styles.confirmBtnText}>
+              {selected ? '🎓  Confirmer la réservation' : 'Sélectionnez une session'}
+            </Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -287,6 +274,8 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     alignItems: 'center',
     marginTop: Spacing.sm,
+    minHeight: 52,
+    justifyContent: 'center',
   },
   confirmBtnDisabled: { backgroundColor: Colors.textSecondary, opacity: 0.5 },
   confirmBtnText: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.white },

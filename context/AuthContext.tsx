@@ -27,6 +27,7 @@ type AuthContextType = {
   register: (name: string, email: string, password: string, role: Role) => Promise<string | null>;
   logout: () => Promise<void>;
   submitBrevet: () => Promise<void>;
+  upgradeToInterprete: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -150,8 +151,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser((prev) => (prev ? { ...prev, brevetSubmitted: true } : null));
   };
 
+  const upgradeToInterprete = async (): Promise<void> => {
+    if (!user) return;
+    await updateDoc(doc(db, 'users', user.id), { role: 'interprete' });
+    setUser((prev) => (prev ? { ...prev, role: 'interprete' } : null));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, initializing, login, register, logout, submitBrevet }}>
+    <AuthContext.Provider value={{ user, initializing, login, register, logout, submitBrevet, upgradeToInterprete }}>
       {children}
     </AuthContext.Provider>
   );
