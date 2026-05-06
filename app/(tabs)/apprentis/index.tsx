@@ -107,6 +107,21 @@ export default function ApprentisHome() {
           </TouchableOpacity>
         )}
 
+        {/* Ressources vidéo */}
+        <TouchableOpacity
+          style={styles.ressourcesBtn}
+          onPress={() => router.push('/(tabs)/apprentis/ressources')}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+        >
+          <Text style={styles.ressourcesBtnEmoji}>🎥</Text>
+          <View style={styles.ressourcesBtnText}>
+            <Text style={styles.ressourcesBtnTitle}>Ressources vidéo LSF</Text>
+            <Text style={styles.ressourcesBtnSub}>Vidéos de formation en langue des signes</Text>
+          </View>
+          <Text style={styles.ressourcesBtnArrow}>›</Text>
+        </TouchableOpacity>
+
         {/* Étapes */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Étapes du parcours</Text>
@@ -304,6 +319,27 @@ const styles = StyleSheet.create({
     color: Colors.apprentisDark,
     lineHeight: 20,
   },
+
+  ressourcesBtn: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    backgroundColor: '#0369A1',
+    borderRadius: Radius.lg,
+    padding: Spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  ressourcesBtnEmoji: { fontSize: 30, flexShrink: 0 },
+  ressourcesBtnText: { flex: 1, gap: 3 },
+  ressourcesBtnTitle: { fontSize: FontSize.md, fontWeight: '700', color: Colors.white },
+  ressourcesBtnSub: { fontSize: FontSize.sm, color: 'rgba(255,255,255,0.85)' },
+  ressourcesBtnArrow: { fontSize: 28, color: Colors.white, flexShrink: 0, lineHeight: 32 },
 
   section: { padding: Spacing.lg, gap: Spacing.sm, paddingTop: 0 },
   sectionHeader: {
