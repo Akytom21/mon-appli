@@ -2,24 +2,37 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import { collection, doc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { useFormations, type Formation } from '@/hooks/useFormations';
-import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
 
-const NIVEAU_COLOR: Record<string, string> = {
-  Débutant: '#10B981',
-  Intermédiaire: Colors.warning,
-  Avancé: Colors.malentendants,
-  Expert: Colors.error,
+/* ── Design tokens ───────────────────────────────────────── */
+const BRAND      = '#0F766E';
+const BRAND_DARK = '#0B5F58';
+const BRAND_TINT = '#E8F4F2';
+const INK        = '#0F1B2D';
+const INK_2      = '#475569';
+const INK_3      = '#94A3B8';
+const BORDER     = '#E5EAF0';
+const BG         = '#F6F8FA';
+const AMBER      = '#B45309';
+const AMBER_BG   = '#FEF3C7';
+
+const NIVEAU_COLOR: Record<string, { text: string; bg: string }> = {
+  Débutant:      { text: '#065F46', bg: '#D1FAE5' },
+  Intermédiaire: { text: AMBER,     bg: AMBER_BG  },
+  Avancé:        { text: BRAND,     bg: BRAND_TINT },
+  Expert:        { text: '#6D28D9', bg: '#EDE9FE'  },
 };
 
 export default function FormationScreen() {
@@ -52,82 +65,112 @@ export default function FormationScreen() {
       });
       setConfirmedSession(formation);
       setConfirmed(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       Alert.alert(
         'Réservation impossible',
-        err?.message === 'complet'
+        err instanceof Error && err.message === 'complet'
           ? 'Cette session est complète.'
-          : 'Une erreur est survenue. Veuillez réessayer.'
+          : 'Une erreur est survenue. Veuillez réessayer.',
       );
     } finally {
       setConfirming(false);
     }
   };
 
+  /* ── Écran de confirmation ─────────────────────────────── */
   if (confirmed && confirmedSession) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <View style={styles.successContainer}>
-          <View style={styles.successIcon}>
-            <Text style={styles.successEmoji}>🎓</Text>
+      <SafeAreaView style={s.safe}>
+        <View style={s.successContainer}>
+          <View style={s.successBadge}>
+            <Feather name="check-circle" size={52} color={BRAND} />
           </View>
-          <Text style={styles.successTitle}>Formation réservée !</Text>
-          <Text style={styles.successText}>Votre place est confirmée pour la session :</Text>
-          <View style={styles.successCard}>
-            <Text style={styles.successSession}>{confirmedSession.titre}</Text>
-            <Text style={styles.successMeta}>📅 {confirmedSession.date}</Text>
-            <Text style={styles.successMeta}>🕐 {confirmedSession.heure}</Text>
-            <Text style={styles.successMeta}>📍 {confirmedSession.lieu}</Text>
-            <Text style={styles.successMeta}>👤 {confirmedSession.formateur}</Text>
+          <Text style={s.successTitle}>Formation réservée !</Text>
+          <Text style={s.successSubtitle}>Votre place est confirmée pour :</Text>
+          <View style={s.successCard}>
+            <Text style={s.successSession}>{confirmedSession.titre}</Text>
+            {([
+              { icon: 'calendar', label: confirmedSession.date },
+              { icon: 'clock',    label: confirmedSession.heure },
+              { icon: 'map-pin',  label: confirmedSession.lieu },
+              { icon: 'user',     label: confirmedSession.formateur },
+            ] as { icon: React.ComponentProps<typeof Feather>['name']; label: string }[]).map(
+              ({ icon, label }) => (
+                <View key={icon} style={s.successMetaRow}>
+                  <Feather name={icon} size={14} color={BRAND} />
+                  <Text style={s.successMetaText}>{label}</Text>
+                </View>
+              ),
+            )}
           </View>
-          <Text style={styles.successNote}>
-            Vous recevrez une confirmation et les instructions de connexion par notification.
+          <Text style={s.successNote}>
+            Vous recevrez une confirmation et les instructions par notification.
           </Text>
           <TouchableOpacity
-            style={styles.retourBtn}
+            style={s.retourBtn}
             onPress={() => { setConfirmed(false); setSelected(null); }}
             accessibilityRole="button"
           >
-            <Text style={styles.retourBtnText}>Réserver une autre session</Text>
+            <Text style={s.retourBtnText}>Réserver une autre session</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
 
+  /* ── Liste des formations ──────────────────────────────── */
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={s.safe}>
+
+      {/* Header */}
+      <View style={s.header}>
+        <View style={s.headerRow}>
+          <TouchableOpacity
+            style={s.backBtn}
+            onPress={() => router.back()}
+            accessibilityLabel="Retour"
+            accessibilityRole="button"
+          >
+            <Feather name="chevron-left" size={22} color="#fff" />
+          </TouchableOpacity>
+          <Text style={s.headerTitle}>Formations LSF</Text>
+          <View style={{ flex: 1 }} />
+          {!loading && (
+            <View style={s.headerBadge}>
+              <Text style={s.headerBadgeText}>{formations.length} sessions</Text>
+            </View>
+          )}
+        </View>
+      </View>
+
       <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
+        style={s.scroll}
+        contentContainerStyle={s.content}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.intro}>
-          <Text style={styles.introTitle}>Choisissez une session</Text>
-          <Text style={styles.introText}>
+        {/* Info banner */}
+        <View style={s.infoBanner}>
+          <Feather name="info" size={15} color={BRAND} />
+          <Text style={s.infoBannerText}>
             Toutes les formations sont gratuites et reconnues pour l'obtention de l'agrément LSF médical.
           </Text>
         </View>
 
         {loading ? (
-          <ActivityIndicator
-            color={Colors.apprentis}
-            size="large"
-            style={{ marginTop: Spacing.xl }}
-          />
+          <ActivityIndicator color={BRAND} size="large" style={{ marginTop: 40 }} />
         ) : (
-          <View style={styles.sessions}>
+          <View style={s.sessions}>
             {formations.map((session) => {
               const isSelected = selected === session.id;
               const isFull = session.places <= 0;
-              const niveauColor = NIVEAU_COLOR[session.niveau] ?? Colors.apprentis;
+              const niveau = NIVEAU_COLOR[session.niveau] ?? { text: BRAND, bg: BRAND_TINT };
               return (
                 <TouchableOpacity
                   key={session.id}
                   style={[
-                    styles.sessionCard,
-                    isSelected && styles.sessionCardSelected,
-                    isFull && styles.sessionCardFull,
+                    s.sessionCard,
+                    isSelected && s.sessionCardSelected,
+                    isFull && s.sessionCardFull,
                   ]}
                   onPress={() => !isFull && setSelected(session.id)}
                   disabled={isFull}
@@ -135,43 +178,65 @@ export default function FormationScreen() {
                   accessibilityRole="radio"
                   accessibilityState={{ selected: isSelected, disabled: isFull }}
                 >
-                  <View style={styles.sessionHeader}>
-                    <View style={styles.sessionTitleRow}>
-                      <Text style={styles.sessionTitre}>{session.titre}</Text>
-                      {isSelected && <Text style={styles.checkmark}>✓</Text>}
-                    </View>
-                    <View
-                      style={[styles.niveauBadge, { backgroundColor: niveauColor + '22' }]}
-                    >
-                      <Text style={[styles.niveauText, { color: niveauColor }]}>
-                        {session.niveau}
-                      </Text>
-                    </View>
+                  {/* Titre + sélection */}
+                  <View style={s.cardTopRow}>
+                    <Text style={s.cardTitle} numberOfLines={2}>{session.titre}</Text>
+                    {isSelected && (
+                      <View style={s.selectedCheck}>
+                        <Feather name="check" size={14} color="#fff" />
+                      </View>
+                    )}
                   </View>
-                  <Text style={styles.sessionDesc}>{session.description}</Text>
-                  <View style={styles.sessionMeta}>
-                    <Text style={styles.metaItem}>👤 {session.formateur}</Text>
-                    <Text style={styles.metaItem}>
-                      📅 {session.date} · {session.heure}
-                    </Text>
-                    <Text style={styles.metaItem}>📍 {session.lieu}</Text>
-                    <Text style={styles.metaItem}>💰 {session.prix}</Text>
+
+                  {/* Niveau */}
+                  <View style={[s.niveauBadge, { backgroundColor: niveau.bg }]}>
+                    <Text style={[s.niveauText, { color: niveau.text }]}>{session.niveau}</Text>
                   </View>
+
+                  {/* Description */}
+                  <Text style={s.cardDesc} numberOfLines={2}>{session.description}</Text>
+
+                  {/* Méta */}
+                  <View style={s.metaGrid}>
+                    {([
+                      { icon: 'user',     text: session.formateur },
+                      { icon: 'calendar', text: `${session.date} · ${session.heure}` },
+                      { icon: 'map-pin',  text: session.lieu },
+                      { icon: 'tag',      text: session.prix },
+                    ] as { icon: React.ComponentProps<typeof Feather>['name']; text: string }[]).map(
+                      ({ icon, text }) => (
+                        <View key={icon} style={s.metaRow}>
+                          <Feather name={icon} size={13} color={INK_3} />
+                          <Text style={s.metaText}>{text}</Text>
+                        </View>
+                      ),
+                    )}
+                  </View>
+
+                  {/* Places */}
                   <View
                     style={[
-                      styles.placesBadge,
-                      { backgroundColor: session.places <= 2 ? '#FEE2E2' : Colors.apprentisLight },
+                      s.placesBadge,
+                      {
+                        backgroundColor: isFull
+                          ? '#FEE2E2'
+                          : session.places <= 2 ? AMBER_BG : BRAND_TINT,
+                      },
                     ]}
                   >
                     <Text
                       style={[
-                        styles.placesText,
-                        { color: session.places <= 2 ? Colors.error : Colors.apprentis },
+                        s.placesText,
+                        {
+                          color: isFull
+                            ? '#DC2626'
+                            : session.places <= 2 ? AMBER : BRAND,
+                        },
                       ]}
                     >
                       {isFull
-                        ? 'Complet'
-                        : `${session.places} place${session.places > 1 ? 's' : ''} restante${session.places > 1 ? 's' : ''}`}
+                        ? '● Complet'
+                        : `● ${session.places} place${session.places > 1 ? 's' : ''} restante${session.places > 1 ? 's' : ''}`}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -180,21 +245,26 @@ export default function FormationScreen() {
           </View>
         )}
 
+        {/* Bouton de confirmation */}
         <TouchableOpacity
-          style={[
-            styles.confirmBtn,
-            (!selected || confirming) && styles.confirmBtnDisabled,
-          ]}
+          style={[s.confirmBtn, (!selected || confirming) && s.confirmBtnDisabled]}
           onPress={handleConfirm}
           disabled={!selected || confirming}
           accessibilityRole="button"
         >
           {confirming ? (
-            <ActivityIndicator color={Colors.white} />
+            <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.confirmBtnText}>
-              {selected ? '🎓  Confirmer la réservation' : 'Sélectionnez une session'}
-            </Text>
+            <>
+              <Feather
+                name={selected ? 'check-circle' : 'circle'}
+                size={18}
+                color="#fff"
+              />
+              <Text style={s.confirmBtnText}>
+                {selected ? 'Confirmer la réservation' : 'Sélectionnez une session'}
+              </Text>
+            </>
           )}
         </TouchableOpacity>
       </ScrollView>
@@ -202,146 +272,119 @@ export default function FormationScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.apprentis },
-  scroll: { flex: 1, backgroundColor: Colors.background },
-  content: { padding: Spacing.lg, paddingBottom: Spacing.xxl, gap: Spacing.lg },
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: BRAND },
+  scroll: { flex: 1, backgroundColor: BG },
+  content: { padding: 20, paddingBottom: 40, gap: 16 },
 
-  intro: {
-    backgroundColor: Colors.apprentisLight,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.apprentis,
-    gap: Spacing.xs,
+  /* Header */
+  header: { backgroundColor: BRAND, paddingHorizontal: 16, paddingVertical: 14 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  introTitle: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.apprentisDark },
-  introText: { fontSize: FontSize.sm, color: Colors.apprentisDark, lineHeight: 20 },
+  headerTitle: { fontSize: 17, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
+  headerBadge: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
+  },
+  headerBadgeText: { fontSize: 12, fontWeight: '600', color: '#fff' },
 
-  sessions: { gap: Spacing.md },
+  /* Info banner */
+  infoBanner: {
+    flexDirection: 'row', gap: 10, alignItems: 'flex-start',
+    backgroundColor: BRAND_TINT, borderRadius: 12, padding: 14,
+    borderWidth: 1, borderColor: '#A7D4D0',
+  },
+  infoBannerText: { flex: 1, fontSize: 13.5, color: BRAND_DARK, lineHeight: 19 },
+
+  sessions: { gap: 12 },
+
+  /* Session card */
   sessionCard: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    gap: Spacing.md,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+    backgroundColor: '#fff',
+    borderRadius: 16, padding: 16, gap: 10,
+    borderWidth: 2, borderColor: BORDER,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
   },
-  sessionCardSelected: {
-    borderColor: Colors.apprentis,
-    backgroundColor: Colors.apprentisLight,
+  sessionCardSelected: { borderColor: BRAND, backgroundColor: '#F0FBF9' },
+  sessionCardFull: { opacity: 0.55 },
+
+  cardTopRow: {
+    flexDirection: 'row', alignItems: 'flex-start',
+    justifyContent: 'space-between', gap: 10,
   },
-  sessionCardFull: { opacity: 0.5 },
-  sessionHeader: { gap: Spacing.xs },
-  sessionTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  cardTitle: { fontSize: 15.5, fontWeight: '700', color: INK, letterSpacing: -0.3, flex: 1 },
+  selectedCheck: {
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: BRAND, alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  sessionTitre: {
-    fontSize: FontSize.md,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    flex: 1,
-  },
-  checkmark: { fontSize: FontSize.xl, color: Colors.apprentis, fontWeight: '700' },
   niveauBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: Radius.full,
+    alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999,
   },
-  niveauText: { fontSize: FontSize.xs, fontWeight: '700' },
-  sessionDesc: { fontSize: FontSize.sm, color: Colors.textSecondary, lineHeight: 20 },
-  sessionMeta: { gap: 3 },
-  metaItem: { fontSize: FontSize.sm, color: Colors.textSecondary },
+  niveauText: { fontSize: 12, fontWeight: '700' },
+  cardDesc: { fontSize: 13.5, color: INK_2, lineHeight: 19 },
+
+  metaGrid: { gap: 5 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  metaText: { fontSize: 13.5, color: INK_2 },
+
   placesBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: Radius.full,
+    alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999,
   },
-  placesText: { fontSize: FontSize.xs, fontWeight: '600' },
+  placesText: { fontSize: 12.5, fontWeight: '700' },
 
+  /* Confirm button */
   confirmBtn: {
-    backgroundColor: Colors.apprentis,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    alignItems: 'center',
-    marginTop: Spacing.sm,
-    minHeight: 52,
-    justifyContent: 'center',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    backgroundColor: BRAND, borderRadius: 16, padding: 16,
+    shadowColor: BRAND, shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3, shadowRadius: 12, elevation: 5,
+    minHeight: 56,
   },
-  confirmBtnDisabled: { backgroundColor: Colors.textSecondary, opacity: 0.5 },
-  confirmBtnText: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.white },
+  confirmBtnDisabled: {
+    backgroundColor: '#94A3B8', shadowOpacity: 0, elevation: 0, opacity: 0.7,
+  },
+  confirmBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
 
+  /* Success screen */
   successContainer: {
-    flex: 1,
-    backgroundColor: Colors.background,
-    padding: Spacing.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.lg,
+    flex: 1, backgroundColor: BG, padding: 24,
+    alignItems: 'center', justifyContent: 'center', gap: 16,
   },
-  successIcon: {
-    width: 96,
-    height: 96,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.apprentisLight,
-    alignItems: 'center',
-    justifyContent: 'center',
+  successBadge: {
+    width: 100, height: 100, borderRadius: 50,
+    backgroundColor: BRAND_TINT, alignItems: 'center', justifyContent: 'center',
   },
-  successEmoji: { fontSize: 48 },
   successTitle: {
-    fontSize: FontSize.xxl,
-    fontWeight: '800',
-    color: Colors.textPrimary,
-    textAlign: 'center',
+    fontSize: 26, fontWeight: '800', color: INK,
+    letterSpacing: -0.5, textAlign: 'center',
   },
-  successText: {
-    fontSize: FontSize.md,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-  },
+  successSubtitle: { fontSize: 15, color: INK_2 },
   successCard: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.lg,
-    padding: Spacing.lg,
-    width: '100%',
-    gap: Spacing.sm,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.apprentis,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 8,
-    elevation: 3,
+    backgroundColor: '#fff', borderRadius: 16, padding: 20,
+    width: '100%', gap: 10,
+    borderWidth: 1, borderColor: BORDER,
+    borderLeftWidth: 4, borderLeftColor: BRAND,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07, shadowRadius: 8, elevation: 3,
   },
   successSession: {
-    fontSize: FontSize.lg,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginBottom: 4,
+    fontSize: 16, fontWeight: '700', color: INK,
+    marginBottom: 4, letterSpacing: -0.2,
   },
-  successMeta: { fontSize: FontSize.sm, color: Colors.textSecondary },
+  successMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  successMetaText: { fontSize: 14, color: INK_2 },
   successNote: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-    paddingHorizontal: Spacing.md,
+    fontSize: 13.5, color: INK_3, textAlign: 'center',
+    lineHeight: 19, paddingHorizontal: 8,
   },
   retourBtn: {
-    backgroundColor: Colors.apprentis,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    alignItems: 'center',
-    width: '100%',
+    backgroundColor: BRAND, borderRadius: 14, padding: 16,
+    alignItems: 'center', width: '100%',
   },
-  retourBtnText: { fontSize: FontSize.md, fontWeight: '700', color: Colors.white },
+  retourBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 });

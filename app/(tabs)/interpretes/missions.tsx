@@ -4,12 +4,12 @@ import {
   Animated,
   FlatList,
   Platform,
-  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useAppointments, type Appointment, type AppointmentType } from '@/hooks/useAppointments';

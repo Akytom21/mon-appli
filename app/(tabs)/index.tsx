@@ -2,13 +2,13 @@ import { router } from 'expo-router';
 import { useEffect } from 'react';
 import {
   Image,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth, User } from '@/context/AuthContext';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
@@ -349,7 +349,6 @@ export default function HomeScreen() {
   const { user, logout } = useAuth();
 
   useEffect(() => {
-    console.log('[HomeScreen] user.role =', user?.role ?? '(null)');
     if (user?.role === 'admin') {
       router.replace('/(tabs)/admin');
     }

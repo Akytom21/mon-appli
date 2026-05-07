@@ -4,13 +4,14 @@ import {
   Image,
   Linking,
   Modal,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useVideoProgress } from '@/hooks/useVideoProgress';
 
@@ -216,6 +217,18 @@ export default function RessourcesScreen() {
           <View style={styles.progressHeaderDeco1} />
           <View style={styles.progressHeaderDeco2} />
           <View style={styles.progressHeaderContent}>
+            {/* Back button row */}
+            <View style={styles.backRow}>
+              <TouchableOpacity
+                style={styles.backBtn}
+                onPress={() => router.back()}
+                accessibilityLabel="Retour"
+                accessibilityRole="button"
+              >
+                <Feather name="chevron-left" size={20} color="#fff" />
+              </TouchableOpacity>
+              <Text style={styles.backTitle}>Ressources LSF</Text>
+            </View>
             <View style={styles.levelRow}>
               <View style={[styles.levelBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
                 <Feather name="award" size={14} color="#fff" />
@@ -457,6 +470,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.04)',
   },
   progressHeaderContent: { gap: 8, zIndex: 1 },
+  backRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
+  backBtn: {
+    width: 32, height: 32, borderRadius: 9,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  backTitle: { fontSize: 16, fontWeight: '700', color: '#fff', letterSpacing: -0.2 },
   levelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   levelBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,

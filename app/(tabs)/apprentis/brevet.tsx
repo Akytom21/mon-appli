@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,9 +10,24 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
-import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
 
+/* ── Design tokens ───────────────────────────────────────── */
+const BRAND      = '#0F766E';
+const BRAND_DARK = '#0B5F58';
+const BRAND_TINT = '#E8F4F2';
+const INK        = '#0F1B2D';
+const INK_2      = '#475569';
+const INK_3      = '#94A3B8';
+const BORDER     = '#E5EAF0';
+const BG         = '#F6F8FA';
+const AMBER      = '#B45309';
+const AMBER_BG   = '#FEF3C7';
+const GOLD       = '#F59E0B';
+
+/* ── Data ────────────────────────────────────────────────── */
 const NIVEAUX = [
   'Niveau A1',
   'Niveau A2',
@@ -29,79 +43,113 @@ const ORGANISMES = [
   'Autre organisme agréé',
 ];
 
+/* ── Stepper ─────────────────────────────────────────────── */
+function Stepper({ step1, step2, step3 }: { step1: boolean; step2: boolean; step3: boolean }) {
+  const steps = [
+    { n: 1, label: 'Niveau',    done: step1 },
+    { n: 2, label: 'Organisme', done: step2 },
+    { n: 3, label: 'Infos',     done: step3 },
+  ];
+  return (
+    <View style={st.row}>
+      {steps.map((step, i) => (
+        <View key={step.n} style={st.stepWrap}>
+          {i > 0 && <View style={[st.line, steps[i - 1].done && st.lineDone]} />}
+          <View style={[st.dot, step.done && st.dotDone]}>
+            {step.done
+              ? <Feather name="check" size={12} color="#fff" />
+              : <Text style={st.dotNum}>{step.n}</Text>}
+          </View>
+          <Text style={[st.label, step.done && st.labelDone]}>{step.label}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+const st = StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center', paddingHorizontal: 24, paddingBottom: 20, gap: 0 },
+  stepWrap: { alignItems: 'center', gap: 6, flex: 1, position: 'relative' },
+  line: {
+    position: 'absolute', top: 14, right: '50%', left: '-50%',
+    height: 2, backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  lineDone: { backgroundColor: '#fff' },
+  dot: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)',
+  },
+  dotDone: { backgroundColor: '#fff', borderColor: '#fff' },
+  dotNum: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.8)' },
+  label: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.7)', textAlign: 'center' },
+  labelDone: { color: '#fff', fontWeight: '700' },
+});
+
+/* ── Écran en attente ────────────────────────────────────── */
 function PendingScreen() {
   const pulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, {
-          toValue: 1.15,
-          duration: 900,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulse, {
-          toValue: 1,
-          duration: 900,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ])
+        Animated.timing(pulse, { toValue: 1.12, duration: 900, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1,    duration: 900, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ]),
     ).start();
   }, []);
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.statusContainer}>
-        <Animated.View
-          style={[styles.statusIcon, styles.statusIconPending, { transform: [{ scale: pulse }] }]}
-        >
-          <Text style={styles.statusEmoji}>⏳</Text>
+    <SafeAreaView style={s.safe}>
+      <View style={s.pendingHeader}>
+        <TouchableOpacity style={s.backBtn} onPress={() => router.replace('/(tabs)/apprentis')} accessibilityRole="button">
+          <Feather name="chevron-left" size={22} color="#fff" />
+        </TouchableOpacity>
+        <Text style={s.headerTitle}>Mon Brevet LSF</Text>
+      </View>
+      <View style={s.statusContainer}>
+        <Animated.View style={[s.statusIconWrap, s.statusIconPending, { transform: [{ scale: pulse }] }]}>
+          <Text style={{ fontSize: 44 }}>⏳</Text>
         </Animated.View>
-        <Text style={styles.statusTitle}>En cours de validation</Text>
-        <Text style={styles.statusText}>
+        <Text style={s.statusTitle}>En cours de validation</Text>
+        <Text style={s.statusText}>
           Votre dossier est examiné par le jury d'agrément PharmaSign. Vous serez notifié(e) du résultat dans un délai de 5 à 10 jours ouvrés.
         </Text>
-        <View style={styles.stepsCard}>
-          <Text style={styles.stepsCardTitle}>Étapes en cours</Text>
+        <View style={s.stepsCard}>
+          <Text style={s.stepsCardTitle}>Étapes en cours</Text>
           {[
-            'Vérification de l\'authenticité du brevet',
+            "Vérification de l'authenticité du brevet",
             'Entretien avec un jury (si brevet B2 ou supérieur)',
             'Décision et notification par email',
           ].map((step, i) => (
-            <View key={i} style={styles.step}>
-              <View style={[styles.stepNum, i === 0 && styles.stepNumActive]}>
-                <Text style={styles.stepNumText}>{i + 1}</Text>
+            <View key={i} style={s.stepRow}>
+              <View style={[s.stepNum, i === 0 && s.stepNumActive]}>
+                <Text style={s.stepNumText}>{i + 1}</Text>
               </View>
-              <Text style={styles.stepText}>{step}</Text>
+              <Text style={s.stepText}>{step}</Text>
             </View>
           ))}
         </View>
         <TouchableOpacity
-          style={styles.retourBtn}
+          style={s.retourBtn}
           onPress={() => router.replace('/(tabs)/apprentis')}
           accessibilityRole="button"
         >
-          <Text style={styles.retourBtnText}>Retour à mon espace</Text>
+          <Text style={s.retourBtnText}>Retour à mon espace</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
 
+/* ── Écran brevet validé ─────────────────────────────────── */
 function ValidatedScreen() {
   const { upgradeToInterprete } = useAuth();
   const scale = useRef(new Animated.Value(0.6)).current;
   const [upgrading, setUpgrading] = useState(false);
 
   useEffect(() => {
-    Animated.spring(scale, {
-      toValue: 1,
-      friction: 6,
-      tension: 80,
-      useNativeDriver: true,
-    }).start();
+    Animated.spring(scale, { toValue: 1, friction: 6, tension: 80, useNativeDriver: true }).start();
   }, []);
 
   const handleUpgrade = async () => {
@@ -111,53 +159,55 @@ function ValidatedScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.statusContainer}>
-        <Animated.View
-          style={[styles.statusIcon, styles.statusIconValidated, { transform: [{ scale }] }]}
-        >
-          <Text style={styles.statusEmoji}>🏆</Text>
+    <SafeAreaView style={s.safe}>
+      <View style={s.pendingHeader}>
+        <TouchableOpacity style={s.backBtn} onPress={() => router.replace('/(tabs)/apprentis')} accessibilityRole="button">
+          <Feather name="chevron-left" size={22} color="#fff" />
+        </TouchableOpacity>
+        <Text style={s.headerTitle}>Mon Brevet LSF</Text>
+      </View>
+      <View style={s.statusContainer}>
+        <Animated.View style={[s.statusIconWrap, s.statusIconValidated, { transform: [{ scale }] }]}>
+          <Text style={{ fontSize: 44 }}>🏆</Text>
         </Animated.View>
-        <Text style={styles.statusTitle}>Brevet validé !</Text>
-        <Text style={styles.statusText}>
+        <Text style={s.statusTitle}>Brevet validé !</Text>
+        <Text style={s.statusText}>
           Félicitations ! Le jury a validé votre brevet LSF. Vous pouvez désormais devenir Interprète agréé PharmaSign.
         </Text>
-        <View style={[styles.stepsCard, styles.stepsCardSuccess]}>
-          <Text style={[styles.stepsCardTitle, { color: Colors.apprentisDark }]}>
-            Ce que vous obtenez
-          </Text>
+        <View style={[s.stepsCard, s.stepsCardSuccess]}>
+          <Text style={[s.stepsCardTitle, { color: BRAND_DARK }]}>Ce que vous obtenez</Text>
           {[
-            'Accès aux missions d\'interprétation médicale',
+            "Accès aux missions d'interprétation médicale",
             'Badge Interprète agréé sur votre profil',
             'Rémunération pour chaque mission réalisée',
           ].map((item, i) => (
-            <View key={i} style={styles.step}>
-              <Text style={styles.checkIcon}>✓</Text>
-              <Text style={styles.stepText}>{item}</Text>
+            <View key={i} style={s.stepRow}>
+              <View style={[s.stepNum, s.stepNumSuccess]}>
+                <Feather name="check" size={12} color="#fff" />
+              </View>
+              <Text style={s.stepText}>{item}</Text>
             </View>
           ))}
         </View>
         <TouchableOpacity
-          style={[styles.upgradeBtn, upgrading && { opacity: 0.7 }]}
+          style={[s.upgradeBtn, upgrading && { opacity: 0.7 }]}
           onPress={handleUpgrade}
           disabled={upgrading}
           accessibilityRole="button"
         >
-          <Text style={styles.upgradeBtnText}>
-            {upgrading ? 'Mise à jour...' : '🌟  Devenir Interprète agréé'}
+          <Text style={s.upgradeBtnText}>
+            {upgrading ? 'Mise à jour…' : '🌟  Devenir Interprète agréé'}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => router.replace('/(tabs)/apprentis')}
-          accessibilityRole="button"
-        >
-          <Text style={styles.laterLink}>Plus tard</Text>
+        <TouchableOpacity onPress={() => router.replace('/(tabs)/apprentis')} accessibilityRole="button">
+          <Text style={s.laterLink}>Plus tard</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
 
+/* ── Formulaire principal ────────────────────────────────── */
 export default function BrevetScreen() {
   const { user, submitBrevet } = useAuth();
   const [niveau, setNiveau] = useState<string | null>(null);
@@ -169,7 +219,7 @@ export default function BrevetScreen() {
   if (user?.brevetValidated) return <ValidatedScreen />;
   if (user?.brevetSubmitted || submitted) return <PendingScreen />;
 
-  const canSubmit = niveau && organisme && annee.length === 4 && numero.trim().length > 3;
+  const canSubmit = !!niveau && !!organisme && annee.length === 4 && numero.trim().length > 3;
 
   const handleSubmit = async () => {
     await submitBrevet({ niveau: niveau!, organisme: organisme!, annee, numero });
@@ -177,123 +227,163 @@ export default function BrevetScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={s.safe}>
+
+      {/* Header teal */}
+      <View style={s.formHeader}>
+        <View style={s.formHeaderDeco1} />
+        <View style={s.formHeaderDeco2} />
+        <View style={s.headerRow}>
+          <TouchableOpacity style={s.backBtn} onPress={() => router.back()} accessibilityRole="button">
+            <Feather name="chevron-left" size={22} color="#fff" />
+          </TouchableOpacity>
+          <View style={{ flex: 1, marginLeft: 8 }}>
+            <Text style={s.headerTitle}>Mon Brevet LSF</Text>
+            <Text style={s.headerSub}>Soumission pour agrément PharmaSign</Text>
+          </View>
+        </View>
+
+        {/* Stepper */}
+        <Stepper
+          step1={!!niveau}
+          step2={!!organisme}
+          step3={annee.length === 4 && numero.trim().length > 3}
+        />
+      </View>
+
       <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
+        style={s.scroll}
+        contentContainerStyle={s.content}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.intro}>
-          <Text style={styles.introTitle}>🎓 Soumettre votre brevet LSF</Text>
-          <Text style={styles.introText}>
-            Pour évoluer vers le statut d'interprète agréé PharmaSign, soumettez votre brevet LSF reconnu. Un jury validera votre dossier manuellement.
+        {/* Info card */}
+        <View style={s.infoBanner}>
+          <Feather name="info" size={15} color={BRAND} />
+          <Text style={s.infoBannerText}>
+            Pour évoluer vers le statut Interprète agréé, soumettez votre brevet LSF reconnu. Un jury validera votre dossier manuellement.
           </Text>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Niveau de brevet</Text>
-          {NIVEAUX.map((n) => (
-            <TouchableOpacity
-              key={n}
-              style={[styles.optionRow, niveau === n && styles.optionRowSelected]}
-              onPress={() => setNiveau(n)}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: niveau === n }}
-            >
-              <View style={[styles.radioCircle, niveau === n && { borderColor: Colors.apprentis }]}>
-                {niveau === n && <View style={styles.radioDot} />}
-              </View>
-              <Text
-                style={[
-                  styles.optionText,
-                  niveau === n && { color: Colors.apprentis, fontWeight: '700' },
-                ]}
-              >
-                {n}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Organisme certificateur</Text>
-          {ORGANISMES.map((o) => (
-            <TouchableOpacity
-              key={o}
-              style={[styles.optionRow, organisme === o && styles.optionRowSelected]}
-              onPress={() => setOrganisme(o)}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: organisme === o }}
-            >
-              <View
-                style={[styles.radioCircle, organisme === o && { borderColor: Colors.apprentis }]}
-              >
-                {organisme === o && <View style={styles.radioDot} />}
-              </View>
-              <Text
-                style={[
-                  styles.optionText,
-                  organisme === o && { color: Colors.apprentis, fontWeight: '700' },
-                ]}
-              >
-                {o}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Informations du brevet</Text>
-          <View style={styles.field}>
-            <Text style={styles.label}>Année d'obtention</Text>
-            <TextInput
-              style={styles.input}
-              value={annee}
-              onChangeText={setAnnee}
-              placeholder="ex : 2024"
-              placeholderTextColor={Colors.textSecondary}
-              keyboardType="numeric"
-              maxLength={4}
-              accessibilityLabel="Année d'obtention du brevet"
-            />
+        {/* Section 1 : Niveau */}
+        <View style={s.section}>
+          <View style={s.sectionHeader}>
+            <View style={s.sectionBadge}><Text style={s.sectionBadgeText}>1</Text></View>
+            <Text style={s.sectionTitle}>Niveau de brevet</Text>
           </View>
-          <View style={styles.field}>
-            <Text style={styles.label}>Numéro de certificat</Text>
-            <TextInput
-              style={styles.input}
-              value={numero}
-              onChangeText={setNumero}
-              placeholder="ex : LSF-2024-XXXX"
-              placeholderTextColor={Colors.textSecondary}
-              autoCapitalize="characters"
-              accessibilityLabel="Numéro de certificat"
-            />
+          <View style={s.optionList}>
+            {NIVEAUX.map((n) => (
+              <TouchableOpacity
+                key={n}
+                style={[s.optionRow, niveau === n && s.optionRowSelected]}
+                onPress={() => setNiveau(n)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: niveau === n }}
+              >
+                <View style={[s.radio, niveau === n && s.radioSelected]}>
+                  {niveau === n && <View style={s.radioDot} />}
+                </View>
+                <Text style={[s.optionText, niveau === n && s.optionTextSelected]}>{n}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 
-        <View style={styles.notice}>
-          <Text style={styles.noticeText}>
-            📎 Dans une version finale, vous pourriez joindre une photo ou scan de votre brevet. Pour cette démonstration, les informations saisies suffisent.
+        {/* Section 2 : Organisme */}
+        <View style={s.section}>
+          <View style={s.sectionHeader}>
+            <View style={s.sectionBadge}><Text style={s.sectionBadgeText}>2</Text></View>
+            <Text style={s.sectionTitle}>Organisme certificateur</Text>
+          </View>
+          <View style={s.optionList}>
+            {ORGANISMES.map((o) => (
+              <TouchableOpacity
+                key={o}
+                style={[s.optionRow, organisme === o && s.optionRowSelected]}
+                onPress={() => setOrganisme(o)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: organisme === o }}
+              >
+                <View style={[s.radio, organisme === o && s.radioSelected]}>
+                  {organisme === o && <View style={s.radioDot} />}
+                </View>
+                <Text style={[s.optionText, organisme === o && s.optionTextSelected]}>{o}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Section 3 : Informations */}
+        <View style={s.section}>
+          <View style={s.sectionHeader}>
+            <View style={s.sectionBadge}><Text style={s.sectionBadgeText}>3</Text></View>
+            <Text style={s.sectionTitle}>Informations du brevet</Text>
+          </View>
+          <View style={s.fields}>
+            <View style={s.field}>
+              <Text style={s.label}>Année d'obtention</Text>
+              <View style={s.inputWrap}>
+                <Feather name="calendar" size={16} color={INK_3} style={s.inputIcon} />
+                <TextInput
+                  style={s.input}
+                  value={annee}
+                  onChangeText={setAnnee}
+                  placeholder="ex : 2024"
+                  placeholderTextColor={INK_3}
+                  keyboardType="numeric"
+                  maxLength={4}
+                  accessibilityLabel="Année d'obtention du brevet"
+                />
+              </View>
+            </View>
+            <View style={s.field}>
+              <Text style={s.label}>Numéro de certificat</Text>
+              <View style={s.inputWrap}>
+                <Feather name="hash" size={16} color={INK_3} style={s.inputIcon} />
+                <TextInput
+                  style={s.input}
+                  value={numero}
+                  onChangeText={setNumero}
+                  placeholder="ex : LSF-2024-XXXX"
+                  placeholderTextColor={INK_3}
+                  autoCapitalize="characters"
+                  accessibilityLabel="Numéro de certificat"
+                />
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Notice */}
+        <View style={s.notice}>
+          <Feather name="paperclip" size={14} color={AMBER} />
+          <Text style={s.noticeText}>
+            Dans une version finale, vous pourrez joindre une photo de votre brevet. Pour cette démonstration, les informations saisies suffisent.
           </Text>
         </View>
 
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>ℹ️ Niveau requis</Text>
-          <Text style={styles.infoText}>
-            Un brevet de niveau <Text style={{ fontWeight: '700' }}>B2 minimum</Text> est requis
-            pour devenir interprète LSF agréé PharmaSign. Les niveaux inférieurs seront examinés au
-            cas par cas.
+        {/* Info niveau B2 */}
+        <View style={s.infoBox}>
+          <View style={s.infoBoxHeader}>
+            <Feather name="info" size={14} color={BRAND} />
+            <Text style={s.infoBoxTitle}>Niveau requis</Text>
+          </View>
+          <Text style={s.infoBoxText}>
+            Un brevet de niveau{' '}
+            <Text style={{ fontWeight: '700', color: BRAND }}>B2 minimum</Text>
+            {' '}est requis pour devenir interprète LSF agréé PharmaSign. Les niveaux inférieurs seront examinés au cas par cas.
           </Text>
         </View>
 
+        {/* Bouton soumettre */}
         <TouchableOpacity
-          style={[styles.submitBtn, !canSubmit && styles.submitBtnDisabled]}
+          style={[s.submitBtn, !canSubmit && s.submitBtnDisabled]}
           onPress={handleSubmit}
           disabled={!canSubmit}
           accessibilityRole="button"
         >
-          <Text style={styles.submitBtnText}>
-            {canSubmit ? '🎓  Soumettre mon dossier' : 'Remplissez tous les champs'}
+          <Feather name={canSubmit ? 'send' : 'lock'} size={18} color="#fff" />
+          <Text style={s.submitBtnText}>
+            {canSubmit ? 'Soumettre mon dossier' : 'Remplissez tous les champs'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -301,201 +391,174 @@ export default function BrevetScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.apprentis },
-  scroll: { flex: 1, backgroundColor: Colors.background },
-  content: { padding: Spacing.lg, paddingBottom: Spacing.xxl, gap: Spacing.lg },
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: BRAND },
+  scroll: { flex: 1, backgroundColor: BG },
+  content: { padding: 20, paddingBottom: 40, gap: 20 },
 
-  intro: {
-    backgroundColor: Colors.apprentisLight,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.apprentis,
-    gap: Spacing.xs,
+  /* Form header */
+  formHeader: {
+    backgroundColor: BRAND, paddingTop: 16, overflow: 'hidden', position: 'relative',
   },
-  introTitle: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.apprentisDark },
-  introText: { fontSize: FontSize.sm, color: Colors.apprentisDark, lineHeight: 20 },
+  formHeaderDeco1: {
+    position: 'absolute', top: -50, right: -30,
+    width: 160, height: 160, borderRadius: 80,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  formHeaderDeco2: {
+    position: 'absolute', top: 20, right: 60,
+    width: 70, height: 70, borderRadius: 35,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  headerRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 16, zIndex: 1 },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  headerTitle: { fontSize: 17, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
+  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
 
-  section: { gap: Spacing.sm },
-  sectionTitle: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.textPrimary },
+  /* Pending/validated header (simpler) */
+  pendingHeader: {
+    backgroundColor: BRAND,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingVertical: 14, gap: 10,
+  },
+
+  /* Info banner */
+  infoBanner: {
+    flexDirection: 'row', gap: 10, alignItems: 'flex-start',
+    backgroundColor: BRAND_TINT, borderRadius: 12, padding: 14,
+    borderWidth: 1, borderColor: '#A7D4D0',
+  },
+  infoBannerText: { flex: 1, fontSize: 13.5, color: BRAND_DARK, lineHeight: 19 },
+
+  /* Sections */
+  section: { gap: 12 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  sectionBadge: {
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: BRAND, alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  sectionBadgeText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: INK, letterSpacing: -0.3 },
+
+  optionList: { gap: 8 },
   optionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    backgroundColor: Colors.white,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
-    borderWidth: 2,
-    borderColor: Colors.border,
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    backgroundColor: '#fff', borderRadius: 12, padding: 14,
+    borderWidth: 1.5, borderColor: BORDER,
   },
-  optionRowSelected: { borderColor: Colors.apprentis, backgroundColor: Colors.apprentisLight },
-  radioCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
+  optionRowSelected: { borderColor: BRAND, backgroundColor: BRAND_TINT },
+  radio: {
+    width: 22, height: 22, borderRadius: 11,
+    borderWidth: 2, borderColor: BORDER,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.apprentis },
-  optionText: { fontSize: FontSize.sm, color: Colors.textPrimary, flex: 1 },
+  radioSelected: { borderColor: BRAND },
+  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: BRAND },
+  optionText: { fontSize: 14, color: INK_2, flex: 1, lineHeight: 19 },
+  optionTextSelected: { color: BRAND, fontWeight: '600' },
 
-  field: { gap: Spacing.xs },
-  label: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.textPrimary },
+  /* Fields */
+  fields: { gap: 12 },
+  field: { gap: 6 },
+  label: { fontSize: 13.5, fontWeight: '600', color: INK, marginLeft: 2 },
+  inputWrap: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#fff', borderRadius: 12,
+    borderWidth: 1.5, borderColor: BORDER, overflow: 'hidden',
+  },
+  inputIcon: { paddingLeft: 14 },
   input: {
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
-    fontSize: FontSize.md,
-    color: Colors.textPrimary,
-    backgroundColor: Colors.white,
+    flex: 1, paddingHorizontal: 12, paddingVertical: 14,
+    fontSize: 15, color: INK,
   },
 
+  /* Notice */
   notice: {
-    backgroundColor: '#FEF3C7',
-    borderRadius: Radius.md,
-    padding: Spacing.md,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.warning,
+    flexDirection: 'row', gap: 10, alignItems: 'flex-start',
+    backgroundColor: AMBER_BG, borderRadius: 12, padding: 14,
+    borderLeftWidth: 3, borderLeftColor: GOLD,
   },
-  noticeText: { fontSize: FontSize.sm, color: '#92400E', lineHeight: 20 },
+  noticeText: { flex: 1, fontSize: 13, color: AMBER, lineHeight: 18 },
 
+  /* Info box */
   infoBox: {
-    backgroundColor: Colors.primaryLight,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
-    gap: Spacing.xs,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.primary,
+    backgroundColor: BRAND_TINT, borderRadius: 12, padding: 14,
+    gap: 8, borderLeftWidth: 3, borderLeftColor: BRAND,
   },
-  infoTitle: { fontSize: FontSize.sm, fontWeight: '700', color: Colors.primaryDark },
-  infoText: { fontSize: FontSize.sm, color: Colors.primaryDark, lineHeight: 20 },
+  infoBoxHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  infoBoxTitle: { fontSize: 14, fontWeight: '700', color: BRAND_DARK },
+  infoBoxText: { fontSize: 13.5, color: BRAND_DARK, lineHeight: 19 },
 
+  /* Submit button */
   submitBtn: {
-    backgroundColor: Colors.apprentis,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    alignItems: 'center',
-    shadowColor: Colors.apprentis,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    backgroundColor: BRAND, borderRadius: 16, padding: 16,
+    shadowColor: BRAND, shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3, shadowRadius: 12, elevation: 5,
   },
-  submitBtnDisabled: {
-    backgroundColor: Colors.textSecondary,
-    shadowOpacity: 0,
-    elevation: 0,
-    opacity: 0.5,
-  },
-  submitBtnText: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.white },
+  submitBtnDisabled: { backgroundColor: '#94A3B8', shadowOpacity: 0, elevation: 0 },
+  submitBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
 
-  // Shared status screens
+  /* Status screens shared */
   statusContainer: {
-    flex: 1,
-    backgroundColor: Colors.background,
-    padding: Spacing.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.lg,
+    flex: 1, backgroundColor: BG, padding: 24,
+    alignItems: 'center', justifyContent: 'center', gap: 18,
   },
-  statusIcon: {
-    width: 100,
-    height: 100,
-    borderRadius: Radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
+  statusIconWrap: {
+    width: 100, height: 100, borderRadius: 50,
+    alignItems: 'center', justifyContent: 'center',
   },
-  statusIconPending: { backgroundColor: '#FEF3C7' },
-  statusIconValidated: { backgroundColor: Colors.apprentisLight },
-  statusEmoji: { fontSize: 50 },
+  statusIconPending: { backgroundColor: AMBER_BG },
+  statusIconValidated: { backgroundColor: BRAND_TINT },
   statusTitle: {
-    fontSize: FontSize.xxl,
-    fontWeight: '800',
-    color: Colors.textPrimary,
-    textAlign: 'center',
+    fontSize: 26, fontWeight: '800', color: INK,
+    letterSpacing: -0.5, textAlign: 'center',
   },
   statusText: {
-    fontSize: FontSize.md,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-    paddingHorizontal: Spacing.sm,
+    fontSize: 15, color: INK_2, textAlign: 'center',
+    lineHeight: 22, paddingHorizontal: 8,
   },
   stepsCard: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.lg,
-    padding: Spacing.lg,
-    width: '100%',
-    gap: Spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 8,
-    elevation: 3,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.warning,
+    backgroundColor: '#fff', borderRadius: 16, padding: 20,
+    width: '100%', gap: 14,
+    borderWidth: 1, borderColor: BORDER,
+    borderLeftWidth: 4, borderLeftColor: GOLD,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07, shadowRadius: 8, elevation: 3,
   },
-  stepsCardSuccess: { borderLeftColor: Colors.apprentis },
-  stepsCardTitle: {
-    fontSize: FontSize.md,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginBottom: 4,
-  },
-  step: { flexDirection: 'row', gap: Spacing.md, alignItems: 'flex-start' },
+  stepsCardSuccess: { borderLeftColor: BRAND },
+  stepsCardTitle: { fontSize: 15, fontWeight: '700', color: INK, letterSpacing: -0.2 },
+  stepRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
   stepNum: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: BORDER, alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  stepNumActive: { backgroundColor: Colors.apprentis },
-  stepNumText: { fontSize: FontSize.xs, fontWeight: '700', color: Colors.white },
-  stepText: { flex: 1, fontSize: FontSize.sm, color: Colors.textSecondary, lineHeight: 20 },
-  checkIcon: {
-    width: 24,
-    height: 24,
-    textAlign: 'center',
-    fontSize: FontSize.md,
-    fontWeight: '800',
-    color: Colors.apprentis,
-    flexShrink: 0,
-  },
+  stepNumActive: { backgroundColor: BRAND },
+  stepNumSuccess: { backgroundColor: BRAND },
+  stepNumText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  stepText: { flex: 1, fontSize: 14, color: INK_2, lineHeight: 20 },
 
   upgradeBtn: {
-    backgroundColor: Colors.apprentisDark,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    alignItems: 'center',
-    width: '100%',
-    shadowColor: Colors.apprentis,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    backgroundColor: BRAND_DARK, borderRadius: 16, padding: 16,
+    alignItems: 'center', width: '100%',
+    flexDirection: 'row', justifyContent: 'center', gap: 8,
+    borderWidth: 2, borderColor: GOLD,
+    shadowColor: GOLD, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25, shadowRadius: 12, elevation: 5,
   },
-  upgradeBtnText: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.white },
+  upgradeBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
   laterLink: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    textDecorationLine: 'underline',
-    marginTop: -Spacing.sm,
+    fontSize: 14, color: INK_3,
+    textDecorationLine: 'underline', marginTop: -8,
   },
 
   retourBtn: {
-    backgroundColor: Colors.apprentis,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    alignItems: 'center',
-    width: '100%',
+    backgroundColor: BRAND, borderRadius: 14, padding: 16,
+    alignItems: 'center', width: '100%',
   },
-  retourBtnText: { fontSize: FontSize.md, fontWeight: '700', color: Colors.white },
+  retourBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 });

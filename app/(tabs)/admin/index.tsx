@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { router } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import {
   ActivityIndicator,
   Alert,
@@ -6,7 +8,6 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,9 +15,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { collection, doc, getDocs, onSnapshot, updateDoc } from 'firebase/firestore';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Timestamp, collection, doc, getDocs, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db } from '@/config/firebase';
-import { Role } from '@/context/AuthContext';
+import { Role, useAuth } from '@/context/AuthContext';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
 
 type AdminTab = 'brevets' | 'utilisateurs' | 'stats';
@@ -34,7 +36,7 @@ type BrevetUser = {
   brevetOrganisme?: string;
   brevetNumero?: string;
   brevetAnnee?: string;
-  createdAt?: any;
+  createdAt?: Timestamp;
 };
 
 const ROLE_CONFIG: Record<Role, { label: string; color: string; bg: string }> = {
@@ -166,6 +168,7 @@ function RoleModal({
 }
 
 export default function AdminScreen() {
+  const { logout } = useAuth();
   const [tab, setTab] = useState<AdminTab>('brevets');
   const [users, setUsers] = useState<BrevetUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -193,6 +196,24 @@ export default function AdminScreen() {
   const pendingBrevets = users.filter(
     (u) => u.brevetSubmitted && !u.brevetValidated && !u.brevetRefused,
   );
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Déconnexion',
+      'Voulez-vous vous déconnecter ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Déconnexion',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            router.replace('/(auth)/login');
+          },
+        },
+      ],
+    );
+  };
 
   const handleValidate = (u: BrevetUser) => {
     Alert.alert(
@@ -319,11 +340,16 @@ export default function AdminScreen() {
           <Text style={styles.headerTitle}>Administration</Text>
           <Text style={styles.headerSubtitle}>PharmaSign</Text>
         </View>
-        {pendingBrevets.length > 0 && (
-          <View style={styles.headerBadge}>
-            <Text style={styles.headerBadgeText}>{pendingBrevets.length}</Text>
-          </View>
-        )}
+        <View style={styles.headerRight}>
+          {pendingBrevets.length > 0 && (
+            <View style={styles.headerBadge}>
+              <Text style={styles.headerBadgeText}>{pendingBrevets.length}</Text>
+            </View>
+          )}
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn} accessibilityLabel="Déconnexion">
+            <Feather name="log-out" size={20} color={Colors.white} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Tabs */}
@@ -438,6 +464,19 @@ const styles = StyleSheet.create({
   },
   headerTitle: { color: Colors.white, fontSize: FontSize.xl, fontWeight: '700' },
   headerSubtitle: { color: 'rgba(255,255,255,0.8)', fontSize: FontSize.sm },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  logoutBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.sm,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   headerBadge: {
     backgroundColor: '#EF4444',
     borderRadius: Radius.full,

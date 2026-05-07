@@ -5,7 +5,6 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
 import { HEALTH_PROFESSIONALS } from '@/data/healthProfessionals';
@@ -90,8 +90,8 @@ export default function RendezVousScreen() {
             : p.category === 'specialist' ? 'specialiste'
             : 'pharmacie',
         specialite: p.specialite || undefined,
-        latitude: (p as any).latitude,
-        longitude: (p as any).longitude,
+        latitude: p.latitude,
+        longitude: p.longitude,
       }));
 
     const hospitals: Provider[] = HEALTH_PROFESSIONALS

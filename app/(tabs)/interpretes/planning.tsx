@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, DateData } from 'react-native-calendars';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useAppointments, type Appointment } from '@/hooks/useAppointments';
