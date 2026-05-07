@@ -16,6 +16,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Linking } from 'react-native';
 import { Timestamp, collection, doc, getDocs, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { Role, useAuth } from '@/context/AuthContext';
@@ -36,6 +37,7 @@ type BrevetUser = {
   brevetOrganisme?: string;
   brevetNumero?: string;
   brevetAnnee?: string;
+  certificateUrl?: string;
   createdAt?: Timestamp;
 };
 
@@ -275,6 +277,17 @@ export default function AdminScreen() {
           {u.brevetNumero && <Text style={styles.brevetDetail}>N° : {u.brevetNumero}</Text>}
           {u.brevetAnnee && <Text style={styles.brevetDetail}>Année : {u.brevetAnnee}</Text>}
         </View>
+      )}
+      {u.certificateUrl && (
+        <TouchableOpacity
+          style={styles.certBtn}
+          onPress={() => Linking.openURL(u.certificateUrl!)}
+          accessibilityRole="button"
+        >
+          <Feather name="paperclip" size={14} color={Colors.primary} />
+          <Text style={styles.certBtnText}>Voir le certificat</Text>
+          <Feather name="external-link" size={13} color={Colors.primary} />
+        </TouchableOpacity>
       )}
       <View style={styles.cardActions}>
         <TouchableOpacity style={styles.btnSuccess} onPress={() => handleValidate(u)}>
@@ -538,6 +551,21 @@ const styles = StyleSheet.create({
   },
   brevetDetail: { fontSize: FontSize.sm, color: Colors.textPrimary },
   brevetStatus: { fontSize: FontSize.xs, fontWeight: '600', marginTop: 4 },
+
+  certBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.primaryLight,
+    borderRadius: Radius.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    marginTop: Spacing.xs,
+    borderWidth: 1,
+    borderColor: Colors.primary + '40',
+  },
+  certBtnText: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.primary },
 
   cardActions: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.md },
   btnSuccess: {

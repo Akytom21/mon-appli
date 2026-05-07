@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   Animated,
   Easing,
   ScrollView,
@@ -12,6 +13,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
+import { getDownloadURL, ref as storageRef, uploadBytesResumable } from 'firebase/storage';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db, storage } from '@/config/firebase';
 import { useAuth } from '@/context/AuthContext';
 
 /* ── Design tokens ───────────────────────────────────────── */
@@ -43,12 +48,20 @@ const ORGANISMES = [
   'Autre organisme agréé',
 ];
 
+/* ── Helpers ─────────────────────────────────────────────── */
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} Mo`;
+}
+
 /* ── Stepper ─────────────────────────────────────────────── */
-function Stepper({ step1, step2, step3 }: { step1: boolean; step2: boolean; step3: boolean }) {
+function Stepper({ step1, step2, step3, step4 }: { step1: boolean; step2: boolean; step3: boolean; step4: boolean }) {
   const steps = [
     { n: 1, label: 'Niveau',    done: step1 },
     { n: 2, label: 'Organisme', done: step2 },
     { n: 3, label: 'Infos',     done: step3 },
+    { n: 4, label: 'Certificat',done: step4 },
   ];
   return (
     <View style={st.row}>
@@ -216,13 +229,68 @@ export default function BrevetScreen() {
   const [numero, setNumero] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
+  const [certAsset, setCertAsset] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [certUrl, setCertUrl] = useState<string | null>(null);
+
   if (user?.brevetValidated) return <ValidatedScreen />;
   if (user?.brevetSubmitted || submitted) return <PendingScreen />;
 
-  const canSubmit = !!niveau && !!organisme && annee.length === 4 && numero.trim().length > 3;
+  const canSubmit =
+    !!niveau && !!organisme && annee.length === 4 && numero.trim().length > 3 && !uploading;
+
+  const pickCertificate = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/jpeg', 'image/png'],
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled || !result.assets[0]) return;
+      const asset = result.assets[0];
+      setCertAsset(asset);
+      setCertUrl(null);
+      setUploadProgress(0);
+      uploadCertificate(asset);
+    } catch {
+      Alert.alert('Erreur', "Impossible d'ouvrir le sélecteur de fichiers.");
+    }
+  };
+
+  const uploadCertificate = async (asset: DocumentPicker.DocumentPickerAsset) => {
+    if (!user) return;
+    setUploading(true);
+    try {
+      const response = await fetch(asset.uri);
+      const blob = await response.blob();
+      const filename = `${Date.now()}_${asset.name}`;
+      const fileRef = storageRef(storage, `certificates/${user.id}/${filename}`);
+      const task = uploadBytesResumable(fileRef, blob);
+      task.on(
+        'state_changed',
+        (snap) => setUploadProgress(snap.bytesTransferred / snap.totalBytes),
+        () => {
+          setUploading(false);
+          Alert.alert('Erreur', "L'upload a échoué. Vérifiez votre connexion.");
+        },
+        async () => {
+          const url = await getDownloadURL(task.snapshot.ref);
+          setCertUrl(url);
+          setUploading(false);
+          setUploadProgress(1);
+        },
+      );
+    } catch {
+      setUploading(false);
+      Alert.alert('Erreur', "Impossible d'envoyer le fichier.");
+    }
+  };
 
   const handleSubmit = async () => {
     await submitBrevet({ niveau: niveau!, organisme: organisme!, annee, numero });
+    if (certUrl && user) {
+      await updateDoc(doc(db, 'users', user.id), { certificateUrl: certUrl });
+    }
     setSubmitted(true);
   };
 
@@ -248,6 +316,7 @@ export default function BrevetScreen() {
           step1={!!niveau}
           step2={!!organisme}
           step3={annee.length === 4 && numero.trim().length > 3}
+          step4={!!certUrl}
         />
       </View>
 
@@ -353,12 +422,71 @@ export default function BrevetScreen() {
           </View>
         </View>
 
-        {/* Notice */}
-        <View style={s.notice}>
-          <Feather name="paperclip" size={14} color={AMBER} />
-          <Text style={s.noticeText}>
-            Dans une version finale, vous pourrez joindre une photo de votre brevet. Pour cette démonstration, les informations saisies suffisent.
-          </Text>
+        {/* Section 4 : Certificat */}
+        <View style={s.section}>
+          <View style={s.sectionHeader}>
+            <View style={s.sectionBadge}><Text style={s.sectionBadgeText}>4</Text></View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.sectionTitle}>Certificat LSF</Text>
+              <Text style={s.sectionSub}>PDF, JPG ou PNG · optionnel mais recommandé</Text>
+            </View>
+          </View>
+
+          {!certAsset ? (
+            /* Zone de dépôt vide */
+            <TouchableOpacity
+              style={s.dropZone}
+              onPress={pickCertificate}
+              accessibilityRole="button"
+              accessibilityLabel="Choisir un fichier certificat"
+            >
+              <View style={s.dropZoneIcon}>
+                <Feather name="paperclip" size={26} color={BRAND} />
+              </View>
+              <Text style={s.dropZoneTitle}>Joindre mon certificat</Text>
+              <Text style={s.dropZoneSub}>Appuyez pour choisir un fichier depuis votre téléphone</Text>
+            </TouchableOpacity>
+          ) : (
+            /* Fichier sélectionné */
+            <View style={s.fileCard}>
+              <View style={s.fileIconWrap}>
+                <Feather
+                  name={certAsset.mimeType === 'application/pdf' ? 'file-text' : 'image'}
+                  size={22}
+                  color={BRAND}
+                />
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={s.fileName} numberOfLines={1}>{certAsset.name}</Text>
+                <Text style={s.fileMeta}>
+                  {certAsset.size ? formatFileSize(certAsset.size) : '—'}
+                  {certUrl ? '  ·  ✓ Envoyé' : uploading ? `  ·  ${Math.round(uploadProgress * 100)} %` : ''}
+                </Text>
+                {/* Barre de progression */}
+                {uploading && (
+                  <View style={s.progressTrack}>
+                    <View style={[s.progressFill, { width: `${Math.round(uploadProgress * 100)}%` }]} />
+                  </View>
+                )}
+                {certUrl && (
+                  <View style={s.uploadedBadge}>
+                    <Feather name="check-circle" size={12} color={BRAND} />
+                    <Text style={s.uploadedText}>Fichier envoyé avec succès</Text>
+                  </View>
+                )}
+              </View>
+              {!uploading && (
+                <TouchableOpacity
+                  style={s.removeBtn}
+                  onPress={() => { setCertAsset(null); setCertUrl(null); setUploadProgress(0); }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Supprimer le fichier"
+                >
+                  <Feather name="x" size={16} color={INK_3} />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
         </View>
 
         {/* Info niveau B2 */}
@@ -381,9 +509,17 @@ export default function BrevetScreen() {
           disabled={!canSubmit}
           accessibilityRole="button"
         >
-          <Feather name={canSubmit ? 'send' : 'lock'} size={18} color="#fff" />
+          <Feather
+            name={uploading ? 'upload-cloud' : canSubmit ? 'send' : 'lock'}
+            size={18}
+            color="#fff"
+          />
           <Text style={s.submitBtnText}>
-            {canSubmit ? 'Soumettre mon dossier' : 'Remplissez tous les champs'}
+            {uploading
+              ? `Upload en cours… ${Math.round(uploadProgress * 100)} %`
+              : canSubmit
+              ? 'Soumettre mon dossier'
+              : 'Remplissez tous les champs'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -476,13 +612,54 @@ const s = StyleSheet.create({
     fontSize: 15, color: INK,
   },
 
-  /* Notice */
-  notice: {
-    flexDirection: 'row', gap: 10, alignItems: 'flex-start',
-    backgroundColor: AMBER_BG, borderRadius: 12, padding: 14,
-    borderLeftWidth: 3, borderLeftColor: GOLD,
+  /* Section sub-label */
+  sectionSub: { fontSize: 11.5, color: INK_3, marginTop: 1 },
+
+  /* Drop zone */
+  dropZone: {
+    borderWidth: 1.5, borderColor: BRAND, borderStyle: 'dashed',
+    borderRadius: 14, padding: 22, alignItems: 'center', gap: 8,
+    backgroundColor: BRAND_TINT,
   },
-  noticeText: { flex: 1, fontSize: 13, color: AMBER, lineHeight: 18 },
+  dropZoneIcon: {
+    width: 52, height: 52, borderRadius: 26,
+    backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5, borderColor: '#A7D4D0',
+    shadowColor: BRAND, shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12, shadowRadius: 6, elevation: 2,
+  },
+  dropZoneTitle: { fontSize: 15, fontWeight: '700', color: BRAND },
+  dropZoneSub: { fontSize: 12.5, color: INK_2, textAlign: 'center', lineHeight: 17 },
+
+  /* File card */
+  fileCard: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+    backgroundColor: '#fff', borderRadius: 14, padding: 14,
+    borderWidth: 1.5, borderColor: BRAND,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
+  },
+  fileIconWrap: {
+    width: 42, height: 42, borderRadius: 10,
+    backgroundColor: BRAND_TINT, alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  fileName: { fontSize: 14, fontWeight: '600', color: INK },
+  fileMeta: { fontSize: 12, color: INK_3 },
+  progressTrack: {
+    height: 4, borderRadius: 2, backgroundColor: BORDER,
+    overflow: 'hidden', marginTop: 4,
+  },
+  progressFill: {
+    height: 4, borderRadius: 2, backgroundColor: BRAND,
+  },
+  uploadedBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2,
+  },
+  uploadedText: { fontSize: 11.5, fontWeight: '600', color: BRAND },
+  removeBtn: {
+    width: 28, height: 28, borderRadius: 8,
+    backgroundColor: BG, alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
 
   /* Info box */
   infoBox: {
