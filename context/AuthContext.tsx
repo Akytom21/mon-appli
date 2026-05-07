@@ -9,7 +9,7 @@ import {
 import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/config/firebase';
 
-export type Role = 'sourd' | 'interprete' | 'apprenti';
+export type Role = 'sourd' | 'interprete' | 'apprenti' | 'admin';
 
 export type User = {
   id: string;
@@ -18,6 +18,11 @@ export type User = {
   role: Role;
   brevetSubmitted: boolean;
   brevetValidated: boolean;
+  brevetRefused?: boolean;
+  brevetLevel?: string;
+  brevetOrganisme?: string;
+  brevetNumero?: string;
+  brevetAnnee?: string;
 };
 
 type AuthContextType = {
@@ -26,7 +31,7 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<string | null>;
   register: (name: string, email: string, password: string, role: Role) => Promise<string | null>;
   logout: () => Promise<void>;
-  submitBrevet: () => Promise<void>;
+  submitBrevet: (data: { niveau: string; organisme: string; annee: string; numero: string }) => Promise<void>;
   upgradeToInterprete: () => Promise<void>;
 };
 
@@ -72,6 +77,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             role: data.role,
             brevetSubmitted: data.brevetSubmitted ?? false,
             brevetValidated: data.brevetValidated ?? false,
+            brevetRefused: data.brevetRefused,
+            brevetLevel: data.brevetLevel,
+            brevetOrganisme: data.brevetOrganisme,
+            brevetNumero: data.brevetNumero,
+            brevetAnnee: data.brevetAnnee,
           });
         } else {
           setUser(null);
@@ -98,6 +108,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: data.role,
         brevetSubmitted: data.brevetSubmitted ?? false,
         brevetValidated: data.brevetValidated ?? false,
+        brevetRefused: data.brevetRefused,
+        brevetLevel: data.brevetLevel,
+        brevetOrganisme: data.brevetOrganisme,
+        brevetNumero: data.brevetNumero,
+        brevetAnnee: data.brevetAnnee,
       });
       return null;
     } catch (err) {
@@ -145,10 +160,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
-  const submitBrevet = async (): Promise<void> => {
+  const submitBrevet = async (data: {
+    niveau: string;
+    organisme: string;
+    annee: string;
+    numero: string;
+  }): Promise<void> => {
     if (!user) return;
-    await updateDoc(doc(db, 'users', user.id), { brevetSubmitted: true });
-    setUser((prev) => (prev ? { ...prev, brevetSubmitted: true } : null));
+    await updateDoc(doc(db, 'users', user.id), {
+      brevetSubmitted: true,
+      brevetLevel: data.niveau,
+      brevetOrganisme: data.organisme,
+      brevetAnnee: data.annee,
+      brevetNumero: data.numero,
+    });
+    setUser((prev) =>
+      prev ? {
+        ...prev,
+        brevetSubmitted: true,
+        brevetLevel: data.niveau,
+        brevetOrganisme: data.organisme,
+        brevetAnnee: data.annee,
+        brevetNumero: data.numero,
+      } : null,
+    );
   };
 
   const upgradeToInterprete = async (): Promise<void> => {

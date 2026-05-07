@@ -1,10 +1,12 @@
 import { Redirect, Stack } from 'expo-router';
-import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { Colors } from '@/constants/theme';
+import { ActivityIndicator, View } from 'react-native';
 
-export default function TabsLayout() {
+export default function AdminLayout() {
   const { user, initializing } = useAuth();
+
+  console.log('[AdminLayout] initializing =', initializing, '| role =', user?.role ?? '(null)');
 
   if (initializing) {
     return (
@@ -14,17 +16,14 @@ export default function TabsLayout() {
     );
   }
 
-  if (!user) {
+  if (!user || user.role !== 'admin') {
+    console.log('[AdminLayout] ⛔ role non-admin, redirect vers login');
     return <Redirect href="/(auth)/login" />;
   }
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
-      <Stack.Screen name="malentendants" />
-      <Stack.Screen name="interpretes" />
-      <Stack.Screen name="apprentis" />
-      <Stack.Screen name="admin" />
     </Stack>
   );
 }

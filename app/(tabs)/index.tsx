@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { useEffect } from 'react';
 import {
   Image,
   SafeAreaView,
@@ -347,7 +348,15 @@ function ApprentisHome({ user, onLogout }: { user: User; onLogout: () => void })
 export default function HomeScreen() {
   const { user, logout } = useAuth();
 
+  useEffect(() => {
+    console.log('[HomeScreen] user.role =', user?.role ?? '(null)');
+    if (user?.role === 'admin') {
+      router.replace('/(tabs)/admin');
+    }
+  }, [user?.role]);
+
   if (!user) return null;
+  if (user.role === 'admin') return null;
 
   const handleLogout = async () => {
     await logout();
