@@ -20,10 +20,7 @@ export function useHealthProfessionals(categoryFilter?: FirestoreCategory) {
   const [professionals, setProfessionals] = useState<HealthProfessional[]>([]);
   const [loading, setLoading] = useState(true);
 
-  console.log('[useHealthProfessionals] hook appelé, categoryFilter=', categoryFilter);
-
   useEffect(() => {
-    console.log('[useHealthProfessionals] useEffect déclenché');
     setLoading(true);
     const col = collection(db, 'healthProfessionals');
 
@@ -48,20 +45,7 @@ export function useHealthProfessionals(categoryFilter?: FirestoreCategory) {
             } as HealthProfessional;
           }),
         );
-        console.log(
-          `[useHealthProfessionals] Firestore → ${fromFirestore.length} pros` +
-          ` (doctor: ${fromFirestore.filter(p => p.category === 'doctor').length}` +
-          `, specialist: ${fromFirestore.filter(p => p.category === 'specialist').length}` +
-          `, pharmacy: ${fromFirestore.filter(p => p.category === 'pharmacy').length})`,
-        );
-        console.log('[useHealthProfessionals] Échantillon coordonnées:',
-          fromFirestore.slice(0, 3).map(p =>
-            `${p.id} lat=${p.latitude} lng=${p.longitude} cat=${p.category}`
-          )
-        );
-        const ids = fromFirestore.map(p => p.id);
-        const dupes = ids.filter((id, i) => ids.indexOf(id) !== i);
-        if (dupes.length) console.warn('[useHealthProfessionals] IDs dupliqués:', dupes.length, dupes.slice(0, 5));
+        // Les hôpitaux viennent du fichier statique (absents des données RPPS)
         const hospitals = HEALTH_PROFESSIONALS.filter((h) => h.category === 'hospital');
         setProfessionals(categoryFilter ? fromFirestore : [...hospitals, ...fromFirestore]);
         setLoading(false);

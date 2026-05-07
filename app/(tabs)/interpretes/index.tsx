@@ -11,8 +11,14 @@ import {
 } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
-import { NICE_CENTER } from '@/data/mockData';
 import { useAppointments, type Appointment, type AppointmentType } from '@/hooks/useAppointments';
+
+const NICE_CENTER = {
+  latitude: 43.7102,
+  longitude: 7.262,
+  latitudeDelta: 0.07,
+  longitudeDelta: 0.07,
+};
 
 let MapView: any, Marker: any, Callout: any;
 if (Platform.OS !== 'web') {
