@@ -17,7 +17,8 @@
       "WebFetch(domain:www.youtube.com)",
       "Bash(Get-ChildItem *)",
       "Bash(Get-Content *)",
-      "Bash(npm uninstall *)"
+      "Bash(npm uninstall *)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\" -Force | Where-Object {$_.PSIsContainer})"
     ]
   }
 }

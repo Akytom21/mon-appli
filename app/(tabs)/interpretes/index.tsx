@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Platform,
   SafeAreaView,
@@ -11,8 +11,8 @@ import {
 } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
-import { DEMANDES_NICE, NICE_CENTER, type DemandeRDV } from '@/data/mockData';
-import { useAppointments } from '@/hooks/useAppointments';
+import { NICE_CENTER } from '@/data/mockData';
+import { useAppointments, type Appointment, type AppointmentType } from '@/hooks/useAppointments';
 
 let MapView: any, Marker: any, Callout: any;
 if (Platform.OS !== 'web') {
@@ -22,11 +22,30 @@ if (Platform.OS !== 'web') {
   Callout = maps.Callout;
 }
 
+const TYPE_INFO: Record<AppointmentType, { label: string; icon: string }> = {
+  generaliste: { label: 'Médecin généraliste', icon: '🩺' },
+  urgences: { label: 'Urgences', icon: '🚨' },
+  specialiste: { label: 'Spécialiste', icon: '👨‍⚕️' },
+  pharmacie: { label: 'Pharmacie', icon: '💊' },
+};
+
 export default function InterpretesHome() {
   const { user } = useAuth();
-  const { pending } = useAppointments();
-  const [selected, setSelected] = useState<DemandeRDV | null>(null);
+  const { pending, acceptMission } = useAppointments();
+  const [selected, setSelected] = useState<Appointment | null>(null);
   const prenom = user?.name?.split(' ')[0] ?? '';
+
+  // Désélectionne si la demande n'est plus disponible (acceptée par quelqu'un d'autre)
+  useEffect(() => {
+    if (selected && !pending.find((a) => a.id === selected.id)) {
+      setSelected(null);
+    }
+  }, [pending]);
+
+  const handleAccept = async (id: string) => {
+    await acceptMission(id);
+    setSelected(null);
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -45,24 +64,27 @@ export default function InterpretesHome() {
             showsUserLocation
             showsMyLocationButton
           >
-            {DEMANDES_NICE.map((demande) => (
+            {pending.map((appt) => (
               <Marker
-                key={demande.id}
-                coordinate={{ latitude: demande.latitude, longitude: demande.longitude }}
-                pinColor={demande.urgence ? '#EF4444' : '#2A9D8F'}
-                onPress={() => setSelected(demande)}
+                key={appt.id}
+                coordinate={{ latitude: appt.coordinates.lat, longitude: appt.coordinates.lng }}
+                pinColor={appt.type === 'urgences' ? '#EF4444' : '#2A9D8F'}
+                onPress={() => setSelected(appt)}
               >
                 <Callout tooltip>
                   <View style={styles.callout}>
-                    {demande.urgence && (
+                    {appt.type === 'urgences' && (
                       <View style={styles.calloutUrgent}>
                         <Text style={styles.calloutUrgentText}>🚨 URGENT</Text>
                       </View>
                     )}
-                    <Text style={styles.calloutBesoin}>{demande.besoin}</Text>
-                    <Text style={styles.calloutMeta}>
-                      🕐 {demande.heure} — {demande.date}
+                    <Text style={styles.calloutBesoin}>
+                      {TYPE_INFO[appt.type].icon} {TYPE_INFO[appt.type].label}
                     </Text>
+                    <Text style={styles.calloutMeta}>
+                      🕐 {appt.time} — {appt.date}
+                    </Text>
+                    <Text style={styles.calloutMeta}>👤 {appt.patientName}</Text>
                   </View>
                 </Callout>
               </Marker>
@@ -72,7 +94,9 @@ export default function InterpretesHome() {
           <View style={styles.mapFallback}>
             <Text style={styles.mapFallbackEmoji}>🗺️</Text>
             <Text style={styles.mapFallbackText}>Carte disponible sur mobile</Text>
-            <Text style={styles.mapFallbackSub}>3 demandes en attente à Nice</Text>
+            <Text style={styles.mapFallbackSub}>
+              {pending.length} demande{pending.length !== 1 ? 's' : ''} en attente à Nice
+            </Text>
           </View>
         )}
 
@@ -90,24 +114,31 @@ export default function InterpretesHome() {
       </View>
 
       {/* Scrollable content */}
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Selected request card */}
         {selected && (
-          <View style={[styles.selectedCard, selected.urgence && { borderColor: Colors.error }]}>
+          <View style={[styles.selectedCard, selected.type === 'urgences' && { borderColor: Colors.error }]}>
             <View style={styles.selectedLeft}>
-              {selected.urgence && (
+              {selected.type === 'urgences' && (
                 <View style={styles.urgentBadge}>
                   <Text style={styles.urgentText}>🚨 URGENT</Text>
                 </View>
               )}
-              <Text style={styles.selectedBesoin}>{selected.besoin}</Text>
-              <Text style={styles.selectedMeta}>🕐 {selected.heure} — {selected.date}</Text>
+              <Text style={styles.selectedBesoin}>
+                {TYPE_INFO[selected.type].icon} {TYPE_INFO[selected.type].label}
+              </Text>
+              <Text style={styles.selectedPatient}>👤 {selected.patientName}</Text>
+              <Text style={styles.selectedMeta}>🕐 {selected.time} — {selected.date}</Text>
+              <Text style={styles.selectedMeta} numberOfLines={1}>📍 {selected.location}</Text>
             </View>
             <View style={styles.selectedActions}>
               <TouchableOpacity
                 style={styles.acceptBtn}
-                onPress={() => router.push('/(tabs)/interpretes/planning')}
+                onPress={() => handleAccept(selected.id)}
                 accessibilityRole="button"
               >
                 <Text style={styles.acceptBtnText}>✓ Accepter</Text>
@@ -148,48 +179,65 @@ export default function InterpretesHome() {
         {/* Requests list */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Demandes en attente</Text>
-          <Text style={styles.sectionSub}>{DEMANDES_NICE.length} demandes dans votre zone</Text>
+          <Text style={styles.sectionSub}>
+            {pending.length} demande{pending.length !== 1 ? 's' : ''} dans votre zone
+          </Text>
 
-          {DEMANDES_NICE.map((demande) => (
-            <TouchableOpacity
-              key={demande.id}
-              style={[
-                styles.demandeCard,
-                selected?.id === demande.id && styles.demandeCardSelected,
-                demande.urgence && styles.demandeCardUrgent,
-              ]}
-              onPress={() => setSelected(demande)}
-              activeOpacity={0.8}
-              accessibilityRole="button"
-            >
-              <View style={styles.demandeLeft}>
-                {demande.urgence && (
-                  <View style={styles.urgentBadge}>
-                    <Text style={styles.urgentText}>🚨 URGENT</Text>
+          {pending.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyIcon}>🎉</Text>
+              <Text style={styles.emptyTitle}>Aucune demande en attente</Text>
+              <Text style={styles.emptySub}>Revenez plus tard pour voir de nouvelles demandes.</Text>
+            </View>
+          ) : (
+            pending.map((appt) => {
+              const info = TYPE_INFO[appt.type];
+              const isUrgent = appt.type === 'urgences';
+              return (
+                <TouchableOpacity
+                  key={appt.id}
+                  style={[
+                    styles.demandeCard,
+                    selected?.id === appt.id && styles.demandeCardSelected,
+                    isUrgent && styles.demandeCardUrgent,
+                  ]}
+                  onPress={() => setSelected(appt)}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                >
+                  <View style={styles.demandeLeft}>
+                    {isUrgent && (
+                      <View style={styles.urgentBadge}>
+                        <Text style={styles.urgentText}>🚨 URGENT</Text>
+                      </View>
+                    )}
+                    <Text style={styles.demandeBesoin}>
+                      {info.icon} {info.label}
+                    </Text>
+                    <Text style={styles.demandePatient}>{appt.patientName}</Text>
+                    <Text style={styles.demandeMeta}>🕐 {appt.time} — {appt.date}</Text>
+                    <Text style={styles.demandeMeta} numberOfLines={1}>📍 {appt.location}</Text>
                   </View>
-                )}
-                <Text style={styles.demandeBesoin}>{demande.besoin}</Text>
-                <Text style={styles.demandePatient}>{demande.patient}</Text>
-                <Text style={styles.demandeMeta}>🕐 {demande.heure} — {demande.date}</Text>
-              </View>
-              <View style={styles.demandeRight}>
-                <TouchableOpacity
-                  style={styles.voirBtn}
-                  onPress={() => router.push('/(tabs)/interpretes/missions')}
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.voirBtnText}>Voir</Text>
+                  <View style={styles.demandeRight}>
+                    <TouchableOpacity
+                      style={styles.voirBtn}
+                      onPress={() => router.push('/(tabs)/interpretes/missions')}
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.voirBtnText}>Voir</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.accepterBtn}
+                      onPress={() => handleAccept(appt.id)}
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.accepterBtnText}>Accepter</Text>
+                    </TouchableOpacity>
+                  </View>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.accepterBtn}
-                  onPress={() => router.push('/(tabs)/interpretes/planning')}
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.accepterBtnText}>Accepter</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
-          ))}
+              );
+            })
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -241,7 +289,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: Radius.md,
     padding: Spacing.md,
-    minWidth: 150,
+    minWidth: 160,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
@@ -280,6 +328,7 @@ const styles = StyleSheet.create({
   },
   selectedLeft: { flex: 1, gap: 3 },
   selectedBesoin: { fontSize: FontSize.md, fontWeight: '700', color: Colors.textPrimary },
+  selectedPatient: { fontSize: FontSize.sm, color: Colors.textSecondary },
   selectedMeta: { fontSize: FontSize.sm, color: Colors.textSecondary },
   selectedActions: { flexShrink: 0 },
   acceptBtn: {
@@ -319,11 +368,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
   },
   badgeText: { fontSize: 10, fontWeight: '800', color: Colors.white },
-  actionLabel: { fontSize: FontSize.sm, fontWeight: '700', color: Colors.interpretes, textAlign: 'center' },
+  actionLabel: {
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    color: Colors.interpretes,
+    textAlign: 'center',
+  },
 
   section: { gap: Spacing.sm },
   sectionTitle: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.textPrimary },
   sectionSub: { fontSize: FontSize.sm, color: Colors.textSecondary },
+
+  emptyState: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xl },
+  emptyIcon: { fontSize: 44 },
+  emptyTitle: { fontSize: FontSize.md, fontWeight: '700', color: Colors.textPrimary },
+  emptySub: { fontSize: FontSize.sm, color: Colors.textSecondary, textAlign: 'center' },
 
   demandeCard: {
     backgroundColor: Colors.white,
