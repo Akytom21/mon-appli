@@ -61,6 +61,7 @@ export default function ApprentisHome() {
 
   const firstName = user?.name?.split(' ')[0] ?? '';
   const previewSessions = formations.slice(0, 3);
+  console.log('[apprentis/index] render — profileBtn visible dans topBarActions');
 
   return (
     <SafeAreaView style={s.safe}>

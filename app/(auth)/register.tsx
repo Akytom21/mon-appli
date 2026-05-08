@@ -65,7 +65,7 @@ export default function RegisterScreen() {
     if (err) {
       setError(err);
     } else {
-      router.replace('/(tabs)');
+      router.replace('/(auth)/complete-profile');
     }
   };
 

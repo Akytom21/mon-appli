@@ -102,16 +102,25 @@ export default function ProfilScreen() {
   const uploadAvatar = async (uri: string) => {
     if (!user) return;
     setUploadingPhoto(true);
+    console.log('[profil] uploadAvatar start — uri:', uri.slice(0, 60));
     try {
+      console.log('[profil] fetch blob...');
       const response = await fetch(uri);
       const blob = await response.blob();
-      const sRef = storageRef(storage, `avatars/${user.id}/profile.jpg`);
+      console.log('[profil] blob OK — size:', blob.size, 'type:', blob.type);
+      const path = `avatars/${user.id}/profile.jpg`;
+      console.log('[profil] uploading to Storage path:', path);
+      const sRef = storageRef(storage, path);
       await uploadBytes(sRef, blob);
+      console.log('[profil] uploadBytes OK — getting download URL...');
       const url = await getDownloadURL(sRef);
+      console.log('[profil] getDownloadURL OK — url:', url.slice(0, 70));
       await updateProfile({ avatarUrl: url });
       setAvatarUri(url);
-    } catch {
-      Alert.alert('Erreur', "Impossible d'envoyer la photo.");
+      console.log('[profil] uploadAvatar ✓ done');
+    } catch (e) {
+      console.error('[profil] uploadAvatar ERROR:', e);
+      Alert.alert('Erreur upload', `Impossible d'envoyer la photo.\n${String(e)}`);
     } finally {
       setUploadingPhoto(false);
     }

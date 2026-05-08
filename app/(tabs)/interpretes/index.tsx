@@ -43,6 +43,7 @@ export default function InterpretesHome() {
   const { averageRating, reviews } = useInterpreterReviews();
   const [selected, setSelected] = useState<Appointment | null>(null);
   const prenom = user?.name?.split(' ')[0] ?? '';
+  console.log('[interpretes/index] render — profileBtn visible dans headerRow');
 
   // Désélectionne si la demande n'est plus disponible (acceptée par quelqu'un d'autre)
   useEffect(() => {

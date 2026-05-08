@@ -30,6 +30,7 @@ const AMBER_BG   = '#FEF3C7';
 function SourdHome({ user, onLogout }: { user: User; onLogout: () => void }) {
   const { appointments } = usePatientAppointments();
   const pendingCount = appointments.filter((a) => a.status === 'pending').length;
+  console.log('[SourdHome] render — header OK, pendingCount:', pendingCount);
 
   return (
     <SafeAreaView style={styles.sourdSafe}>
@@ -58,6 +59,14 @@ function SourdHome({ user, onLogout }: { user: User; onLogout: () => void }) {
               <TouchableOpacity style={styles.headerActionBtn} accessibilityLabel="Notifications">
                 <Feather name="bell" size={18} color="#fff" />
                 <View style={styles.notifDot} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.headerActionBtn}
+                onPress={() => router.push('/(tabs)/profil')}
+                accessibilityRole="button"
+                accessibilityLabel="Mon profil"
+              >
+                <Feather name="user" size={18} color="#fff" />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.headerActionBtn}
@@ -212,15 +221,26 @@ function StepRow({ n, title, desc }: { n: string; title: string; desc: string })
 
 /* ── Interprète home ─────────────────────────────────────── */
 function InterpretesHome({ user, onLogout }: { user: User; onLogout: () => void }) {
+  console.log('[InterpretesHome] render — header OK');
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: Colors.interpretes }]}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.header, { backgroundColor: Colors.interpretes }]}>
           <View style={styles.topBarRow}>
             <Image source={require('@/assets/images/logo.png')} style={styles.topBarLogo} resizeMode="contain" />
-            <TouchableOpacity onPress={onLogout} style={styles.logoutBtn} accessibilityRole="button">
-              <Text style={styles.logoutText}>Déconnexion</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <TouchableOpacity
+                style={styles.headerActionBtn}
+                onPress={() => router.push('/(tabs)/profil')}
+                accessibilityRole="button"
+                accessibilityLabel="Mon profil"
+              >
+                <Feather name="user" size={18} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={onLogout} style={styles.logoutBtn} accessibilityRole="button">
+                <Text style={styles.logoutText}>Déconnexion</Text>
+              </TouchableOpacity>
+            </View>
           </View>
           <Text style={styles.headerGreeting}>Bonjour, {user.name.split(' ')[0]} 👐</Text>
           <Text style={styles.headerSub}>Interprète LSF agréé(e) — Zone de Nice</Text>
@@ -272,15 +292,26 @@ function InterpretesHome({ user, onLogout }: { user: User; onLogout: () => void 
 /* ── Apprenti home ───────────────────────────────────────── */
 function ApprentisHome({ user, onLogout }: { user: User; onLogout: () => void }) {
   const progress = 2 / 5;
+  console.log('[ApprentisHome] render — header OK');
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: Colors.apprentis }]}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.header, { backgroundColor: Colors.apprentis }]}>
           <View style={styles.topBarRow}>
             <Image source={require('@/assets/images/logo.png')} style={styles.topBarLogo} resizeMode="contain" />
-            <TouchableOpacity onPress={onLogout} style={styles.logoutBtn} accessibilityRole="button">
-              <Text style={styles.logoutText}>Déconnexion</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <TouchableOpacity
+                style={styles.headerActionBtn}
+                onPress={() => router.push('/(tabs)/profil')}
+                accessibilityRole="button"
+                accessibilityLabel="Mon profil"
+              >
+                <Feather name="user" size={18} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={onLogout} style={styles.logoutBtn} accessibilityRole="button">
+                <Text style={styles.logoutText}>Déconnexion</Text>
+              </TouchableOpacity>
+            </View>
           </View>
           <Text style={styles.headerGreeting}>Bonjour, {user.name.split(' ')[0]} 📚</Text>
           <Text style={styles.headerSub}>Apprenti(e) interprète LSF médical</Text>

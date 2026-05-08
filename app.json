@@ -11,11 +11,12 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "PharmaSign utilise votre position pour centrer la carte et calculer la distance aux interprètes proches."
+        "NSLocationWhenInUseUsageDescription": "PharmaSign utilise votre position pour centrer la carte et calculer la distance aux interprètes proches.",
+        "NSPhotoLibraryUsageDescription": "PharmaSign a besoin d'accéder à vos photos pour votre photo de profil."
       }
     },
     "android": {
-      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"],
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE", "READ_MEDIA_IMAGES"],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -31,6 +32,12 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "PharmaSign a besoin d'accéder à vos photos pour votre photo de profil."
+        }
+      ],
       [
         "expo-splash-screen",
         {
