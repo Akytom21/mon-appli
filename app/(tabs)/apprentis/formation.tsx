@@ -158,6 +158,14 @@ export default function FormationScreen() {
 
         {loading ? (
           <ActivityIndicator color={BRAND} size="large" style={{ marginTop: 40 }} />
+        ) : formations.length === 0 ? (
+          <View style={s.emptyWrap}>
+            <Feather name="calendar" size={48} color={INK_3} />
+            <Text style={s.emptyTitle}>Aucune session disponible</Text>
+            <Text style={s.emptySub}>
+              De nouvelles formations seront ajoutées prochainement.
+            </Text>
+          </View>
         ) : (
           <View style={s.sessions}>
             {formations.map((session) => {
@@ -246,6 +254,7 @@ export default function FormationScreen() {
         )}
 
         {/* Bouton de confirmation */}
+        {!loading && formations.length > 0 && (
         <TouchableOpacity
           style={[s.confirmBtn, (!selected || confirming) && s.confirmBtnDisabled]}
           onPress={handleConfirm}
@@ -267,6 +276,7 @@ export default function FormationScreen() {
             </>
           )}
         </TouchableOpacity>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -301,6 +311,17 @@ const s = StyleSheet.create({
   infoBannerText: { flex: 1, fontSize: 13.5, color: BRAND_DARK, lineHeight: 19 },
 
   sessions: { gap: 12 },
+
+  emptyWrap: {
+    alignItems: 'center', justifyContent: 'center',
+    gap: 10, paddingVertical: 48, paddingHorizontal: 24,
+  },
+  emptyTitle: {
+    fontSize: 16, fontWeight: '700', color: INK, textAlign: 'center', marginTop: 8,
+  },
+  emptySub: {
+    fontSize: 13.5, color: INK_2, textAlign: 'center', lineHeight: 20,
+  },
 
   /* Session card */
   sessionCard: {

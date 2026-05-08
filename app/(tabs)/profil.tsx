@@ -401,6 +401,22 @@ export default function ProfilScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Application */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Application</Text>
+            <TouchableOpacity
+              style={styles.actionRow}
+              onPress={() => router.push('/(tabs)/a-propos')}
+              accessibilityRole="button"
+            >
+              <View style={styles.actionIcon}>
+                <Feather name="info" size={16} color={BRAND} />
+              </View>
+              <Text style={styles.actionText}>À propos de PharmaSign</Text>
+              <Feather name="chevron-right" size={16} color={INK_3} />
+            </TouchableOpacity>
+          </View>
+
           {/* Compte */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Compte</Text>

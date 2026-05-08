@@ -34,6 +34,7 @@ export default function TabsLayout() {
         <Stack.Screen name="apprentis" />
         <Stack.Screen name="admin" />
         <Stack.Screen name="profil" />
+        <Stack.Screen name="a-propos" />
       </Stack>
     </>
   );

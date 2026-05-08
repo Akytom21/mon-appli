@@ -1,8 +1,10 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
+  ActivityIndicator,
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -13,6 +15,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '@/config/firebase';
 import { useAuth } from '@/context/AuthContext';
 
 const BRAND     = '#0F766E';
@@ -32,6 +36,12 @@ export default function LoginScreen() {
   const [error, setError]       = useState<string | null>(null);
   const [loading, setLoading]   = useState(false);
 
+  const [showForgot, setShowForgot]       = useState(false);
+  const [forgotEmail, setForgotEmail]     = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError]     = useState<string | null>(null);
+  const [forgotSuccess, setForgotSuccess] = useState(false);
+
   const handleLogin = async () => {
     setError(null);
     setLoading(true);
@@ -41,6 +51,37 @@ export default function LoginScreen() {
       setError(err);
     } else {
       router.replace('/(tabs)');
+    }
+  };
+
+  const closeForgot = () => {
+    setShowForgot(false);
+    setForgotEmail('');
+    setForgotError(null);
+    setForgotSuccess(false);
+  };
+
+  const handleForgotPassword = async () => {
+    setForgotError(null);
+    if (!forgotEmail.trim()) {
+      setForgotError('Veuillez saisir votre adresse email.');
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, forgotEmail.trim());
+      setForgotSuccess(true);
+    } catch (e: unknown) {
+      const code = (e as { code?: string })?.code;
+      if (code === 'auth/user-not-found') {
+        setForgotError('Aucun compte associé à cet email.');
+      } else if (code === 'auth/invalid-email') {
+        setForgotError('Adresse email invalide.');
+      } else {
+        setForgotError('Une erreur est survenue. Veuillez réessayer.');
+      }
+    } finally {
+      setForgotLoading(false);
     }
   };
 
@@ -130,7 +171,11 @@ export default function LoginScreen() {
               </View>
             </View>
 
-            <TouchableOpacity style={styles.forgotRow} accessibilityRole="button">
+            <TouchableOpacity
+              style={styles.forgotRow}
+              accessibilityRole="button"
+              onPress={() => setShowForgot(true)}
+            >
               <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
             </TouchableOpacity>
 
@@ -176,6 +221,100 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* ── Modal : mot de passe oublié ───────────────── */}
+      <Modal
+        visible={showForgot}
+        transparent
+        animationType="fade"
+        onRequestClose={closeForgot}
+      >
+        <View style={styles.overlay}>
+          <View style={styles.modalCard}>
+
+            {/* Header teal */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Mot de passe oublié</Text>
+              <TouchableOpacity
+                onPress={closeForgot}
+                style={styles.closeBtn}
+                accessibilityLabel="Fermer"
+              >
+                <Feather name="x" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Corps */}
+            <View style={styles.modalBody}>
+              <Text style={styles.modalDesc}>
+                Saisissez votre email pour recevoir un lien de réinitialisation.
+              </Text>
+
+              {forgotError && (
+                <View style={styles.errorBox}>
+                  <Feather name="alert-circle" size={15} color="#DC2626" />
+                  <Text style={styles.errorText}>{forgotError}</Text>
+                </View>
+              )}
+
+              {forgotSuccess ? (
+                <>
+                  <View style={styles.successBox}>
+                    <Feather name="check-circle" size={15} color="#059669" />
+                    <Text style={styles.successText}>
+                      Un email de réinitialisation a été envoyé à {forgotEmail}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.outlineBtn}
+                    onPress={closeForgot}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.outlineBtnText}>Fermer</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <View style={styles.field}>
+                    <Text style={styles.label}>Adresse email</Text>
+                    <View style={styles.inputRow}>
+                      <Feather name="mail" size={17} color={INK_3} style={styles.inputIcon} />
+                      <TextInput
+                        style={styles.input}
+                        value={forgotEmail}
+                        onChangeText={setForgotEmail}
+                        placeholder="exemple@email.fr"
+                        placeholderTextColor={INK_3}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        accessibilityLabel="Email pour réinitialisation"
+                        autoFocus
+                      />
+                    </View>
+                  </View>
+
+                  <TouchableOpacity
+                    style={[styles.primaryBtn, forgotLoading && { opacity: 0.7 }]}
+                    onPress={handleForgotPassword}
+                    disabled={forgotLoading}
+                    accessibilityRole="button"
+                  >
+                    {forgotLoading ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <>
+                        <Text style={styles.primaryBtnText}>Envoyer le lien</Text>
+                        <Feather name="send" size={16} color="#fff" />
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -371,6 +510,66 @@ const styles = StyleSheet.create({
     fontSize: 14.5,
     fontWeight: '600',
     color: INK,
+  },
+
+  /* Modal forgot password */
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 27, 45, 0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#0F1B2D',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2,
+    shadowRadius: 32,
+    elevation: 12,
+  },
+  modalHeader: {
+    backgroundColor: BRAND,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: -0.2,
+  },
+  closeBtn: { padding: 4 },
+  modalBody: {
+    padding: 22,
+    gap: 16,
+  },
+  modalDesc: {
+    fontSize: 13.5,
+    color: INK_2,
+    lineHeight: 19,
+  },
+  successBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#D1FAE5',
+    borderRadius: 10,
+    padding: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#059669',
+  },
+  successText: {
+    fontSize: 13,
+    color: '#065F46',
+    flex: 1,
+    lineHeight: 18,
   },
 
   /* Privacy banner */
