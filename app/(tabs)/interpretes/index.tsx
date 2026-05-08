@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useAppointments, type Appointment, type AppointmentType } from '@/hooks/useAppointments';
@@ -75,6 +76,14 @@ export default function InterpretesHome() {
               <Text style={styles.ratingCount}>({reviews.length} avis)</Text>
             </View>
           )}
+          <TouchableOpacity
+            style={styles.profileBtn}
+            onPress={() => router.push('/(tabs)/profil')}
+            accessibilityLabel="Mon profil"
+            accessibilityRole="button"
+          >
+            <Feather name="user" size={20} color="#fff" />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -277,6 +286,12 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
   },
   headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
+  profileBtn: {
+    width: 38, height: 38, borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+  },
   headerTitle: { fontSize: FontSize.xl, fontWeight: '800', color: Colors.white },
   headerSub: { fontSize: FontSize.sm, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
   ratingBadge: {

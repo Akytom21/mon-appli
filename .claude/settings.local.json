@@ -24,7 +24,10 @@
       "Bash(node *)",
       "Bash(npx tsc *)",
       "Bash(Select-Object Name, PSIsContainer)",
-      "Bash(Format-Table -AutoSize)"
+      "Bash(Format-Table -AutoSize)",
+      "Bash(grep -n \"Feather\\\\|expo-vector\" app/tabs/malentendants/index.tsx)",
+      "Bash(grep -n \"Feather\\\\|expo-vector\" \"app/\\(tabs\\)/malentendants/index.tsx\")",
+      "Bash(grep -n \"Feather\\\\|expo-vector\" \"app/\\(tabs\\)/interpretes/index.tsx\")"
     ]
   }
 }

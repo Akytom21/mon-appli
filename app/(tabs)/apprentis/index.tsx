@@ -91,6 +91,14 @@ export default function ApprentisHome() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={s.iconBtn}
+                onPress={() => router.push('/(tabs)/profil')}
+                accessibilityLabel="Mon profil"
+                accessibilityRole="button"
+              >
+                <Feather name="user" size={18} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={s.iconBtn}
                 onPress={handleLogout}
                 accessibilityLabel="Déconnexion"
                 accessibilityRole="button"

@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
 import {
@@ -341,8 +342,20 @@ export default function MalentendantsHome() {
     <SafeAreaView style={styles.safe}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Bonjour {prenom} 🤟</Text>
-        <Text style={styles.headerSub}>Carte de Nice — professionnels de santé</Text>
+        <View style={styles.headerTopRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerTitle}>Bonjour {prenom} 🤟</Text>
+            <Text style={styles.headerSub}>Carte de Nice — professionnels de santé</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.headerProfileBtn}
+            onPress={() => router.push('/(tabs)/profil')}
+            accessibilityLabel="Mon profil"
+            accessibilityRole="button"
+          >
+            <Feather name="user" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
         {locationError && (
           <Text style={styles.locationError}>⚠ Localisation non disponible</Text>
         )}
@@ -570,9 +583,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.sm,
     paddingBottom: Spacing.sm,
+    gap: 4,
   },
+  headerTopRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   headerTitle: { fontSize: FontSize.xl, fontWeight: '800', color: Colors.white },
   headerSub: { fontSize: FontSize.sm, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
+  headerProfileBtn: {
+    width: 38, height: 38, borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+  },
   locationError: { fontSize: FontSize.xs, color: 'rgba(255,220,100,0.9)', marginTop: 4 },
 
   filterBar: { backgroundColor: Colors.primary, flexGrow: 0 },

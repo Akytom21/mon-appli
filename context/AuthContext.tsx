@@ -16,6 +16,17 @@ export type User = {
   email: string;
   name: string;
   role: Role;
+  phone?: string;
+  avatarUrl?: string;
+  // Interprète
+  zoneKm?: number;
+  languages?: string[];
+  disponible?: boolean;
+  // Apprenti
+  niveauLSF?: string;
+  // Sourd
+  prefCommun?: string;
+  // Brevet
   brevetSubmitted: boolean;
   brevetValidated: boolean;
   brevetRefused?: boolean;
@@ -23,6 +34,17 @@ export type User = {
   brevetOrganisme?: string;
   brevetNumero?: string;
   brevetAnnee?: string;
+};
+
+export type UserProfileUpdate = {
+  name?: string;
+  phone?: string;
+  avatarUrl?: string;
+  zoneKm?: number;
+  languages?: string[];
+  disponible?: boolean;
+  niveauLSF?: string;
+  prefCommun?: string;
 };
 
 type AuthContextType = {
@@ -33,6 +55,7 @@ type AuthContextType = {
   logout: () => Promise<void>;
   submitBrevet: (data: { niveau: string; organisme: string; annee: string; numero: string }) => Promise<void>;
   upgradeToInterprete: () => Promise<void>;
+  updateProfile: (updates: UserProfileUpdate) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -75,6 +98,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email: firebaseUser.email ?? '',
             name: data.name,
             role: data.role,
+            phone: data.phone,
+            avatarUrl: data.avatarUrl,
+            zoneKm: data.zoneKm,
+            languages: data.languages,
+            disponible: data.disponible,
+            niveauLSF: data.niveauLSF,
+            prefCommun: data.prefCommun,
             brevetSubmitted: data.brevetSubmitted ?? false,
             brevetValidated: data.brevetValidated ?? false,
             brevetRefused: data.brevetRefused,
@@ -106,6 +136,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: credential.user.email ?? '',
         name: data.name,
         role: data.role,
+        phone: data.phone,
+        avatarUrl: data.avatarUrl,
+        zoneKm: data.zoneKm,
+        languages: data.languages,
+        disponible: data.disponible,
+        niveauLSF: data.niveauLSF,
+        prefCommun: data.prefCommun,
         brevetSubmitted: data.brevetSubmitted ?? false,
         brevetValidated: data.brevetValidated ?? false,
         brevetRefused: data.brevetRefused,
@@ -192,8 +229,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser((prev) => (prev ? { ...prev, role: 'interprete' } : null));
   };
 
+  const updateProfile = async (updates: UserProfileUpdate): Promise<void> => {
+    if (!user) return;
+    await updateDoc(doc(db, 'users', user.id), updates as Record<string, unknown>);
+    setUser((prev) => prev ? { ...prev, ...updates } : null);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, initializing, login, register, logout, submitBrevet, upgradeToInterprete }}>
+    <AuthContext.Provider value={{ user, initializing, login, register, logout, submitBrevet, upgradeToInterprete, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
