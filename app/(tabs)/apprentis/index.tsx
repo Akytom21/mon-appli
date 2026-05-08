@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
@@ -296,6 +297,51 @@ export default function ApprentisHome() {
               ))
             )}
           </View>
+
+          {/* ── Certifications LSF ───────────────────────── */}
+          <View style={s.certSection}>
+            <Text style={s.sectionTitle}>Passer la certification LSF</Text>
+
+            <TouchableOpacity
+              style={s.certCard}
+              onPress={() =>
+                Linking.openURL(
+                  'https://www.education.gouv.fr/le-diplome-de-competence-en-langue-dcl-2978',
+                )
+              }
+              activeOpacity={0.85}
+              accessibilityRole="link"
+              accessibilityLabel="DCL LSF — ouvre le site du Ministère de l'Éducation nationale"
+            >
+              <View style={s.certIconWrap}>
+                <Feather name="award" size={20} color={BRAND} />
+              </View>
+              <View style={s.certBody}>
+                <Text style={s.certTitle}>DCL LSF — Diplôme officiel</Text>
+                <Text style={s.certSub}>
+                  Diplôme national du Ministère de l'Éducation nationale
+                </Text>
+              </View>
+              <Feather name="external-link" size={15} color={BRAND} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={s.certCard}
+              onPress={() => Linking.openURL('https://www.visuel-lsf.org/certification')}
+              activeOpacity={0.85}
+              accessibilityRole="link"
+              accessibilityLabel="Certification Visuel-LSF — ouvre le site Visuel-LSF"
+            >
+              <View style={s.certIconWrap}>
+                <Feather name="check-circle" size={20} color={BRAND} />
+              </View>
+              <View style={s.certBody}>
+                <Text style={s.certTitle}>Certification Visuel-LSF</Text>
+                <Text style={s.certSub}>Réseau de 12 centres certifiés en France</Text>
+              </View>
+              <Feather name="external-link" size={15} color={BRAND} />
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -484,6 +530,26 @@ const s = StyleSheet.create({
   sessionCardRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   placesPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   placesPillText: { fontSize: 11.5, fontWeight: '700' },
+
+  /* Certifications */
+  certSection: { gap: 10 },
+  certCard: {
+    backgroundColor: '#fff',
+    borderRadius: 14, padding: 14,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    borderWidth: 1.5, borderColor: BRAND,
+    shadowColor: BRAND,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.10, shadowRadius: 8, elevation: 3,
+  },
+  certIconWrap: {
+    width: 42, height: 42, borderRadius: 12,
+    backgroundColor: BRAND_TINT,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  certBody: { flex: 1, gap: 3 },
+  certTitle: { fontSize: 14, fontWeight: '700', color: INK, letterSpacing: -0.2 },
+  certSub: { fontSize: 12.5, color: INK_2, lineHeight: 17 },
 
   /* Empty */
   emptyCard: {
