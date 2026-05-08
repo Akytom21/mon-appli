@@ -27,7 +27,10 @@
       "Bash(Format-Table -AutoSize)",
       "Bash(grep -n \"Feather\\\\|expo-vector\" app/tabs/malentendants/index.tsx)",
       "Bash(grep -n \"Feather\\\\|expo-vector\" \"app/\\(tabs\\)/malentendants/index.tsx\")",
-      "Bash(grep -n \"Feather\\\\|expo-vector\" \"app/\\(tabs\\)/interpretes/index.tsx\")"
+      "Bash(grep -n \"Feather\\\\|expo-vector\" \"app/\\(tabs\\)/interpretes/index.tsx\")",
+      "PowerShell(head *)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\" -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match 'config' -and $_.FullName -notmatch 'node_modules' } | Select-Object -ExpandProperty FullName)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\" -Recurse -File -ErrorAction SilentlyContinue | Where-Object { \\($_.Extension -match '\\\\.\\(ts|tsx|js|jsx\\)$'\\) -and \\($_.FullName -notmatch 'node_modules'\\) } | Select-Object -ExpandProperty FullName | Measure-Object | Select-Object -ExpandProperty Count)"
     ]
   }
 }

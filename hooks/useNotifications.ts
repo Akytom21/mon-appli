@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
-import { collection, doc, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
+import { collection, doc, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { useAuth } from '@/context/AuthContext';
 
@@ -43,12 +43,7 @@ export function useNotifications() {
         });
       }
 
-      try {
-        const token = (await Notifications.getExpoPushTokenAsync()).data;
-        await updateDoc(doc(db, 'users', user.id), { expoPushToken: token });
-      } catch {
-        // Token optionnel — les notifications locales fonctionnent sans
-      }
+      // Les notifications push distantes nécessitent un development build — voir docs/notifications.md
     })();
   }, [user?.id]);
 

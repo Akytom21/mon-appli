@@ -23,6 +23,19 @@ export const Colors = {
   success: '#2A9D8F',
   warning: '#F59E0B',
   error: '#EF4444',
+
+  light: {
+    text: '#2D3748',
+    background: '#FFFFFF',
+    icon: '#6B7280',
+    tint: '#2A9D8F',
+  },
+  dark: {
+    text: '#ECEDEE',
+    background: '#151718',
+    icon: '#9BA1A6',
+    tint: '#2A9D8F',
+  },
 };
 
 export const Spacing = {
