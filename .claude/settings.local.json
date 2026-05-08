@@ -22,7 +22,9 @@
       "Bash(Remove-Item *)",
       "Bash(node scripts/createAdmin.mjs)",
       "Bash(node *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "Bash(Format-Table -AutoSize)"
     ]
   }
 }

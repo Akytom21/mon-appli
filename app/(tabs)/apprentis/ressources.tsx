@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import {
   Dimensions,
   Image,
@@ -125,7 +125,7 @@ function getLevelInfo(count: number): { label: string; color: string; next: stri
 }
 
 /* ── Category badge ──────────────────────────────────────── */
-function CategoryBadge({ category }: { category: Video['category'] }) {
+const CategoryBadge = memo(function CategoryBadge({ category }: { category: Video['category'] }) {
   const isMedical = category === 'medical';
   return (
     <View style={[badgeStyles.pill, { backgroundColor: isMedical ? '#FEF2F2' : BRAND_TINT }]}>
@@ -134,27 +134,28 @@ function CategoryBadge({ category }: { category: Video['category'] }) {
       </Text>
     </View>
   );
-}
+});
 const badgeStyles = StyleSheet.create({
   pill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   text: { fontSize: 11, fontWeight: '700', letterSpacing: 0.2 },
 });
 
 /* ── Video card ──────────────────────────────────────────── */
-function VideoCard({
+const VideoCard = memo(function VideoCard({
   video,
   watched,
   onPress,
 }: {
   video: Video;
   watched: boolean;
-  onPress: () => void;
+  onPress: (video: Video) => void;
 }) {
   const thumbUri = `https://img.youtube.com/vi/${video.youtubeId}/hqdefault.jpg`;
+  const handlePress = useCallback(() => onPress(video), [onPress, video]);
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
-      <View style={styles.thumbWrap}>
+    <TouchableOpacity style={styles.card} onPress={handlePress} activeOpacity={0.85}>
+      <View style={[styles.thumbWrap, styles.thumbPlaceholder]}>
         <Image source={{ uri: thumbUri }} style={styles.thumb} resizeMode="cover" />
         <View style={styles.thumbOverlay}>
           <View style={styles.playBtn}>
@@ -184,27 +185,27 @@ function VideoCard({
       </View>
     </TouchableOpacity>
   );
-}
+});
 
 /* ── Main screen ─────────────────────────────────────────── */
 export default function RessourcesScreen() {
   const { isWatched, watchedCount, markWatched } = useVideoProgress();
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
 
-  const levelInfo    = getLevelInfo(watchedCount);
-  const progressPct  = Math.round((watchedCount / TOTAL) * 100);
-  const firstUnwatched = VIDEOS.find((v) => !isWatched(v.id));
-  const medicalVideos  = VIDEOS.filter((v) => v.category === 'medical');
-  const basicVideos    = VIDEOS.filter((v) => v.category === 'basics');
+  const levelInfo     = useMemo(() => getLevelInfo(watchedCount), [watchedCount]);
+  const progressPct   = useMemo(() => Math.round((watchedCount / TOTAL) * 100), [watchedCount]);
+  const firstUnwatched = useMemo(() => VIDEOS.find((v) => !isWatched(v.id)), [isWatched]);
+  const medicalVideos  = useMemo(() => VIDEOS.filter((v) => v.category === 'medical'), []);
+  const basicVideos    = useMemo(() => VIDEOS.filter((v) => v.category === 'basics'), []);
 
-  const openModal  = (video: Video) => setSelectedVideo(video);
-  const closeModal = () => setSelectedVideo(null);
+  const openModal  = useCallback((video: Video) => setSelectedVideo(video), []);
+  const closeModal = useCallback(() => setSelectedVideo(null), []);
 
-  const openYouTube = async (youtubeId: string) => {
+  const openYouTube = useCallback(async (youtubeId: string) => {
     const url = `https://www.youtube.com/watch?v=${youtubeId}`;
     const supported = await Linking.canOpenURL(url);
     if (supported) await Linking.openURL(url);
-  };
+  }, []);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -259,7 +260,7 @@ export default function RessourcesScreen() {
             <Text style={styles.sectionTitle}>Continuer</Text>
             <TouchableOpacity
               style={styles.continuerCard}
-              onPress={() => openModal(firstUnwatched)}
+              onPress={() => openModal(firstUnwatched!)}
               activeOpacity={0.85}
             >
               <Image
@@ -302,7 +303,7 @@ export default function RessourcesScreen() {
                 key={v.id}
                 video={v}
                 watched={isWatched(v.id)}
-                onPress={() => openModal(v)}
+                onPress={openModal}
               />
             ))}
           </View>
@@ -325,7 +326,7 @@ export default function RessourcesScreen() {
                 key={v.id}
                 video={v}
                 watched={isWatched(v.id)}
-                onPress={() => openModal(v)}
+                onPress={openModal}
               />
             ))}
           </View>
@@ -532,6 +533,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
   },
   thumbWrap: { position: 'relative', height: 160 },
+  thumbPlaceholder: { backgroundColor: '#CBD5E1' },
   thumb: { width: '100%', height: '100%' },
   thumbOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,

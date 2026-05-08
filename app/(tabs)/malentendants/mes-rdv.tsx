@@ -1,10 +1,15 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -16,6 +21,7 @@ import {
   type AppointmentStatus,
   type AppointmentType,
 } from '@/hooks/useAppointments';
+import { usePatientReviews, type Review } from '@/hooks/useReviews';
 
 /* ── Design tokens ───────────────────────────────────────── */
 const BRAND      = '#0F766E';
@@ -87,8 +93,167 @@ function getInitials(name: string): string {
   return name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 }
 
+/* ── Étoiles ─────────────────────────────────────────────── */
+const StarDisplay = memo(function StarDisplay({ rating, size = 15 }: { rating: number; size?: number }) {
+  return (
+    <View style={{ flexDirection: 'row', gap: 2 }}>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <Text key={i} style={{ fontSize: size, color: i <= rating ? '#F59E0B' : '#CBD5E1' }}>
+          ★
+        </Text>
+      ))}
+    </View>
+  );
+});
+
+/* ── Modal de notation ───────────────────────────────────── */
+function ReviewModal({
+  appt,
+  onClose,
+  onSubmit,
+  submitting,
+}: {
+  appt: Appointment | null;
+  onClose: () => void;
+  onSubmit: (rating: number, comment: string) => void;
+  submitting: boolean;
+}) {
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState('');
+
+  const reset = () => { setRating(0); setComment(''); };
+
+  const handleClose = () => { reset(); onClose(); };
+  const handleSubmit = () => {
+    if (rating === 0) {
+      Alert.alert('Note manquante', 'Veuillez sélectionner une note avant de valider.');
+      return;
+    }
+    onSubmit(rating, comment);
+    reset();
+  };
+
+  if (!appt) return null;
+
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={handleClose}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={modalSt.overlay}
+      >
+        <View style={modalSt.card}>
+          <View style={modalSt.header}>
+            <Text style={modalSt.title}>Noter l'interprète</Text>
+            <TouchableOpacity onPress={handleClose} accessibilityRole="button">
+              <Feather name="x" size={20} color={INK_2} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={modalSt.interpreterRow}>
+            <View style={modalSt.interpreterAvatar}>
+              <Text style={modalSt.interpreterInitials}>
+                {(appt.interpreterName ?? 'I').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
+              </Text>
+            </View>
+            <View>
+              <Text style={modalSt.interpreterLabel}>Votre interprète</Text>
+              <Text style={modalSt.interpreterName}>{appt.interpreterName ?? 'Interprète assigné'}</Text>
+            </View>
+          </View>
+
+          <Text style={modalSt.starsLabel}>Votre note</Text>
+          <View style={modalSt.starsRow}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <TouchableOpacity key={i} onPress={() => setRating(i)} accessibilityRole="button" accessibilityLabel={`${i} étoile${i > 1 ? 's' : ''}`}>
+                <Text style={[modalSt.star, { color: i <= rating ? '#F59E0B' : '#CBD5E1' }]}>★</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          {rating > 0 && (
+            <Text style={modalSt.ratingHint}>
+              {['', 'Très insuffisant', 'Insuffisant', 'Correct', 'Bien', 'Excellent !'][rating]}
+            </Text>
+          )}
+
+          <Text style={modalSt.commentLabel}>Commentaire <Text style={{ color: INK_3 }}>(optionnel)</Text></Text>
+          <TextInput
+            style={modalSt.commentInput}
+            value={comment}
+            onChangeText={setComment}
+            placeholder="Ponctualité, qualité de l'interprétation…"
+            placeholderTextColor={INK_3}
+            multiline
+            numberOfLines={3}
+            maxLength={300}
+          />
+
+          <View style={modalSt.actions}>
+            <TouchableOpacity style={modalSt.btnCancel} onPress={handleClose}>
+              <Text style={modalSt.btnCancelText}>Annuler</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[modalSt.btnSubmit, (rating === 0 || submitting) && modalSt.btnDisabled]}
+              onPress={handleSubmit}
+              disabled={rating === 0 || submitting}
+            >
+              <Text style={modalSt.btnSubmitText}>{submitting ? 'Envoi…' : 'Envoyer ✓'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+const modalSt = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15,27,45,0.6)',
+    justifyContent: 'flex-end',
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 36,
+    gap: 14,
+  },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  title: { fontSize: 18, fontWeight: '700', color: INK, letterSpacing: -0.3 },
+  interpreterRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  interpreterAvatar: {
+    width: 44, height: 44, borderRadius: 14,
+    backgroundColor: '#059669', alignItems: 'center', justifyContent: 'center',
+  },
+  interpreterInitials: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  interpreterLabel: { fontSize: 11, fontWeight: '600', color: INK_3, textTransform: 'uppercase', letterSpacing: 0.8 },
+  interpreterName: { fontSize: 15, fontWeight: '700', color: INK },
+  starsLabel: { fontSize: 13.5, fontWeight: '600', color: INK },
+  starsRow: { flexDirection: 'row', gap: 10, justifyContent: 'center' },
+  star: { fontSize: 44 },
+  ratingHint: { textAlign: 'center', fontSize: 13, fontWeight: '600', color: '#F59E0B' },
+  commentLabel: { fontSize: 13.5, fontWeight: '600', color: INK },
+  commentInput: {
+    borderWidth: 1.5, borderColor: BORDER, borderRadius: 12, padding: 12,
+    fontSize: 14, color: INK, minHeight: 80, textAlignVertical: 'top',
+  },
+  actions: { flexDirection: 'row', gap: 10, marginTop: 4 },
+  btnCancel: {
+    flex: 1, borderWidth: 1.5, borderColor: BORDER, borderRadius: 12,
+    paddingVertical: 13, alignItems: 'center',
+  },
+  btnCancelText: { fontSize: 14, fontWeight: '600', color: INK_2 },
+  btnSubmit: {
+    flex: 1, backgroundColor: BRAND, borderRadius: 12,
+    paddingVertical: 13, alignItems: 'center',
+  },
+  btnDisabled: { backgroundColor: INK_3 },
+  btnSubmitText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+});
+
 /* ── Status pill ─────────────────────────────────────────── */
-function StatusPill({ status }: { status: string }) {
+const StatusPill = memo(function StatusPill({ status }: { status: string }) {
   const s = STATUS_CFG[status] ?? STATUS_CFG.pending;
   return (
     <View style={[pillStyles.pill, { backgroundColor: s.tint }]}>
@@ -96,7 +261,7 @@ function StatusPill({ status }: { status: string }) {
       <Text style={[pillStyles.label, { color: s.dark }]}>{s.label}</Text>
     </View>
   );
-}
+});
 const pillStyles = StyleSheet.create({
   pill: {
     flexDirection: 'row',
@@ -111,7 +276,17 @@ const pillStyles = StyleSheet.create({
 });
 
 /* ── RDV Card ────────────────────────────────────────────── */
-function RdvCard({ appt, dimmed = false }: { appt: Appointment; dimmed?: boolean }) {
+const RdvCard = memo(function RdvCard({
+  appt,
+  dimmed = false,
+  review,
+  onRate,
+}: {
+  appt: Appointment;
+  dimmed?: boolean;
+  review?: Review;
+  onRate?: () => void;
+}) {
   const typeCfg = TYPE_CFG[appt.type] ?? TYPE_CFG.generaliste;
   const statusCfg = STATUS_CFG[appt.status] ?? STATUS_CFG.pending;
   const isAccepted = appt.status === 'accepted';
@@ -202,9 +377,25 @@ function RdvCard({ appt, dimmed = false }: { appt: Appointment; dimmed?: boolean
           </Text>
         </View>
       )}
+
+      {/* Notation — RDV passé accepté */}
+      {onRate && !review && (
+        <TouchableOpacity style={cardStyles.rateBtn} onPress={onRate} accessibilityRole="button">
+          <Text style={cardStyles.rateBtnText}>⭐ Noter l'interprète</Text>
+          <Feather name="chevron-right" size={14} color={BRAND} />
+        </TouchableOpacity>
+      )}
+      {review && (
+        <View style={cardStyles.ratingDisplay}>
+          <StarDisplay rating={review.rating} />
+          {review.comment ? (
+            <Text style={cardStyles.ratingComment} numberOfLines={2}>"{review.comment}"</Text>
+          ) : null}
+        </View>
+      )}
     </View>
   );
-}
+});
 
 const cardStyles = StyleSheet.create({
   card: {
@@ -372,10 +563,44 @@ const cardStyles = StyleSheet.create({
     lineHeight: 17,
     flex: 1,
   },
+
+  rateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: BRAND_TINT,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: BRAND + '40',
+  },
+  rateBtnText: { fontSize: 13, fontWeight: '700', color: BRAND },
+
+  ratingDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    flexWrap: 'wrap',
+  },
+  ratingComment: {
+    flex: 1,
+    fontSize: 12,
+    color: '#92400E',
+    fontStyle: 'italic',
+    lineHeight: 16,
+  },
 });
 
 /* ── Section header ──────────────────────────────────────── */
-function SectionLabel({ title, count, accent }: { title: string; count: number; accent: string }) {
+const SectionLabel = memo(function SectionLabel({ title, count, accent }: { title: string; count: number; accent: string }) {
   return (
     <View style={sectionStyles.row}>
       <Text style={sectionStyles.title}>{title}</Text>
@@ -384,7 +609,7 @@ function SectionLabel({ title, count, accent }: { title: string; count: number; 
       </View>
     </View>
   );
-}
+});
 const sectionStyles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
   title: { fontSize: 15.5, fontWeight: '700', color: INK, letterSpacing: -0.2, flex: 1 },
@@ -399,7 +624,34 @@ const sectionStyles = StyleSheet.create({
 /* ── Main screen ─────────────────────────────────────────── */
 export default function MesRdvScreen() {
   const { appointments, loading } = usePatientAppointments();
+  const { reviews, submitting, submitReview } = usePatientReviews();
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
+  const [reviewTarget, setReviewTarget] = useState<Appointment | null>(null);
+
+  const upcoming = useMemo(
+    () => appointments
+      .filter((a) => a.date >= TODAY)
+      .sort((a, b) => a.date === b.date ? a.time.localeCompare(b.time) : a.date.localeCompare(b.date)),
+    [appointments],
+  );
+
+  const past = useMemo(
+    () => appointments
+      .filter((a) => a.date < TODAY)
+      .sort((a, b) => a.date === b.date ? b.time.localeCompare(a.time) : b.date.localeCompare(a.date)),
+    [appointments],
+  );
+
+  const pendingCount  = useMemo(() => appointments.filter((a) => a.status === 'pending').length, [appointments]);
+  const acceptedCount = useMemo(() => appointments.filter((a) => a.status === 'accepted').length, [appointments]);
+  const activeList    = tab === 'upcoming' ? upcoming : past;
+
+  const handleCloseReview  = useCallback(() => setReviewTarget(null), []);
+  const handleSubmitReview = useCallback(async (rating: number, comment: string) => {
+    if (!reviewTarget?.interpreterId) return;
+    await submitReview(reviewTarget.id, reviewTarget.interpreterId, rating, comment);
+    setReviewTarget(null);
+  }, [reviewTarget, submitReview]);
 
   if (loading) {
     return (
@@ -409,19 +661,6 @@ export default function MesRdvScreen() {
       </View>
     );
   }
-
-  const upcoming = appointments
-    .filter((a) => a.date >= TODAY)
-    .sort((a, b) => a.date === b.date ? a.time.localeCompare(b.time) : a.date.localeCompare(b.date));
-
-  const past = appointments
-    .filter((a) => a.date < TODAY)
-    .sort((a, b) => a.date === b.date ? b.time.localeCompare(a.time) : b.date.localeCompare(a.date));
-
-  const pendingCount  = appointments.filter((a) => a.status === 'pending').length;
-  const acceptedCount = appointments.filter((a) => a.status === 'accepted').length;
-
-  const activeList = tab === 'upcoming' ? upcoming : past;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -517,9 +756,19 @@ export default function MesRdvScreen() {
               accent={tab === 'upcoming' ? BRAND : INK_3}
             />
             <View style={styles.cardList}>
-              {activeList.map((a) => (
-                <RdvCard key={a.id} appt={a} dimmed={tab === 'past'} />
-              ))}
+              {activeList.map((a) => {
+                const review = reviews.find((r) => r.appointmentId === a.id);
+                const isPastAccepted = tab === 'past' && a.status === 'accepted' && !!a.interpreterId;
+                return (
+                  <RdvCard
+                    key={a.id}
+                    appt={a}
+                    dimmed={tab === 'past'}
+                    review={review}
+                    onRate={isPastAccepted && !review ? () => setReviewTarget(a) : undefined}
+                  />
+                );
+              })}
             </View>
           </>
         )}
@@ -535,12 +784,19 @@ export default function MesRdvScreen() {
         <Feather name="plus" size={18} color="#fff" />
         <Text style={styles.fabText}>Nouveau RDV</Text>
       </TouchableOpacity>
+
+      <ReviewModal
+        appt={reviewTarget}
+        onClose={handleCloseReview}
+        submitting={submitting}
+        onSubmit={handleSubmitReview}
+      />
     </SafeAreaView>
   );
 }
 
 /* ── Empty state ─────────────────────────────────────────── */
-function EmptyState({ onPress }: { onPress: () => void }) {
+const EmptyState = memo(function EmptyState({ onPress }: { onPress: () => void }) {
   return (
     <View style={styles.emptyWrap}>
       <View style={styles.emptyIconWrap}>
@@ -574,7 +830,7 @@ function EmptyState({ onPress }: { onPress: () => void }) {
       </View>
     </View>
   );
-}
+});
 
 /* ── Styles ──────────────────────────────────────────────── */
 const styles = StyleSheet.create({

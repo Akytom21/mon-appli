@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -18,6 +19,7 @@ import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
 import { HEALTH_PROFESSIONALS } from '@/data/healthProfessionals';
 import { useHealthProfessionalsSearch } from '@/hooks/useHealthProfessionals';
 import { useCreateAppointment } from '@/hooks/useAppointments';
+import { getDoctolibUrl } from '@/utils/doctolib';
 
 /* ─── Locale française ─────────────────────────────────── */
 LocaleConfig.locales['fr'] = {
@@ -305,23 +307,44 @@ export default function RendezVousScreen() {
             )}
 
             {selectedProvider && (
-              <View style={styles.selectedCard}>
-                <Text style={styles.selectedEmoji}>{CATEGORY_EMOJI[selectedProvider.type]}</Text>
-                <View style={styles.selectedInfo}>
-                  <Text style={styles.selectedName}>
-                    {selectedProvider.name}
-                    {selectedProvider.specialite ? ` — ${selectedProvider.specialite}` : ''}
-                  </Text>
-                  <Text style={styles.selectedAddress}>📍 {selectedProvider.address}</Text>
+              <>
+                <View style={styles.selectedCard}>
+                  <Text style={styles.selectedEmoji}>{CATEGORY_EMOJI[selectedProvider.type]}</Text>
+                  <View style={styles.selectedInfo}>
+                    <Text style={styles.selectedName}>
+                      {selectedProvider.name}
+                      {selectedProvider.specialite ? ` — ${selectedProvider.specialite}` : ''}
+                    </Text>
+                    <Text style={styles.selectedAddress}>📍 {selectedProvider.address}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.selectedClear}
+                    onPress={handleClearProvider}
+                    accessibilityLabel="Changer de professionnel"
+                  >
+                    <Text style={styles.selectedClearText}>✕</Text>
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                  style={styles.selectedClear}
-                  onPress={handleClearProvider}
-                  accessibilityLabel="Changer de professionnel"
-                >
-                  <Text style={styles.selectedClearText}>✕</Text>
-                </TouchableOpacity>
-              </View>
+
+                <View style={styles.doctolibBlock}>
+                  <TouchableOpacity
+                    style={styles.doctolibBtn}
+                    onPress={() => Linking.openURL(
+                      getDoctolibUrl(selectedProvider.name, selectedProvider.type, selectedProvider.specialite)
+                    )}
+                    accessibilityRole="button"
+                    accessibilityLabel="Prendre rendez-vous sur Doctolib"
+                  >
+                    <View style={styles.doctolibLogo}>
+                      <Text style={styles.doctolibLogoText}>D</Text>
+                    </View>
+                    <Text style={styles.doctolibBtnText}>Prendre RDV sur Doctolib 🔗</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.doctolibHint}>
+                    Vous serez redirigé vers Doctolib pour finaliser votre rendez-vous médical
+                  </Text>
+                </View>
+              </>
             )}
           </View>
 
@@ -655,4 +678,38 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   submitText: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.white },
+
+  doctolibBlock: { gap: Spacing.xs },
+  doctolibBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#00B5BA',
+    borderRadius: Radius.md,
+    paddingVertical: 14,
+    paddingHorizontal: Spacing.md,
+    shadowColor: '#00B5BA',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  doctolibLogo: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  doctolibLogoText: { fontSize: 13, fontWeight: '800', color: '#00B5BA' },
+  doctolibBtnText: { fontSize: FontSize.md, fontWeight: '700', color: '#fff' },
+  doctolibHint: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 17,
+    paddingHorizontal: Spacing.sm,
+  },
 });

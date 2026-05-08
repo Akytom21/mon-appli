@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -62,7 +62,7 @@ export default function MissionsScreen() {
     })();
   }, []);
 
-  const handleAccept = (id: string) => {
+  const handleAccept = useCallback((id: string) => {
     setAccepting(id);
     acceptAnim.setValue(0);
     Animated.sequence([
@@ -73,26 +73,26 @@ export default function MissionsScreen() {
       acceptMission(id);
       setAccepting(null);
     });
-  };
+  }, [acceptAnim, acceptMission]);
 
-  const getDistanceLabel = (coords: { lat: number; lng: number }): string => {
+  const getDistanceLabel = useCallback((coords: { lat: number; lng: number }): string => {
     if (!userCoords) return '';
     const km = haversineKm(userCoords.lat, userCoords.lng, coords.lat, coords.lng);
     return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
-  };
+  }, [userCoords]);
 
-  const tabs: { id: Tab; label: string; count: number }[] = [
-    { id: 'disponibles', label: 'Disponibles', count: pending.length },
-    { id: 'missions', label: 'Mes missions', count: myMissions.length },
-    { id: 'historique', label: 'Historique', count: history.length },
-  ];
+  const tabs = useMemo(() => [
+    { id: 'disponibles' as Tab, label: 'Disponibles', count: pending.length },
+    { id: 'missions'    as Tab, label: 'Mes missions', count: myMissions.length },
+    { id: 'historique'  as Tab, label: 'Historique',   count: history.length },
+  ], [pending.length, myMissions.length, history.length]);
 
-  const currentList =
-    activeTab === 'disponibles'
-      ? pending
-      : activeTab === 'missions'
-      ? myMissions
-      : history;
+  const currentList = useMemo(() =>
+    activeTab === 'disponibles' ? pending
+    : activeTab === 'missions'  ? myMissions
+    : history,
+    [activeTab, pending, myMissions, history],
+  );
 
   if (loading) {
     return (
@@ -149,18 +149,22 @@ export default function MissionsScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => (
+        removeClippedSubviews
+        initialNumToRender={10}
+        maxToRenderPerBatch={5}
+        windowSize={5}
+        renderItem={useCallback(({ item }: { item: Appointment }) => (
           <AppointmentCard
             appt={item}
             tab={activeTab}
             distance={getDistanceLabel(item.coordinates)}
             isAccepting={accepting === item.id}
             acceptAnim={acceptAnim}
-            onAccept={() => handleAccept(item.id)}
-            onDecline={() => declineMission(item.id)}
+            onAccept={handleAccept}
+            onDecline={declineMission}
           />
-        )}
-        ListEmptyComponent={() => (
+        ), [activeTab, accepting, acceptAnim, getDistanceLabel, handleAccept, declineMission])}
+        ListEmptyComponent={useCallback(() => (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>
               {activeTab === 'disponibles' ? '🎉' : activeTab === 'missions' ? '📅' : '📋'}
@@ -180,7 +184,7 @@ export default function MissionsScreen() {
                 : 'Vos missions passées apparaîtront ici.'}
             </Text>
           </View>
-        )}
+        ), [activeTab])}
       />
     </SafeAreaView>
   );
@@ -192,11 +196,11 @@ type CardProps = {
   distance: string;
   isAccepting: boolean;
   acceptAnim: Animated.Value;
-  onAccept: () => void;
-  onDecline: () => void;
+  onAccept: (id: string) => void;
+  onDecline: (id: string) => void;
 };
 
-function AppointmentCard({
+const AppointmentCard = memo(function AppointmentCard({
   appt,
   tab,
   distance,
@@ -207,6 +211,8 @@ function AppointmentCard({
 }: CardProps) {
   const info = TYPE_INFO[appt.type];
   const isUrgent = appt.type === 'urgences';
+  const handleAcceptThis = useCallback(() => onAccept(appt.id), [onAccept, appt.id]);
+  const handleDeclineThis = useCallback(() => onDecline(appt.id), [onDecline, appt.id]);
 
   return (
     <View style={[styles.card, isUrgent && styles.cardUrgent]}>
@@ -257,14 +263,14 @@ function AppointmentCard({
         <View style={styles.actions}>
           <TouchableOpacity
             style={styles.declineBtn}
-            onPress={onDecline}
+            onPress={handleDeclineThis}
             accessibilityRole="button"
           >
             <Text style={styles.declineBtnText}>✗  Refuser</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.acceptBtn}
-            onPress={onAccept}
+            onPress={handleAcceptThis}
             accessibilityRole="button"
           >
             <Text style={styles.acceptBtnText}>✓  Accepter</Text>
@@ -284,7 +290,7 @@ function AppointmentCard({
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },

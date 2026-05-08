@@ -2,6 +2,12 @@ import { Redirect, Stack } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { Colors } from '@/constants/theme';
+import { useNotifications } from '@/hooks/useNotifications';
+
+function NotificationBootstrap() {
+  useNotifications();
+  return null;
+}
 
 export default function TabsLayout() {
   const { user, initializing } = useAuth();
@@ -19,12 +25,15 @@ export default function TabsLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="malentendants" />
-      <Stack.Screen name="interpretes" />
-      <Stack.Screen name="apprentis" />
-      <Stack.Screen name="admin" />
-    </Stack>
+    <>
+      <NotificationBootstrap />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="malentendants" />
+        <Stack.Screen name="interpretes" />
+        <Stack.Screen name="apprentis" />
+        <Stack.Screen name="admin" />
+      </Stack>
+    </>
   );
 }

@@ -233,12 +233,14 @@ export default function BrevetScreen() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [certUrl, setCertUrl] = useState<string | null>(null);
+  const [showCertError, setShowCertError] = useState(false);
 
   if (user?.brevetValidated) return <ValidatedScreen />;
   if (user?.brevetSubmitted || submitted) return <PendingScreen />;
 
-  const canSubmit =
+  const otherFieldsReady =
     !!niveau && !!organisme && annee.length === 4 && numero.trim().length > 3 && !uploading;
+  const canSubmit = otherFieldsReady && !!certUrl;
 
   const pickCertificate = async () => {
     try {
@@ -250,6 +252,7 @@ export default function BrevetScreen() {
       const asset = result.assets[0];
       setCertAsset(asset);
       setCertUrl(null);
+      setShowCertError(false);
       setUploadProgress(0);
       uploadCertificate(asset);
     } catch {
@@ -287,10 +290,13 @@ export default function BrevetScreen() {
   };
 
   const handleSubmit = async () => {
-    await submitBrevet({ niveau: niveau!, organisme: organisme!, annee, numero });
-    if (certUrl && user) {
-      await updateDoc(doc(db, 'users', user.id), { certificateUrl: certUrl });
+    if (!certUrl) {
+      setShowCertError(true);
+      return;
     }
+    setShowCertError(false);
+    await submitBrevet({ niveau: niveau!, organisme: organisme!, annee, numero });
+    await updateDoc(doc(db, 'users', user!.id), { certificateUrl: certUrl });
     setSubmitted(true);
   };
 
@@ -428,7 +434,7 @@ export default function BrevetScreen() {
             <View style={s.sectionBadge}><Text style={s.sectionBadgeText}>4</Text></View>
             <View style={{ flex: 1 }}>
               <Text style={s.sectionTitle}>Certificat LSF</Text>
-              <Text style={s.sectionSub}>PDF, JPG ou PNG · optionnel mais recommandé</Text>
+              <Text style={s.sectionSub}>PDF, JPG ou PNG · obligatoire</Text>
             </View>
           </View>
 
@@ -443,7 +449,9 @@ export default function BrevetScreen() {
               <View style={s.dropZoneIcon}>
                 <Feather name="paperclip" size={26} color={BRAND} />
               </View>
-              <Text style={s.dropZoneTitle}>Joindre mon certificat</Text>
+              <Text style={s.dropZoneTitle}>
+                Joindre mon certificat <Text style={{ color: '#EF4444' }}>*</Text>
+              </Text>
               <Text style={s.dropZoneSub}>Appuyez pour choisir un fichier depuis votre téléphone</Text>
             </TouchableOpacity>
           ) : (
@@ -487,6 +495,14 @@ export default function BrevetScreen() {
               )}
             </View>
           )}
+          {showCertError && (
+            <View style={s.certError}>
+              <Feather name="alert-circle" size={14} color={AMBER} />
+              <Text style={s.certErrorText}>
+                Veuillez joindre votre certificat LSF avant de soumettre
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Info niveau B2 */}
@@ -506,7 +522,7 @@ export default function BrevetScreen() {
         <TouchableOpacity
           style={[s.submitBtn, !canSubmit && s.submitBtnDisabled]}
           onPress={handleSubmit}
-          disabled={!canSubmit}
+          disabled={!otherFieldsReady}
           accessibilityRole="button"
         >
           <Feather
@@ -660,6 +676,14 @@ const s = StyleSheet.create({
     width: 28, height: 28, borderRadius: 8,
     backgroundColor: BG, alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
+
+  /* Cert error */
+  certError: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+    backgroundColor: AMBER_BG, borderRadius: 10, padding: 12,
+    borderWidth: 1, borderColor: '#FCD34D',
+  },
+  certErrorText: { flex: 1, fontSize: 13, color: AMBER, lineHeight: 18, fontWeight: '600' },
 
   /* Info box */
   infoBox: {

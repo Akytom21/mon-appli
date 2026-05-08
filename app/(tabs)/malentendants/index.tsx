@@ -1,9 +1,10 @@
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
-import { useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -22,6 +23,7 @@ import {
 } from '@/data/healthProfessionals';
 import { useHealthProfessionals } from '@/hooks/useHealthProfessionals';
 import { usePatientAppointments } from '@/hooks/useAppointments';
+import { getDoctolibUrl } from '@/utils/doctolib';
 
 let MapView: any, Marker: any;
 if (Platform.OS !== 'web') {
@@ -69,7 +71,7 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
 
 /* ─── Pulsing user dot ───────────────────────────────────── */
 
-function UserLocationDot() {
+const UserLocationDot = memo(function UserLocationDot() {
   const pulse = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -90,36 +92,52 @@ function UserLocationDot() {
       <View style={styles.userDot} />
     </View>
   );
-}
+});
 
 /* ─── Health professional marker ─────────────────────────── */
 
-function HealthMarkerView({ category }: { category: HealthCategory }) {
+const HealthMarkerView = memo(function HealthMarkerView({
+  category,
+  showDoctolib,
+}: {
+  category: HealthCategory;
+  showDoctolib?: boolean;
+}) {
   const cfg = CATEGORY_CONFIG[category];
   return (
-    <View style={[styles.healthMarkerOuter, { borderColor: cfg.color }]}>
-      <View style={[styles.healthMarkerInner, { backgroundColor: cfg.color }]}>
-        <Text style={styles.healthMarkerEmoji}>{cfg.emoji}</Text>
+    <View style={styles.markerWrapper}>
+      <View style={[styles.healthMarkerOuter, { borderColor: cfg.color }]}>
+        <View style={[styles.healthMarkerInner, { backgroundColor: cfg.color }]}>
+          <Text style={styles.healthMarkerEmoji}>{cfg.emoji}</Text>
+        </View>
       </View>
+      {showDoctolib && (
+        <View style={styles.doctolibMarkerBadge}>
+          <Text style={styles.doctolibMarkerText}>D</Text>
+        </View>
+      )}
     </View>
   );
-}
+});
 
 /* ─── Filter pill ────────────────────────────────────────── */
 
-function FilterPill({
+const FilterPill = memo(function FilterPill({
+  id,
   label,
   emoji,
   color,
   active,
-  onPress,
+  onToggle,
 }: {
+  id: HealthCategory;
   label: string;
   emoji: string;
   color: string;
   active: boolean;
-  onPress: () => void;
+  onToggle: (id: HealthCategory) => void;
 }) {
+  const handlePress = useCallback(() => onToggle(id), [onToggle, id]);
   return (
     <TouchableOpacity
       style={[
@@ -127,7 +145,7 @@ function FilterPill({
         { borderColor: color },
         active ? { backgroundColor: color } : { backgroundColor: Colors.white },
       ]}
-      onPress={onPress}
+      onPress={handlePress}
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
     >
@@ -137,11 +155,11 @@ function FilterPill({
       </Text>
     </TouchableOpacity>
   );
-}
+});
 
 /* ─── Detail bottom sheet ────────────────────────────────── */
 
-const SHEET_HEIGHT = 300;
+const SHEET_HEIGHT = 320;
 
 function DetailSheet({
   item,
@@ -218,13 +236,26 @@ function DetailSheet({
             )}
           </View>
 
-          <TouchableOpacity
-            style={[styles.rdvBtn, { backgroundColor: cfg.color }]}
-            onPress={() => router.push('/(tabs)/malentendants/rendez-vous')}
-            accessibilityRole="button"
-          >
-            <Text style={styles.rdvBtnText}>📅  Prendre rendez-vous</Text>
-          </TouchableOpacity>
+          <View style={styles.sheetActions}>
+            <TouchableOpacity
+              style={styles.doctolibSheetBtn}
+              onPress={() => Linking.openURL(getDoctolibUrl(item.name, item.category, item.specialite))}
+              accessibilityRole="button"
+              accessibilityLabel="Prendre rendez-vous sur Doctolib"
+            >
+              <View style={styles.doctolibSheetLogo}>
+                <Text style={styles.doctolibSheetLogoText}>D</Text>
+              </View>
+              <Text style={styles.doctolibSheetBtnText}>Doctolib 🔗</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.rdvBtn, { backgroundColor: cfg.color, flex: 1 }]}
+              onPress={() => router.push('/(tabs)/malentendants/rendez-vous')}
+              accessibilityRole="button"
+            >
+              <Text style={styles.rdvBtnText}>📅  Prendre RDV</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Animated.View>
     </>
@@ -277,28 +308,34 @@ export default function MalentendantsHome() {
     })();
   }, []);
 
-  const toggleFilter = (id: HealthCategory) => {
+  const toggleFilter = useCallback((id: HealthCategory) => {
     setActiveFilters((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  };
+  }, []);
 
-  const visibleHealth = professionals.filter(
-    (h) => activeFilters.has(h.category) && !isNaN(h.latitude) && !isNaN(h.longitude),
+  const visibleHealth = useMemo(
+    () => professionals.filter(
+      (h) => activeFilters.has(h.category) && !isNaN(h.latitude) && !isNaN(h.longitude),
+    ),
+    [professionals, activeFilters],
   );
 
-  const distanceKm =
-    selectedItem && userCoords
-      ? haversineKm(
-          userCoords.latitude,
-          userCoords.longitude,
-          selectedItem.latitude,
-          selectedItem.longitude,
-        )
-      : null;
+  const distanceKm = useMemo(
+    () =>
+      selectedItem && userCoords
+        ? haversineKm(
+            userCoords.latitude,
+            userCoords.longitude,
+            selectedItem.latitude,
+            selectedItem.longitude,
+          )
+        : null,
+    [selectedItem, userCoords],
+  );
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -321,11 +358,12 @@ export default function MalentendantsHome() {
         {FILTER_CONFIG.map((f) => (
           <FilterPill
             key={f.id}
+            id={f.id}
             label={f.label}
             emoji={f.emoji}
             color={f.color}
             active={activeFilters.has(f.id)}
-            onPress={() => toggleFilter(f.id)}
+            onToggle={toggleFilter}
           />
         ))}
       </ScrollView>
@@ -357,7 +395,7 @@ export default function MalentendantsHome() {
                 tracksViewChanges={markerTracking}
                 anchor={{ x: 0.5, y: 0.5 }}
               >
-                <HealthMarkerView category={prof.category} />
+                <HealthMarkerView category={prof.category} showDoctolib />
               </Marker>
             ))}
           </MapView>
@@ -567,6 +605,16 @@ const styles = StyleSheet.create({
   mapFallbackEmoji: { fontSize: 40 },
   mapFallbackText: { fontSize: FontSize.md, fontWeight: '700', color: Colors.primaryDark },
   mapFallbackSub: { fontSize: FontSize.sm, color: Colors.textSecondary },
+
+  markerWrapper: { alignItems: 'center' },
+  doctolibMarkerBadge: {
+    marginTop: 2,
+    backgroundColor: '#00B5BA',
+    borderRadius: 3,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+  },
+  doctolibMarkerText: { fontSize: 7, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
 
   userDotWrapper: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
   userDotRing: {
@@ -819,10 +867,40 @@ const styles = StyleSheet.create({
   healthInfoIcon: { fontSize: 14, width: 20, textAlign: 'center', marginTop: 1 },
   healthInfoText: { flex: 1, fontSize: FontSize.sm, color: Colors.textSecondary, lineHeight: 20 },
 
+  sheetActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    alignItems: 'stretch',
+  },
+  doctolibSheetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: '#00B5BA',
+    borderRadius: Radius.lg,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    shadowColor: '#00B5BA',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  doctolibSheetLogo: {
+    width: 22,
+    height: 22,
+    borderRadius: 5,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  doctolibSheetLogoText: { fontSize: 12, fontWeight: '800', color: '#00B5BA' },
+  doctolibSheetBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: '#fff' },
   rdvBtn: {
     borderRadius: Radius.lg,
     padding: Spacing.md,
     alignItems: 'center',
+    justifyContent: 'center',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,

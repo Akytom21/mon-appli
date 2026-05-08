@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -10,6 +10,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, DateData } from 'react-native-calendars';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useAppointments, type Appointment } from '@/hooks/useAppointments';
+import { useAuth } from '@/context/AuthContext';
+import { useInterpreterReviews, type Review } from '@/hooks/useReviews';
 
 const TYPE_ICONS: Record<string, string> = {
   generaliste: '🩺',
@@ -35,43 +37,60 @@ function formatDateLong(dateStr: string): string {
 }
 
 export default function PlanningScreen() {
-  const { myMissions, loading } = useAppointments();
+  const { user } = useAuth();
+  const { myMissions, history, loading } = useAppointments();
+  const { reviews } = useInterpreterReviews();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const uid = user?.id ?? '';
 
-  const markedDates: Record<string, object> = {};
-  for (const appt of myMissions) {
-    const isSelected = selectedDate === appt.date;
-    markedDates[appt.date] = {
-      marked: true,
-      dotColor: isSelected ? Colors.white : Colors.primary,
-      ...(isSelected && {
+  const pastMissions = useMemo(
+    () => history
+      .filter((a) => a.status === 'accepted' && a.interpreterId === uid)
+      .sort((a, b) => b.date.localeCompare(a.date)),
+    [history, uid],
+  );
+
+  const markedDates = useMemo(() => {
+    const result: Record<string, object> = {};
+    for (const appt of myMissions) {
+      const isSelected = selectedDate === appt.date;
+      result[appt.date] = {
+        marked: true,
+        dotColor: isSelected ? Colors.white : Colors.primary,
+        ...(isSelected && {
+          selected: true,
+          selectedColor: Colors.primary,
+          selectedTextColor: Colors.white,
+        }),
+      };
+    }
+    if (selectedDate && !result[selectedDate]) {
+      result[selectedDate] = {
         selected: true,
-        selectedColor: Colors.primary,
-        selectedTextColor: Colors.white,
-      }),
-    };
-  }
-  if (selectedDate && !markedDates[selectedDate]) {
-    markedDates[selectedDate] = {
-      selected: true,
-      selectedColor: Colors.primaryLight,
-      selectedTextColor: Colors.textPrimary,
-    };
-  }
+        selectedColor: Colors.primaryLight,
+        selectedTextColor: Colors.textPrimary,
+      };
+    }
+    return result;
+  }, [myMissions, selectedDate]);
 
-  const handleDayPress = (day: DateData) => {
-    setSelectedDate(selectedDate === day.dateString ? null : day.dateString);
-  };
+  const handleDayPress = useCallback((day: DateData) => {
+    setSelectedDate((prev) => (prev === day.dateString ? null : day.dateString));
+  }, []);
 
-  const selectedMissions = selectedDate
-    ? myMissions.filter((a) => a.date === selectedDate)
-    : [];
+  const selectedMissions = useMemo(
+    () => (selectedDate ? myMissions.filter((a) => a.date === selectedDate) : []),
+    [selectedDate, myMissions],
+  );
 
-  const upcoming = [...myMissions]
-    .filter((a) => a.date >= today)
-    .sort((a, b) => a.date.localeCompare(b.date));
+  const upcoming = useMemo(
+    () => [...myMissions]
+      .filter((a) => a.date >= today)
+      .sort((a, b) => a.date.localeCompare(b.date)),
+    [myMissions, today],
+  );
 
   if (loading) {
     return (
@@ -149,17 +168,28 @@ export default function PlanningScreen() {
           )}
         </View>
 
+        {/* Missions passées */}
+        {pastMissions.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Historique ({pastMissions.length})</Text>
+            {pastMissions.map((appt) => {
+              const review = reviews.find((r) => r.appointmentId === appt.id);
+              return <MissionCard key={appt.id} appt={appt} review={review} past />;
+            })}
+          </View>
+        )}
+
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function MissionCard({ appt }: { appt: Appointment }) {
+const MissionCard = memo(function MissionCard({ appt, review, past }: { appt: Appointment; review?: Review; past?: boolean }) {
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, past && styles.cardPast]}>
       <View style={styles.timeColumn}>
-        <Text style={styles.timeText}>{appt.time}</Text>
-        <View style={styles.timeLine} />
+        <Text style={[styles.timeText, past && styles.timeTextPast]}>{appt.time}</Text>
+        <View style={[styles.timeLine, past && styles.timeLinePast]} />
       </View>
       <View style={styles.cardBody}>
         <Text style={styles.cardType}>
@@ -170,10 +200,26 @@ function MissionCard({ appt }: { appt: Appointment }) {
           📍 {appt.location}
         </Text>
         <Text style={styles.cardAddress} numberOfLines={1}>{appt.address}</Text>
+        {past && (
+          review ? (
+            <View style={styles.reviewRow}>
+              <View style={{ flexDirection: 'row', gap: 2 }}>
+                {[1,2,3,4,5].map((i) => (
+                  <Text key={i} style={{ fontSize: 13, color: i <= review.rating ? '#F59E0B' : '#CBD5E1' }}>★</Text>
+                ))}
+              </View>
+              {review.comment ? (
+                <Text style={styles.reviewComment} numberOfLines={1}>"{review.comment}"</Text>
+              ) : null}
+            </View>
+          ) : (
+            <Text style={styles.noReview}>Pas encore noté</Text>
+          )
+        )}
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
@@ -250,11 +296,17 @@ const styles = StyleSheet.create({
     borderRadius: 1,
     minHeight: 24,
   },
+  cardPast: { opacity: 0.8, borderStyle: 'dashed' },
   cardBody: { flex: 1, gap: 4 },
   cardType: { fontSize: FontSize.md, fontWeight: '700', color: Colors.textPrimary },
   cardPatient: { fontSize: FontSize.sm, color: Colors.textSecondary },
   cardLocation: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.textPrimary },
   cardAddress: { fontSize: FontSize.xs, color: Colors.textSecondary },
+  timeTextPast: { color: Colors.textSecondary },
+  timeLinePast: { backgroundColor: Colors.border },
+  reviewRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
+  reviewComment: { fontSize: 11, color: '#92400E', fontStyle: 'italic', flex: 1 },
+  noReview: { fontSize: 11, color: Colors.textSecondary, fontStyle: 'italic' },
 
   emptyNote: {
     fontSize: FontSize.sm,

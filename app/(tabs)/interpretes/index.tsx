@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/AuthContext';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useAppointments, type Appointment, type AppointmentType } from '@/hooks/useAppointments';
+import { useInterpreterReviews } from '@/hooks/useReviews';
 
 const NICE_CENTER = {
   latitude: 43.7102,
@@ -38,6 +39,7 @@ const TYPE_INFO: Record<AppointmentType, { label: string; icon: string }> = {
 export default function InterpretesHome() {
   const { user } = useAuth();
   const { pending, acceptMission } = useAppointments();
+  const { averageRating, reviews } = useInterpreterReviews();
   const [selected, setSelected] = useState<Appointment | null>(null);
   const prenom = user?.name?.split(' ')[0] ?? '';
 
@@ -57,8 +59,23 @@ export default function InterpretesHome() {
     <SafeAreaView style={styles.safe}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Bonjour {prenom} 👐</Text>
-        <Text style={styles.headerSub}>Demandes de RDV à Nice et alentours</Text>
+        <View style={styles.headerRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerTitle}>Bonjour {prenom} 👐</Text>
+            <Text style={styles.headerSub}>Demandes de RDV à Nice et alentours</Text>
+          </View>
+          {averageRating !== null && (
+            <View style={styles.ratingBadge}>
+              <Text style={styles.ratingStars}>
+                {[1,2,3,4,5].map((i) => (
+                  <Text key={i} style={{ color: i <= Math.round(averageRating) ? '#F59E0B' : 'rgba(255,255,255,0.35)' }}>★</Text>
+                ))}
+              </Text>
+              <Text style={styles.ratingValue}>{averageRating}/5</Text>
+              <Text style={styles.ratingCount}>({reviews.length} avis)</Text>
+            </View>
+          )}
+        </View>
       </View>
 
       {/* Map */}
@@ -259,8 +276,22 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
     paddingBottom: Spacing.md,
   },
+  headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
   headerTitle: { fontSize: FontSize.xl, fontWeight: '800', color: Colors.white },
   headerSub: { fontSize: FontSize.sm, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
+  ratingBadge: {
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: Radius.md,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    alignItems: 'center',
+    gap: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  ratingStars: { fontSize: 14, letterSpacing: 1 },
+  ratingValue: { fontSize: FontSize.sm, fontWeight: '800', color: Colors.white },
+  ratingCount: { fontSize: 10, color: 'rgba(255,255,255,0.7)' },
 
   mapWrapper: { height: 240, position: 'relative' },
   mapFallback: {

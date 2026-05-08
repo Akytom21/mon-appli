@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 
 export type Formation = {
@@ -15,23 +15,24 @@ export type Formation = {
   prix: string;
 };
 
+// getDocs (one-shot) plutôt que onSnapshot : les formations changent rarement
+// et on évite ainsi un listener Firestore permanent sur un onglet inactif.
 export function useFormations() {
   const [formations, setFormations] = useState<Formation[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onSnapshot(
-      collection(db, 'formations'),
-      (snap) => {
-        const data = snap.docs
-          .map((d) => ({ id: d.id, ...(d.data() as Omit<Formation, 'id'>) }))
-          .sort((a, b) => a.id.localeCompare(b.id));
-        setFormations(data);
+    let cancelled = false;
+    getDocs(query(collection(db, 'formations'), orderBy('date')))
+      .then((snap) => {
+        if (cancelled) return;
+        setFormations(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Formation, 'id'>) })));
         setLoading(false);
-      },
-      () => setLoading(false),
-    );
-    return unsub;
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
   }, []);
 
   return { formations, loading };

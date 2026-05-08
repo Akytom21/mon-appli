@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   addDoc,
   arrayUnion,
   collection,
   doc,
+  limit,
   onSnapshot,
   query,
   serverTimestamp,
@@ -35,59 +36,102 @@ export type Appointment = {
 
 const TODAY = new Date().toISOString().split('T')[0];
 
+/* ── Hook interprète — deux requêtes ciblées ─────────────────
+   Q1 : demandes en attente (max 50) — vues par tous les interprètes
+   Q2 : missions acceptées par CET interprète (sans limite)
+   ⚠  Remplace l'ancienne requête "collection entière" non filtrée  */
 export function useAppointments() {
   const { user } = useAuth();
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [pendingAppts, setPendingAppts] = useState<Appointment[]>([]);
+  const [myAppts, setMyAppts]   = useState<Appointment[]>([]);
+  const [loading, setLoading]   = useState(true);
+
+  const uid = user?.id ?? '';
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'appointments'), (snap) => {
-      setAppointments(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Appointment)));
-      setLoading(false);
-    });
-    return unsub;
-  }, []);
+    if (!uid) { setLoading(false); return; }
 
-  const acceptMission = async (id: string) => {
+    setLoading(true);
+    let q1Done = false;
+    let q2Done = false;
+    const tryFinish = () => { if (q1Done && q2Done) setLoading(false); };
+
+    // Q1 — demandes en attente (limitées à 50)
+    const q1 = query(
+      collection(db, 'appointments'),
+      where('status', '==', 'pending'),
+      limit(50),
+    );
+    const unsub1 = onSnapshot(
+      q1,
+      (snap) => {
+        setPendingAppts(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Appointment)));
+        q1Done = true; tryFinish();
+      },
+      () => { q1Done = true; tryFinish(); },
+    );
+
+    // Q2 — missions de cet interprète (accepted)
+    const q2 = query(
+      collection(db, 'appointments'),
+      where('interpreterId', '==', uid),
+    );
+    const unsub2 = onSnapshot(
+      q2,
+      (snap) => {
+        setMyAppts(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Appointment)));
+        q2Done = true; tryFinish();
+      },
+      () => { q2Done = true; tryFinish(); },
+    );
+
+    return () => { unsub1(); unsub2(); };
+  }, [uid]);
+
+  const acceptMission = useCallback(async (id: string) => {
     if (!user) return;
     await updateDoc(doc(db, 'appointments', id), {
       status: 'accepted',
       interpreterId: user.id,
       interpreterName: user.name,
     });
-  };
+  }, [user]);
 
-  const declineMission = async (id: string) => {
+  const declineMission = useCallback(async (id: string) => {
     if (!user) return;
     await updateDoc(doc(db, 'appointments', id), {
       declinedBy: arrayUnion(user.id),
     });
-  };
+  }, [user]);
 
-  const uid = user?.id ?? '';
-
-  const pending = appointments.filter(
-    (a) => a.status === 'pending' && !a.declinedBy?.includes(uid)
+  // Demandes disponibles (exclut celles déjà refusées par cet interprète)
+  const pending = useMemo(
+    () => pendingAppts.filter((a) => !a.declinedBy?.includes(uid)),
+    [pendingAppts, uid],
   );
 
-  const myMissions = appointments.filter(
-    (a) => a.status === 'accepted' && a.interpreterId === uid && a.date >= TODAY
+  // Missions futures acceptées
+  const myMissions = useMemo(
+    () => myAppts.filter((a) => a.status === 'accepted' && a.date >= TODAY),
+    [myAppts],
   );
 
-  const history = appointments.filter(
-    (a) =>
-      (a.status === 'accepted' && a.interpreterId === uid && a.date < TODAY) ||
-      a.declinedBy?.includes(uid)
+  // Historique : missions passées acceptées
+  const history = useMemo(
+    () => myAppts
+      .filter((a) => a.status === 'accepted' && a.date < TODAY)
+      .sort((a, b) => b.date.localeCompare(a.date)),
+    [myAppts],
   );
 
-  return { appointments, pending, myMissions, history, loading, acceptMission, declineMission };
+  return { pending, myMissions, history, loading, acceptMission, declineMission };
 }
 
 /* ── Création d'un RDV par le patient ─────────────────────── */
 export function useCreateAppointment() {
   const { user } = useAuth();
 
-  return async (data: {
+  return useCallback(async (data: {
     professionalName: string;
     professionalAddress: string;
     professionalType: AppointmentType;
@@ -96,7 +140,6 @@ export function useCreateAppointment() {
     coordinates?: { lat: number; lng: number };
   }): Promise<string> => {
     if (!user) throw new Error('Non authentifié');
-
     const docRef = await addDoc(collection(db, 'appointments'), {
       patientId: user.id,
       patientName: user.name,
@@ -112,9 +155,8 @@ export function useCreateAppointment() {
       declinedBy: [],
       createdAt: serverTimestamp(),
     });
-
     return docRef.id;
-  };
+  }, [user]);
 }
 
 /* ── RDV du patient en temps réel ─────────────────────────── */
@@ -124,14 +166,11 @@ export function usePatientAppointments() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    if (!user) { setLoading(false); return; }
 
     const q = query(
       collection(db, 'appointments'),
-      where('patientId', '==', user.id)
+      where('patientId', '==', user.id),
     );
 
     const unsub = onSnapshot(q, (snap) => {
