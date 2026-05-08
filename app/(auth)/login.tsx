@@ -218,6 +218,8 @@ export default function LoginScreen() {
                 Confidentialité médicale · Données chiffrées
               </Text>
             </View>
+
+            <Text style={styles.copyright}>© Tom Caucigh</Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -597,5 +599,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     lineHeight: 17,
     flex: 1,
+  },
+  copyright: {
+    fontSize: 12,
+    color: '#94A3B8',
+    textAlign: 'center',
   },
 });
