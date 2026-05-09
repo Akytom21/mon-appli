@@ -48,6 +48,20 @@ export function usePatientReviews() {
     if (!user) return;
     setSubmitting(true);
     try {
+      // Guard: one review per patient per appointment
+      const dupSnap = await getDocs(
+        query(
+          collection(db, 'reviews'),
+          where('appointmentId', '==', appointmentId),
+          where('patientId', '==', user.id),
+        ),
+      );
+      if (!dupSnap.empty) {
+        Alert.alert('Avis déjà soumis', 'Vous avez déjà noté ce rendez-vous.');
+        setSubmitting(false);
+        return;
+      }
+
       await addDoc(collection(db, 'reviews'), {
         appointmentId,
         patientId: user.id,

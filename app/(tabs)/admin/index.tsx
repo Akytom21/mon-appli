@@ -32,6 +32,7 @@ import { db } from '@/config/firebase';
 import { type Role, useAuth } from '@/context/AuthContext';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
 import { type Appointment } from '@/hooks/useAppointments';
+import { type Review } from '@/hooks/useReviews';
 
 /* ── Types ──────────────────────────────────────────────────── */
 type AdminTab = 'dashboard' | 'brevets' | 'utilisateurs' | 'stats';
@@ -310,6 +311,7 @@ export default function AdminScreen() {
   const [tab, setTab]               = useState<AdminTab>('dashboard');
   const [users, setUsers]           = useState<BrevetUser[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [reviews, setReviews]       = useState<Review[]>([]);
   const [loading, setLoading]       = useState(true);
   const [loadingAppts, setLoadingAppts] = useState(true);
   const [refusalTarget, setRefusalTarget] = useState<BrevetUser | null>(null);
@@ -323,12 +325,16 @@ export default function AdminScreen() {
     });
   }, []);
 
-  /* ── Appointments one-shot (all data for charts) ── */
+  /* ── Appointments + reviews one-shot (for charts & stats) ── */
   const fetchAppointments = useCallback(async () => {
     setLoadingAppts(true);
     try {
-      const snap = await getDocs(collection(db, 'appointments'));
-      setAppointments(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Appointment)));
+      const [apptSnap, reviewSnap] = await Promise.all([
+        getDocs(collection(db, 'appointments')),
+        getDocs(collection(db, 'reviews')),
+      ]);
+      setAppointments(apptSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Appointment)));
+      setReviews(reviewSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Review)));
     } catch {}
     setLoadingAppts(false);
   }, []);
@@ -631,6 +637,27 @@ export default function AdminScreen() {
       brevetsRefused: users.filter((u) => u.brevetRefused).length,
       rdvTotal: appointments.length,
     };
+
+    const globalAvg = reviews.length > 0
+      ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
+      : '—';
+
+    const topInterp = (() => {
+      if (!reviews.length) return '—';
+      const avgByInterp: Record<string, { sum: number; count: number }> = {};
+      for (const r of reviews) {
+        if (!avgByInterp[r.interpreterId]) avgByInterp[r.interpreterId] = { sum: 0, count: 0 };
+        avgByInterp[r.interpreterId].sum   += r.rating;
+        avgByInterp[r.interpreterId].count += 1;
+      }
+      const best = Object.entries(avgByInterp)
+        .map(([id, v]) => ({ id, avg: v.sum / v.count }))
+        .sort((a, b) => b.avg - a.avg)[0];
+      if (!best) return '—';
+      const found = users.find((u) => u.id === best.id);
+      return found ? `${found.name.split(' ')[0]} — ${best.avg.toFixed(1)}★` : best.avg.toFixed(1) + '★';
+    })();
+
     return (
       <ScrollView contentContainerStyle={styles.list}>
         <Text style={styles.sectionTitle}>Utilisateurs</Text>
@@ -652,6 +679,17 @@ export default function AdminScreen() {
           <StatBox label="Acceptés"    value={accepted}              color="#059669" />
           <StatBox label="Ce mois"     value={rdvThisMonth}          color="#1D4ED8" />
         </View>
+        <Text style={[styles.sectionTitle, { marginTop: Spacing.lg }]}>Avis interprètes</Text>
+        <View style={styles.statsGrid}>
+          <StatBox label="Total avis"      value={reviews.length} color="#F59E0B" />
+          <StatBox label="Note moy. glob." value={globalAvg}      color="#F59E0B" />
+        </View>
+        {reviews.length > 0 && (
+          <View style={styles.topInterpCard}>
+            <Text style={styles.topInterpLabel}>Meilleur interprète</Text>
+            <Text style={styles.topInterpValue}>{topInterp}</Text>
+          </View>
+        )}
       </ScrollView>
     );
   };
@@ -779,7 +817,7 @@ export default function AdminScreen() {
 }
 
 /* ── StatBox ────────────────────────────────────────────────── */
-function StatBox({ label, value, color }: { label: string; value: number; color: string }) {
+function StatBox({ label, value, color }: { label: string; value: number | string; color: string }) {
   return (
     <View style={[styles.statBox, { borderLeftColor: color }]}>
       <Text style={[styles.statValue, { color }]}>{value}</Text>
@@ -881,6 +919,12 @@ const styles = StyleSheet.create({
   },
   statValue: { fontSize: FontSize.xxl, fontWeight: '800' },
   statLabel: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: 2 },
+  topInterpCard: {
+    backgroundColor: '#FFFBEB', borderRadius: Radius.md, padding: Spacing.md,
+    borderWidth: 1, borderColor: '#FDE68A', marginTop: Spacing.sm,
+  },
+  topInterpLabel: { fontSize: FontSize.sm, fontWeight: '700', color: '#92400E', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4 },
+  topInterpValue: { fontSize: FontSize.lg, fontWeight: '800', color: '#B45309' },
 
   /* Dashboard */
   dashContent:  { padding: 20, gap: 14, paddingBottom: 48 },
