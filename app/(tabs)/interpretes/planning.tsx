@@ -4,14 +4,18 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { Calendar, DateData } from 'react-native-calendars';
+import { Feather } from '@expo/vector-icons';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useAppointments, type Appointment } from '@/hooks/useAppointments';
 import { useAuth } from '@/context/AuthContext';
 import { useInterpreterReviews, type Review } from '@/hooks/useReviews';
+import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 
 const TYPE_ICONS: Record<string, string> = {
   generaliste: '🩺',
@@ -40,6 +44,7 @@ export default function PlanningScreen() {
   const { user } = useAuth();
   const { myMissions, history, loading } = useAppointments();
   const { reviews } = useInterpreterReviews();
+  const unreadMap = useUnreadMessages();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const today = useMemo(() => new Date().toISOString().split('T')[0], []);
@@ -145,7 +150,14 @@ export default function PlanningScreen() {
             {selectedMissions.length === 0 ? (
               <Text style={styles.emptyNote}>Ce jour est libre.</Text>
             ) : (
-              selectedMissions.map((appt) => <MissionCard key={appt.id} appt={appt} />)
+              selectedMissions.map((appt) => (
+                <MissionCard
+                  key={appt.id}
+                  appt={appt}
+                  onMessage={() => router.push(`/(tabs)/messagerie/${appt.id}?recipientId=${encodeURIComponent(appt.patientId)}&name=${encodeURIComponent(appt.patientName)}`)}
+                  unreadCount={unreadMap.get(appt.id)}
+                />
+              ))
             )}
           </View>
         )}
@@ -164,7 +176,14 @@ export default function PlanningScreen() {
               </Text>
             </View>
           ) : (
-            upcoming.map((appt) => <MissionCard key={appt.id} appt={appt} />)
+            upcoming.map((appt) => (
+              <MissionCard
+                key={appt.id}
+                appt={appt}
+                onMessage={() => router.push(`/(tabs)/messagerie/${appt.id}?recipientId=${encodeURIComponent(appt.patientId)}&name=${encodeURIComponent(appt.patientName)}`)}
+                unreadCount={unreadMap.get(appt.id)}
+              />
+            ))
           )}
         </View>
 
@@ -184,7 +203,15 @@ export default function PlanningScreen() {
   );
 }
 
-const MissionCard = memo(function MissionCard({ appt, review, past }: { appt: Appointment; review?: Review; past?: boolean }) {
+const MissionCard = memo(function MissionCard({
+  appt, review, past, onMessage, unreadCount,
+}: {
+  appt: Appointment;
+  review?: Review;
+  past?: boolean;
+  onMessage?: () => void;
+  unreadCount?: number;
+}) {
   return (
     <View style={[styles.card, past && styles.cardPast]}>
       <View style={styles.timeColumn}>
@@ -200,6 +227,22 @@ const MissionCard = memo(function MissionCard({ appt, review, past }: { appt: Ap
           📍 {appt.location}
         </Text>
         <Text style={styles.cardAddress} numberOfLines={1}>{appt.address}</Text>
+        {!past && onMessage && (
+          <TouchableOpacity
+            style={styles.chatBtn}
+            onPress={onMessage}
+            accessibilityRole="button"
+            accessibilityLabel={unreadCount ? `Contacter le patient — ${unreadCount} message${unreadCount > 1 ? 's' : ''} non lu${unreadCount > 1 ? 's' : ''}` : 'Contacter le patient'}
+          >
+            <Feather name="message-circle" size={14} color={Colors.white} />
+            <Text style={styles.chatBtnText}>💬 Contacter le patient</Text>
+            {!!unreadCount && (
+              <View style={styles.chatBtnBadge}>
+                <Text style={styles.chatBtnBadgeTxt}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        )}
         {past && (
           review ? (
             <View style={styles.reviewRow}>
@@ -307,6 +350,10 @@ const styles = StyleSheet.create({
   reviewRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
   reviewComment: { fontSize: 11, color: '#92400E', fontStyle: 'italic', flex: 1 },
   noReview: { fontSize: 11, color: Colors.textSecondary, fontStyle: 'italic' },
+  chatBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: Spacing.md, paddingVertical: 7, borderRadius: Radius.lg, backgroundColor: Colors.primary, alignSelf: 'flex-start', marginTop: 4, position: 'relative' },
+  chatBtnText: { fontSize: FontSize.xs, fontWeight: '700', color: Colors.white },
+  chatBtnBadge: { position: 'absolute', top: -5, right: -5, minWidth: 17, height: 17, borderRadius: 9, backgroundColor: '#DC2626', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: Colors.white },
+  chatBtnBadgeTxt: { fontSize: 9, fontWeight: '800', color: Colors.white },
 
   emptyNote: {
     fontSize: FontSize.sm,

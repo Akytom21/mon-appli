@@ -196,7 +196,9 @@ export function usePatientAppointments() {
         setHasMore(snap.docs.length === 50);
         setLoading(false);
       },
-      () => {
+      (err) => {
+        console.error('[RDV] onSnapshot error:', err);
+        console.error('[RDV] message:', (err as Error)?.message ?? err);
         Alert.alert('Erreur', 'Impossible de charger vos rendez-vous. Vérifiez votre connexion.');
         setLoading(false);
       },

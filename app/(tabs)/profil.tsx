@@ -383,19 +383,6 @@ export default function ProfilScreen() {
             </View>
           )}
 
-          {/* Enregistrer */}
-          <TouchableOpacity
-            style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
-            onPress={handleSave}
-            disabled={saving}
-            accessibilityRole="button"
-          >
-            {saving
-              ? <ActivityIndicator color="#fff" />
-              : <Text style={styles.saveBtnText}>Enregistrer ✓</Text>
-            }
-          </TouchableOpacity>
-
           {/* Sécurité */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Sécurité</Text>
@@ -496,6 +483,19 @@ export default function ProfilScreen() {
               <Feather name="chevron-right" size={16} color={ERROR + '80'} />
             </TouchableOpacity>
           </View>
+
+          {/* Enregistrer */}
+          <TouchableOpacity
+            style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
+            onPress={handleSave}
+            disabled={saving}
+            accessibilityRole="button"
+          >
+            {saving
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={styles.saveBtnText}>Enregistrer ✓</Text>
+            }
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
 

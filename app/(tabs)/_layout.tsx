@@ -35,6 +35,7 @@ export default function TabsLayout() {
         <Stack.Screen name="admin" />
         <Stack.Screen name="profil" />
         <Stack.Screen name="a-propos" />
+        <Stack.Screen name="messagerie" />
       </Stack>
     </>
   );

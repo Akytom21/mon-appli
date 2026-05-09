@@ -15,9 +15,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
+import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useAppointments, type Appointment, type AppointmentType } from '@/hooks/useAppointments';
+import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 
 type Tab = 'disponibles' | 'missions' | 'historique';
 type DateFilter = 'today' | 'week' | 'month';
@@ -235,6 +237,7 @@ const FilterSheet = memo(function FilterSheet({
 export default function MissionsScreen() {
   const { pending, myMissions, history, loading, acceptMission, declineMission } =
     useAppointments();
+  const unreadMap = useUnreadMessages();
   const [activeTab, setActiveTab] = useState<Tab>('disponibles');
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [accepting, setAccepting] = useState<string | null>(null);
@@ -395,9 +398,13 @@ export default function MissionsScreen() {
         acceptAnim={acceptAnim}
         onAccept={handleAccept}
         onDecline={declineMission}
+        onMessage={activeTab === 'missions' && item.status === 'accepted' && item.patientId
+          ? () => router.push(`/(tabs)/messagerie/${item.id}?recipientId=${encodeURIComponent(item.patientId)}&name=${encodeURIComponent(item.patientName)}`)
+          : undefined}
+        unreadCount={unreadMap.get(item.id)}
       />
     ),
-    [activeTab, accepting, acceptAnim, getDistanceLabel, handleAccept, declineMission],
+    [activeTab, accepting, acceptAnim, getDistanceLabel, handleAccept, declineMission, unreadMap],
   );
 
   const renderEmpty = useCallback(
@@ -572,10 +579,12 @@ type CardProps = {
   acceptAnim: Animated.Value;
   onAccept: (id: string) => void;
   onDecline: (id: string) => void;
+  onMessage?: () => void;
+  unreadCount?: number;
 };
 
 const AppointmentCard = memo(function AppointmentCard({
-  appt, tab, distance, isAccepting, acceptAnim, onAccept, onDecline,
+  appt, tab, distance, isAccepting, acceptAnim, onAccept, onDecline, onMessage, unreadCount,
 }: CardProps) {
   const info = TYPE_INFO[appt.type];
   const isUrgent = appt.type === 'urgences';
@@ -625,10 +634,28 @@ const AppointmentCard = memo(function AppointmentCard({
           </TouchableOpacity>
         </View>
       ) : (
-        <View style={[styles.statusChip, appt.status === 'accepted' ? styles.statusAccepted : styles.statusDeclined]}>
-          <Text style={styles.statusChipText}>
-            {appt.status === 'accepted' ? '✓ Acceptée' : '✗ Refusée'}
-          </Text>
+        <View style={styles.statusRow}>
+          <View style={[styles.statusChip, appt.status === 'accepted' ? styles.statusAccepted : styles.statusDeclined]}>
+            <Text style={styles.statusChipText}>
+              {appt.status === 'accepted' ? '✓ Acceptée' : '✗ Refusée'}
+            </Text>
+          </View>
+          {tab === 'missions' && appt.status === 'accepted' && onMessage && (
+            <TouchableOpacity
+              style={styles.chatBtn}
+              onPress={onMessage}
+              accessibilityRole="button"
+              accessibilityLabel={unreadCount ? `Contacter le patient — ${unreadCount} message${unreadCount > 1 ? 's' : ''} non lu${unreadCount > 1 ? 's' : ''}` : 'Contacter le patient'}
+            >
+              <Feather name="message-circle" size={15} color={Colors.white} />
+              <Text style={styles.chatBtnText}>Contacter</Text>
+              {!!unreadCount && (
+                <View style={styles.chatBtnBadge}>
+                  <Text style={styles.chatBtnBadgeTxt}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </View>
@@ -769,10 +796,15 @@ const styles = StyleSheet.create({
   },
   acceptBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: Colors.white },
 
-  statusChip: { alignSelf: 'flex-start', paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radius.full, marginTop: Spacing.xs },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, flexWrap: 'wrap', marginTop: Spacing.xs },
+  statusChip: { alignSelf: 'flex-start', paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radius.full },
   statusAccepted: { backgroundColor: Colors.primaryLight },
   statusDeclined: { backgroundColor: '#FEE2E2' },
   statusChipText: { fontSize: FontSize.sm, fontWeight: '700', color: Colors.textPrimary },
+  chatBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radius.full, backgroundColor: Colors.primary, position: 'relative' },
+  chatBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: Colors.white },
+  chatBtnBadge: { position: 'absolute', top: -5, right: -5, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#DC2626', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: Colors.white },
+  chatBtnBadgeTxt: { fontSize: 9, fontWeight: '800', color: Colors.white },
 
   /* Filter sheet overlay */
   backdrop: {

@@ -23,6 +23,7 @@ import {
   type AppointmentType,
 } from '@/hooks/useAppointments';
 import { usePatientReviews, type Review } from '@/hooks/useReviews';
+import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 
 /* ── Design tokens ───────────────────────────────────────── */
 const BRAND      = '#0F766E';
@@ -239,8 +240,14 @@ const pSt = StyleSheet.create({
 
 /* ── RdvCard — onglets À venir & En attente ──────────────── */
 const RdvCard = memo(function RdvCard({
-  appt, onCancel, onReschedule,
-}: { appt: Appointment; onCancel?: () => void; onReschedule?: () => void }) {
+  appt, onCancel, onReschedule, onMessage, unreadCount,
+}: {
+  appt: Appointment;
+  onCancel?: () => void;
+  onReschedule?: () => void;
+  onMessage?: () => void;
+  unreadCount?: number;
+}) {
   const typeCfg  = TYPE_CFG[appt.type] ?? TYPE_CFG.generaliste;
   const statusCfg = STATUS_CFG[appt.status] ?? STATUS_CFG.pending;
   const isAccepted = appt.status === 'accepted';
@@ -280,10 +287,15 @@ const RdvCard = memo(function RdvCard({
           </TouchableOpacity>
           <TouchableOpacity
             style={cSt.actionBtn}
-            onPress={() => Alert.alert('Bientôt disponible', 'La messagerie sera disponible prochainement.')}
-            accessibilityLabel="Envoyer un message"
+            onPress={onMessage}
+            accessibilityLabel={unreadCount ? `Messagerie — ${unreadCount} message${unreadCount > 1 ? 's' : ''} non lu${unreadCount > 1 ? 's' : ''}` : 'Envoyer un message'}
           >
             <Feather name="message-circle" size={14} color="#065F46" />
+            {!!unreadCount && (
+              <View style={cSt.msgBadge}>
+                <Text style={cSt.msgBadgeTxt}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       )}
@@ -340,6 +352,8 @@ const cSt = StyleSheet.create({
   rescheduleTxt: { fontSize: 12, fontWeight: '700', color: '#991B1B', textDecorationLine: 'underline' },
   cancelBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: 10, borderWidth: 1.5, borderColor: '#FECACA', backgroundColor: '#FFF5F5' },
   cancelBtnText: { fontSize: 12.5, fontWeight: '600', color: '#DC2626' },
+  msgBadge: { position: 'absolute', top: -5, right: -5, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#DC2626', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: '#ECFDF5' },
+  msgBadgeTxt: { fontSize: 9, fontWeight: '800', color: '#fff' },
 });
 
 /* ── HistoryCard ─────────────────────────────────────────── */
@@ -509,6 +523,7 @@ const ffSt = StyleSheet.create({
 export default function MesRdvScreen() {
   const { appointments, loading, hasMore, loadingMore, loadMore, cancelAppointment } = usePatientAppointments();
   const { reviews, submitting, submitReview } = usePatientReviews();
+  const unreadMap = useUnreadMessages();
   const [tab, setTab]                   = useState<Tab>('upcoming');
   const [reviewTarget, setReviewTarget] = useState<Appointment | null>(null);
   const [histType, setHistType]         = useState<HistTypeFilter>('all');
@@ -723,6 +738,10 @@ export default function MesRdvScreen() {
                   appt={a}
                   onCancel={a.status === 'pending' ? () => handleCancel(a) : undefined}
                   onReschedule={() => router.push('/(tabs)/malentendants/rendez-vous')}
+                  onMessage={a.status === 'accepted' && a.interpreterId
+                    ? () => router.push(`/(tabs)/messagerie/${a.id}?recipientId=${encodeURIComponent(a.interpreterId!)}&name=${encodeURIComponent(a.interpreterName ?? 'Interprète')}`)
+                    : undefined}
+                  unreadCount={unreadMap.get(a.id)}
                 />
               ))}
             </View>

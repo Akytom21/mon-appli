@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
-import { collection, doc, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, collectionGroup, doc, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { useAuth } from '@/context/AuthContext';
 
@@ -107,6 +107,36 @@ export function useNotifications() {
       });
     });
   }, [user?.id, user?.role]);
+
+  /* ── Tous rôles : nouveaux messages de chat ────────────── */
+  useEffect(() => {
+    if (!user) return;
+    const knownIds = new Set<string>();
+    let firstLoad = true;
+    const q = query(
+      collectionGroup(db, 'chatMessages'),
+      where('recipientId', '==', user.id),
+      where('read', '==', false),
+    );
+    return onSnapshot(q, (snap) => {
+      if (firstLoad) {
+        snap.docs.forEach((d) => knownIds.add(d.id));
+        firstLoad = false;
+        return;
+      }
+      snap.docChanges().forEach((change) => {
+        if (change.type === 'added' && !knownIds.has(change.doc.id)) {
+          const data = change.doc.data();
+          const preview = String(data.text ?? '');
+          scheduleLocal(
+            '💬 Nouveau message',
+            `${data.senderName} : ${preview.slice(0, 60)}${preview.length > 60 ? '…' : ''}`,
+          );
+          knownIds.add(change.doc.id);
+        }
+      });
+    }, (err) => console.error('[Chat notif]', err));
+  }, [user?.id]);
 
   /* ── Apprenti : validation / refus brevet ───────────────── */
   useEffect(() => {
