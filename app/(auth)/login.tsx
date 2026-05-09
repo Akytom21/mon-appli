@@ -219,7 +219,17 @@ export default function LoginScreen() {
               </Text>
             </View>
 
-            <Text style={styles.copyright}>© Tom Caucigh</Text>
+            <View style={styles.footerRow}>
+              <Text style={styles.copyright}>© Tom Caucigh</Text>
+              <Text style={styles.footerSep}>·</Text>
+              <TouchableOpacity
+                onPress={() => router.push('/(auth)/privacy')}
+                accessibilityRole="link"
+                accessibilityLabel="Politique de confidentialité"
+              >
+                <Text style={styles.privacyLink}>Confidentialité</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -600,9 +610,23 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     flex: 1,
   },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
   copyright: {
     fontSize: 12,
     color: '#94A3B8',
-    textAlign: 'center',
+  },
+  footerSep: {
+    fontSize: 12,
+    color: '#CBD5E1',
+  },
+  privacyLink: {
+    fontSize: 12,
+    color: BRAND,
+    fontWeight: '600',
   },
 });

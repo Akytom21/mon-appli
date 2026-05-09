@@ -97,6 +97,23 @@ export default function AboutScreen() {
           </View>
         </View>
 
+        {/* Politique de confidentialité */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Légal</Text>
+          <TouchableOpacity
+            style={styles.actionRow}
+            onPress={() => router.push('/(auth)/privacy')}
+            accessibilityRole="button"
+            accessibilityLabel="Politique de confidentialité"
+          >
+            <View style={styles.iconWrap}>
+              <Feather name="shield" size={16} color={BRAND} />
+            </View>
+            <Text style={styles.actionText}>Politique de confidentialité</Text>
+            <Feather name="chevron-right" size={14} color={INK_3} />
+          </TouchableOpacity>
+        </View>
+
         {/* Mentions légales */}
         <View style={styles.legalCard}>
           <Feather name="alert-circle" size={15} color={BRAND_DARK} />

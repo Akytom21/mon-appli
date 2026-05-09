@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Politique de confidentialité — PharmaSign</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brand:      #0F766E;
+      --brand-dark: #0B5F58;
+      --brand-tint: #E8F4F2;
+      --ink:        #0F1B2D;
+      --ink-2:      #475569;
+      --ink-3:      #94A3B8;
+      --border:     #E5EAF0;
+      --bg:         #F6F8FA;
+      --white:      #FFFFFF;
+      --error:      #DC2626;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink-2);
+      line-height: 1.6;
+      font-size: 15px;
+    }
+
+    /* ── Header ────────────────────────────────────── */
+    header {
+      background: var(--brand);
+      padding: 36px 24px 44px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 220px; height: 220px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.07);
+    }
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: -30px; left: -40px;
+      width: 150px; height: 150px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+    }
+    .header-inner {
+      position: relative;
+      z-index: 1;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    .app-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 999px;
+      padding: 8px 18px 8px 10px;
+      margin-bottom: 18px;
+    }
+    .app-badge-icon {
+      width: 32px; height: 32px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .app-badge-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.2px;
+    }
+    header h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+    header p {
+      font-size: 14px;
+      color: rgba(255,255,255,0.78);
+    }
+    .update-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 999px;
+      padding: 4px 14px;
+      font-size: 12.5px;
+      color: rgba(255,255,255,0.9);
+      font-weight: 500;
+      margin-top: 10px;
+    }
+
+    /* ── Layout ─────────────────────────────────────── */
+    main {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 32px 20px 64px;
+    }
+
+    /* ── Intro card ──────────────────────────────────── */
+    .intro-card {
+      background: var(--brand-tint);
+      border: 1px solid #A7D4D0;
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+    .intro-icon {
+      width: 46px; height: 46px;
+      background: var(--white);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(15,118,110,0.18);
+    }
+    .intro-card h2 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--brand-dark);
+      margin-bottom: 6px;
+    }
+    .intro-card p {
+      font-size: 13.5px;
+      color: var(--brand-dark);
+      line-height: 1.65;
+    }
+
+    /* ── Responsible card ────────────────────────────── */
+    .responsible-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(15,27,45,0.05);
+    }
+    .responsible-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--ink-3);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 10px;
+    }
+    .responsible-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+    .responsible-sub {
+      font-size: 13px;
+      color: var(--ink-2);
+      margin-bottom: 12px;
+    }
+    .responsible-email {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      text-decoration: none;
+      color: var(--brand);
+      font-size: 14px;
+      font-weight: 500;
+      transition: opacity 0.15s;
+    }
+    .responsible-email:hover { opacity: 0.75; }
+    .email-icon { font-size: 16px; }
+
+    /* ── Section card ────────────────────────────────── */
+    .section-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 6px rgba(15,27,45,0.04);
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .section-icon {
+      width: 38px; height: 38px;
+      background: var(--brand-tint);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px;
+      flex-shrink: 0;
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .section-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .section-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .bullet-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--brand);
+      flex-shrink: 0;
+      margin-top: 7px;
+    }
+    .section-list li span {
+      font-size: 13.5px;
+      color: var(--ink-2);
+      line-height: 1.65;
+    }
+
+    /* ── Footer card ─────────────────────────────────── */
+    .footer-card {
+      background: var(--brand-tint);
+      border: 1px solid #A7D4D0;
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin-top: 8px;
+    }
+    .footer-card-icon { font-size: 18px; flex-shrink: 0; }
+    .footer-card p {
+      font-size: 13px;
+      color: var(--brand-dark);
+      line-height: 1.6;
+      font-weight: 500;
+    }
+
+    .last-update {
+      text-align: center;
+      font-size: 12px;
+      color: var(--ink-3);
+      margin-top: 24px;
+    }
+
+    /* ── Table of contents ───────────────────────────── */
+    .toc {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .toc-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--ink-3);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 12px;
+    }
+    .toc ol {
+      padding-left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .toc a {
+      font-size: 13.5px;
+      color: var(--brand);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .toc a:hover { text-decoration: underline; }
+
+    @media (max-width: 480px) {
+      header { padding: 28px 16px 36px; }
+      header h1 { font-size: 22px; }
+      main { padding: 20px 14px 48px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="header-inner">
+      <div class="app-badge">
+        <div class="app-badge-icon">💊</div>
+        <span class="app-badge-name">PharmaSign</span>
+      </div>
+      <h1>Politique de confidentialité</h1>
+      <p>Transparence sur la collecte et l'utilisation de vos données</p>
+      <div class="update-badge">Mise à jour : Mai 2026</div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- Intro -->
+    <div class="intro-card">
+      <div class="intro-icon">🔒</div>
+      <div>
+        <h2>Protection de vos données</h2>
+        <p>
+          PharmaSign s'engage à protéger la vie privée de ses utilisateurs, en particulier
+          ceux partageant des données médicales sensibles. Cette politique décrit quelles données
+          nous collectons, pourquoi, et comment vous pouvez les contrôler.
+        </p>
+      </div>
+    </div>
+
+    <!-- Responsable du traitement -->
+    <div class="responsible-card">
+      <div class="responsible-label">Responsable du traitement</div>
+      <div class="responsible-name">Tom Caucigh</div>
+      <div class="responsible-sub">Étudiant en pharmacie · Université Côte d'Azur · Nice</div>
+      <a class="responsible-email" href="mailto:tom.caucigh@gmail.com">
+        <span class="email-icon">✉️</span>
+        tom.caucigh@gmail.com
+      </a>
+    </div>
+
+    <!-- Table des matières -->
+    <div class="toc">
+      <div class="toc-title">Sommaire</div>
+      <ol>
+        <li><a href="#donnees">1. Données collectées</a></li>
+        <li><a href="#utilisation">2. Utilisation des données</a></li>
+        <li><a href="#stockage">3. Stockage et hébergement</a></li>
+        <li><a href="#partage">4. Partage des données</a></li>
+        <li><a href="#conservation">5. Durée de conservation</a></li>
+        <li><a href="#securite">6. Sécurité</a></li>
+        <li><a href="#droits">7. Vos droits RGPD</a></li>
+        <li><a href="#mineurs">8. Mineurs</a></li>
+        <li><a href="#modifications">9. Modifications</a></li>
+      </ol>
+    </div>
+
+    <!-- 1. Données collectées -->
+    <div class="section-card" id="donnees">
+      <div class="section-header">
+        <div class="section-icon">🗄️</div>
+        <div class="section-title">1. Données collectées</div>
+      </div>
+      <ul class="section-list">
+        <li><div class="bullet-dot"></div><span><strong>Identité :</strong> nom complet, adresse email, rôle dans l'application (sourd, interprète, apprenti).</span></li>
+        <li><div class="bullet-dot"></div><span><strong>Profil :</strong> photo de profil (optionnelle), numéro de téléphone (optionnel).</span></li>
+        <li><div class="bullet-dot"></div><span><strong>Localisation GPS :</strong> utilisée uniquement pour trouver les interprètes disponibles à proximité. Non conservée en dehors des sessions actives.</span></li>
+        <li><div class="bullet-dot"></div><span><strong>Historique des rendez-vous :</strong> date, heure, lieu, type de consultation, statut.</span></li>
+        <li><div class="bullet-dot"></div><span><strong>Messages :</strong> échanges entre patients et interprètes, conservés pour la durée du rendez-vous concerné.</span></li>
+        <li><div class="bullet-dot"></div><span><strong>Certificats LSF :</strong> niveau et informations de brevet pour les apprentis et interprètes.</span></li>
+        <li><div class="bullet-dot"></div><span><strong>Données techniques :</strong> identifiant Firebase, horodatage des connexions.</span></li>
+      </ul>
+    </div>
+
+    <!-- 2. Utilisation -->
+    <div class="section-card" id="utilisation">
+      <div class="section-header">
+        <div class="section-icon">🎯</div>
+        <div class="section-title">2. Utilisation des données</div>
+      </div>
+      <ul class="section-list">
+        <li><div class="bullet-dot"></div><span>Mise en relation entre personnes sourdes ou malentendantes et interprètes LSF agréés.</span></li>
+        <li><div class="bullet-dot"></div><span>Gestion et suivi des rendez-vous médicaux avec interprétation en langue des signes française.</span></li>
+        <li><div class="bullet-dot"></div><span>Communication sécurisée entre patients et interprètes via la messagerie intégrée.</span></li>
+        <li><div class="bullet-dot"></div><span>Parcours de formation et de certification LSF pour les apprentis.</span></li>
+        <li><div class="bullet-dot"></div><span>Amélioration de l'application et détection des anomalies techniques.</span></li>
+        <li><div class="bullet-dot"></div><span><strong>Aucun</strong> profilage publicitaire ni analyse comportementale à des fins commerciales.</span></li>
+      </ul>
+    </div>
+
+    <!-- 3. Stockage -->
+    <div class="section-card" id="stockage">
+      <div class="section-header">
+        <div class="section-icon">🖥️</div>
+        <div class="section-title">3. Stockage et hébergement</div>
+      </div>
+      <ul class="section-list">
+        <li><div class="bullet-dot"></div><span>Les données sont hébergées sur les serveurs <strong>Firebase (Google LLC)</strong>, localisés en Europe (région <code>europe-west</code>).</span></li>
+        <li><div class="bullet-dot"></div><span>Firebase est conforme au RGPD et signataire des clauses contractuelles types de la Commission européenne.</span></li>
+        <li><div class="bullet-dot"></div><span>Les données sont chiffrées en transit (TLS 1.3) et au repos par les services Firebase.</span></li>
+        <li><div class="bullet-dot"></div><span>Aucune donnée sensible n'est stockée localement sur l'appareil (uniquement les préférences d'accessibilité, non sensibles).</span></li>
+      </ul>
+    </div>
+
+    <!-- 4. Partage -->
+    <div class="section-card" id="partage">
+      <div class="section-header">
+        <div class="section-icon">🔗</div>
+        <div class="section-title">4. Partage des données</div>
+      </div>
+      <ul class="section-list">
+        <li><div class="bullet-dot"></div><span><strong>Aucune</strong> donnée personnelle n'est vendue, louée ou cédée à des tiers à des fins commerciales.</span></li>
+        <li><div class="bullet-dot"></div><span>Les données sont partagées uniquement entre les parties directement impliquées dans un rendez-vous (patient et interprète assigné).</span></li>
+        <li><div class="bullet-dot"></div><span>Partage technique limité avec Firebase (Google) en tant que sous-traitant, dans le cadre d'un accord de traitement conforme au RGPD.</span></li>
+        <li><div class="bullet-dot"></div><span>En cas d'obligation légale, les données peuvent être communiquées aux autorités compétentes sur réquisition judiciaire.</span></li>
+      </ul>
+    </div>
+
+    <!-- 5. Conservation -->
+    <div class="section-card" id="conservation">
+      <div class="section-header">
+        <div class="section-icon">🕒</div>
+        <div class="section-title">5. Durée de conservation</div>
+      </div>
+      <ul class="section-list">
+        <li><div class="bullet-dot"></div><span><strong>Compte actif :</strong> données conservées aussi longtemps que le compte reste actif.</span></li>
+        <li><div class="bullet-dot"></div><span><strong>Historique des rendez-vous :</strong> conservé 3 ans après le dernier rendez-vous.</span></li>
+        <li><div class="bullet-dot"></div><span><strong>Messages de chat :</strong> conservés 1 an après la date du rendez-vous concerné.</span></li>
+        <li><div class="bullet-dot"></div><span><strong>Suppression sur demande :</strong> toutes vos données sont supprimées dans un délai de 30 jours suivant votre demande.</span></li>
+        <li><div class="bullet-dot"></div><span>Pour exercer votre droit à la suppression : <a href="mailto:tom.caucigh@gmail.com">tom.caucigh@gmail.com</a>.</span></li>
+      </ul>
+    </div>
+
+    <!-- 6. Sécurité -->
+    <div class="section-card" id="securite">
+      <div class="section-header">
+        <div class="section-icon">🛡️</div>
+        <div class="section-title">6. Sécurité</div>
+      </div>
+      <ul class="section-list">
+        <li><div class="bullet-dot"></div><span>Authentification sécurisée via Firebase Authentication (email + mot de passe chiffré).</span></li>
+        <li><div class="bullet-dot"></div><span>Règles de sécurité Firestore : chaque utilisateur ne peut accéder qu'aux données le concernant directement.</span></li>
+        <li><div class="bullet-dot"></div><span>Chiffrement des communications (TLS) entre l'application et les serveurs.</span></li>
+        <li><div class="bullet-dot"></div><span>Aucun mot de passe n'est stocké en clair — Firebase utilise des algorithmes de hachage robustes.</span></li>
+        <li><div class="bullet-dot"></div><span>Réinitialisation du mot de passe uniquement par email vérifié.</span></li>
+      </ul>
+    </div>
+
+    <!-- 7. Droits RGPD -->
+    <div class="section-card" id="droits">
+      <div class="section-header">
+        <div class="section-icon">✅</div>
+        <div class="section-title">7. Vos droits RGPD</div>
+      </div>
+      <ul class="section-list">
+        <li><div class="bullet-dot"></div><span><strong>Droit d'accès :</strong> obtenir une copie de toutes vos données personnelles.</span></li>
+        <li><div class="bullet-dot"></div><span><strong>Droit de rectification :</strong> corriger des informations inexactes ou incomplètes.</span></li>
+        <li><div class="bullet-dot"></div><span><strong>Droit à l'effacement</strong> (« droit à l'oubli ») : demander la suppression de vos données.</span></li>
+        <li><div class="bullet-dot"></div><span><strong>Droit à la portabilité :</strong> recevoir vos données dans un format structuré et lisible par machine.</span></li>
+        <li><div class="bullet-dot"></div><span><strong>Droit d'opposition :</strong> vous opposer au traitement de vos données dans certaines circonstances.</span></li>
+        <li><div class="bullet-dot"></div><span><strong>Droit à la limitation :</strong> demander la suspension du traitement de vos données.</span></li>
+        <li><div class="bullet-dot"></div><span>Pour exercer ces droits, écrivez à : <a href="mailto:tom.caucigh@gmail.com">tom.caucigh@gmail.com</a>. Réponse sous 30 jours.</span></li>
+        <li><div class="bullet-dot"></div><span>En cas de litige non résolu, vous pouvez saisir la <strong>CNIL</strong> : <a href="https://www.cnil.fr" target="_blank" rel="noopener">www.cnil.fr</a>.</span></li>
+      </ul>
+    </div>
+
+    <!-- 8. Mineurs -->
+    <div class="section-card" id="mineurs">
+      <div class="section-header">
+        <div class="section-icon">👥</div>
+        <div class="section-title">8. Mineurs</div>
+      </div>
+      <ul class="section-list">
+        <li><div class="bullet-dot"></div><span>PharmaSign est réservée aux personnes âgées de <strong>16 ans et plus</strong>.</span></li>
+        <li><div class="bullet-dot"></div><span>Si vous avez moins de 16 ans, l'utilisation requiert le consentement d'un parent ou tuteur légal.</span></li>
+        <li><div class="bullet-dot"></div><span>En créant un compte, vous certifiez avoir 16 ans ou plus, ou disposer du consentement parental requis.</span></li>
+        <li><div class="bullet-dot"></div><span>Si nous apprenons qu'un mineur de moins de 16 ans a créé un compte sans consentement, ce compte sera supprimé.</span></li>
+      </ul>
+    </div>
+
+    <!-- 9. Modifications -->
+    <div class="section-card" id="modifications">
+      <div class="section-header">
+        <div class="section-icon">🔔</div>
+        <div class="section-title">9. Modifications de cette politique</div>
+      </div>
+      <ul class="section-list">
+        <li><div class="bullet-dot"></div><span>Cette politique peut être mise à jour pour refléter l'évolution de l'application ou des obligations légales.</span></li>
+        <li><div class="bullet-dot"></div><span>En cas de modification substantielle, vous serez informé par <strong>email</strong> avec un préavis de 15 jours.</span></li>
+        <li><div class="bullet-dot"></div><span>La date de mise à jour est indiquée en haut de ce document.</span></li>
+        <li><div class="bullet-dot"></div><span>La poursuite de l'utilisation de l'application après notification vaut acceptation de la nouvelle politique.</span></li>
+      </ul>
+    </div>
+
+    <!-- Footer card -->
+    <div class="footer-card">
+      <div class="footer-card-icon">ℹ️</div>
+      <p>
+        Application à usage éducatif — Ne remplace pas un avis médical professionnel.
+        Conforme au Règlement Général sur la Protection des Données (<strong>RGPD — UE 2016/679</strong>).
+      </p>
+    </div>
+
+    <p class="last-update">Dernière mise à jour : Mai 2026 · PharmaSign · Tom Caucigh</p>
+
+  </main>
+
+</body>
+</html>
