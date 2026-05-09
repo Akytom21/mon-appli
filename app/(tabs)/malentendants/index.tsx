@@ -25,6 +25,7 @@ import {
 import { useHealthProfessionals, useHealthProfessionalsSearch } from '@/hooks/useHealthProfessionals';
 import { usePatientAppointments } from '@/hooks/useAppointments';
 import { getDoctolibUrl } from '@/utils/doctolib';
+import { useAccessibility } from '@/context/AccessibilityContext';
 
 let MapView: any, Marker: any;
 if (Platform.OS !== 'web') {
@@ -268,6 +269,7 @@ export default function MalentendantsHome() {
   const { professionals: allProfessionals } = useHealthProfessionalsSearch();
   const { appointments: myRdv } = usePatientAppointments();
   const pendingRdvCount = myRdv.filter((a) => a.status === 'pending').length;
+  const a11y = useAccessibility();
 
   const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locationError, setLocationError] = useState(false);
@@ -551,23 +553,37 @@ export default function MalentendantsHome() {
         showsVerticalScrollIndicator={false}
       >
         <TouchableOpacity
-          style={styles.rdvMainBtn}
+          style={[
+            styles.rdvMainBtn,
+            { borderWidth: a11y.hcBorder(0), borderColor: '#000000', backgroundColor: a11y.hcBg(Colors.primary) },
+          ]}
           onPress={() => router.push('/(tabs)/malentendants/rendez-vous')}
           activeOpacity={0.85}
           accessibilityRole="button"
+          accessibilityLabel="Prendre un rendez-vous avec un interprète LSF"
+          accessibilityHint="Double-tapez pour accéder au formulaire de rendez-vous"
         >
-          <Text style={styles.rdvMainBtnText}>📅  Prendre un rendez-vous</Text>
+          <Text style={[styles.rdvMainBtnText, { fontSize: a11y.scale(FontSize.lg), color: a11y.hcFg(Colors.white) }]}>
+            📅  Prendre un rendez-vous
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.rdvSecondBtn}
+          style={[
+            styles.rdvSecondBtn,
+            { borderWidth: a11y.hcBorder(1), borderColor: a11y.hcFg(Colors.primary), backgroundColor: a11y.hcBg(Colors.white) },
+          ]}
           onPress={() => router.push('/(tabs)/malentendants/mes-rdv')}
           activeOpacity={0.85}
           accessibilityRole="button"
+          accessibilityLabel={pendingRdvCount > 0 ? `Mes rendez-vous, ${pendingRdvCount} en attente` : 'Mes rendez-vous'}
+          accessibilityHint="Double-tapez pour consulter vos rendez-vous"
         >
-          <Text style={styles.rdvSecondBtnText}>📋  Mes rendez-vous</Text>
+          <Text style={[styles.rdvSecondBtnText, { fontSize: a11y.scale(FontSize.md), color: a11y.hcFg(Colors.primary) }]}>
+            📋  Mes rendez-vous
+          </Text>
           {pendingRdvCount > 0 && (
-            <View style={styles.rdvBadge}>
+            <View style={styles.rdvBadge} accessibilityElementsHidden>
               <Text style={styles.rdvBadgeText}>{pendingRdvCount}</Text>
             </View>
           )}

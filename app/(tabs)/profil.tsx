@@ -22,6 +22,7 @@ import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth, storage } from '@/config/firebase';
 import { useAuth } from '@/context/AuthContext';
+import { useAccessibility, type TextSize } from '@/context/AccessibilityContext';
 
 /* ── Design tokens ──────────────────────────────────────── */
 const BRAND      = '#0F766E';
@@ -40,6 +41,7 @@ const PREFS_COMMUN = ['LSF exclusif', 'LSF + lecture labiale', 'Écriture + LSF'
 
 export default function ProfilScreen() {
   const { user, updateProfile, logout } = useAuth();
+  const { textSize, setTextSize, highContrast, setHighContrast, reduceMotion, setReduceMotion } = useAccessibility();
 
   const [name,       setName]       = useState(user?.name ?? '');
   const [phone,      setPhone]      = useState(user?.phone ?? '');
@@ -59,6 +61,11 @@ export default function ProfilScreen() {
   const toastOpacity = useRef(new Animated.Value(0)).current;
 
   function showToast() {
+    if (reduceMotion) {
+      toastOpacity.setValue(1);
+      setTimeout(() => toastOpacity.setValue(0), 2500);
+      return;
+    }
     toastOpacity.setValue(0);
     Animated.sequence([
       Animated.timing(toastOpacity, { toValue: 1, duration: 280, useNativeDriver: true }),
@@ -417,6 +424,67 @@ export default function ProfilScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Accessibilité */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Accessibilité</Text>
+
+            <View style={styles.field}>
+              <Text style={styles.label}>Taille du texte</Text>
+              <View style={a11yStyles.sizeRow}>
+                {(['normal', 'large', 'xlarge'] as TextSize[]).map((size) => {
+                  const active = textSize === size;
+                  const previewFontSize = size === 'normal' ? 15 : size === 'large' ? 18 : 22;
+                  const label = size === 'normal' ? 'Normal' : size === 'large' ? 'Grand' : 'Très grand';
+                  return (
+                    <TouchableOpacity
+                      key={size}
+                      style={[a11yStyles.sizeBtn, active && a11yStyles.sizeBtnActive]}
+                      onPress={() => setTextSize(size)}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: active }}
+                      accessibilityLabel={label}
+                    >
+                      <Text style={[a11yStyles.sizePreview, { fontSize: previewFontSize }, active && { color: BRAND }]} accessible={false}>
+                        A
+                      </Text>
+                      <Text style={[a11yStyles.sizeBtnLabel, active && { color: BRAND }]}>
+                        {label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            <View style={[styles.field, styles.fieldRow]}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>Contraste élevé</Text>
+                <Text style={styles.fieldHint}>Fond blanc, texte noir, bordures renforcées</Text>
+              </View>
+              <Switch
+                value={highContrast}
+                onValueChange={setHighContrast}
+                trackColor={{ false: BORDER, true: BRAND + '80' }}
+                thumbColor={highContrast ? BRAND : INK_3}
+                accessibilityLabel="Activer le contraste élevé"
+              />
+            </View>
+
+            <View style={[styles.field, styles.fieldRow, { marginBottom: 0 }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>Réduire les animations</Text>
+                <Text style={styles.fieldHint}>Désactive les transitions et effets animés</Text>
+              </View>
+              <Switch
+                value={reduceMotion}
+                onValueChange={setReduceMotion}
+                trackColor={{ false: BORDER, true: BRAND + '80' }}
+                thumbColor={reduceMotion ? BRAND : INK_3}
+                accessibilityLabel="Réduire les animations"
+              />
+            </View>
+          </View>
+
           {/* Compte */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Compte</Text>
@@ -571,4 +639,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25, shadowRadius: 8, elevation: 8,
   },
   toastText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+});
+
+const a11yStyles = StyleSheet.create({
+  sizeRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
+  sizeBtn: {
+    flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 12,
+    borderWidth: 1.5, borderColor: BORDER, backgroundColor: BG, gap: 4,
+  },
+  sizeBtnActive: { borderColor: BRAND, backgroundColor: BRAND_TINT },
+  sizePreview: { fontWeight: '800', color: INK_2 },
+  sizeBtnLabel: { fontSize: 11, fontWeight: '600', color: INK_2, textAlign: 'center' },
 });

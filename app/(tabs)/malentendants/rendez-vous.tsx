@@ -20,6 +20,7 @@ import { HEALTH_PROFESSIONALS } from '@/data/healthProfessionals';
 import { useHealthProfessionalsSearch } from '@/hooks/useHealthProfessionals';
 import { useCreateAppointment } from '@/hooks/useAppointments';
 import { getDoctolibUrl } from '@/utils/doctolib';
+import { useAccessibility } from '@/context/AccessibilityContext';
 
 /* ─── Locale française ─────────────────────────────────── */
 LocaleConfig.locales['fr'] = {
@@ -72,6 +73,7 @@ const TODAY = new Date().toISOString().split('T')[0];
 export default function RendezVousScreen() {
   const { professionals, loading: profLoading } = useHealthProfessionalsSearch();
   const createAppointment = useCreateAppointment();
+  const a11y = useAccessibility();
 
   const [selectedCategory, setSelectedCategory] = useState<CategoryId | null>(null);
   const [searchQuery, setSearchQuery]           = useState('');
@@ -211,24 +213,45 @@ export default function RendezVousScreen() {
 
           {/* ── 1. Catégorie ── */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Type de rendez-vous</Text>
+            <Text style={[styles.sectionTitle, { fontSize: a11y.scale(FontSize.lg) }]}>Type de rendez-vous</Text>
             <View style={styles.categoryGrid}>
               {CATEGORIES.map((cat) => {
                 const active = selectedCategory === cat.id;
                 return (
                   <TouchableOpacity
                     key={cat.id}
-                    style={[styles.categoryCard, active && styles.categoryCardActive]}
+                    style={[
+                      styles.categoryCard,
+                      active && styles.categoryCardActive,
+                      {
+                        borderWidth: a11y.hcBorder(2),
+                        backgroundColor: a11y.hcBg(active ? Colors.malentendantsLight : Colors.white),
+                      },
+                    ]}
                     onPress={() => handleSelectCategory(cat.id)}
                     accessibilityRole="radio"
                     accessibilityState={{ selected: active }}
+                    accessibilityLabel={cat.label}
+                    accessibilityHint="Double-tapez pour sélectionner ce type de rendez-vous"
                   >
-                    <Text style={styles.categoryEmoji}>{cat.emoji}</Text>
-                    <Text style={[styles.categoryLabel, active && styles.categoryLabelActive]}>
+                    <Text
+                      style={[styles.categoryEmoji, { fontSize: a11y.scale(36) }]}
+                      accessible={false}
+                    >
+                      {cat.emoji}
+                    </Text>
+                    <Text style={[
+                      styles.categoryLabel,
+                      active && styles.categoryLabelActive,
+                      {
+                        fontSize: a11y.scale(FontSize.sm),
+                        color: a11y.hcFg(active ? Colors.malentendants : Colors.textSecondary),
+                      },
+                    ]}>
                       {cat.label}
                     </Text>
                     {active && (
-                      <View style={styles.categoryCheck}>
+                      <View style={styles.categoryCheck} accessible={false}>
                         <Text style={styles.categoryCheckText}>✓</Text>
                       </View>
                     )}
@@ -240,7 +263,7 @@ export default function RendezVousScreen() {
 
           {/* ── 2. Lieu / Professionnel ── */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Lieu du rendez-vous</Text>
+            <Text style={[styles.sectionTitle, { fontSize: a11y.scale(FontSize.lg) }]}>Lieu du rendez-vous</Text>
             <Text style={styles.sectionSub}>
               {selectedCategory
                 ? `Rechercher parmi les ${CATEGORIES.find(c => c.id === selectedCategory)?.label.toLowerCase()}s de Nice`
@@ -350,7 +373,7 @@ export default function RendezVousScreen() {
 
           {/* ── 3. Calendrier ── */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Date du rendez-vous</Text>
+            <Text style={[styles.sectionTitle, { fontSize: a11y.scale(FontSize.lg) }]}>Date du rendez-vous</Text>
             {selectedDate ? (
               <Text style={styles.sectionSub}>
                 Sélectionné : {new Date(selectedDate + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
@@ -387,7 +410,7 @@ export default function RendezVousScreen() {
 
           {/* ── 4. Heure ── */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Heure du rendez-vous</Text>
+            <Text style={[styles.sectionTitle, { fontSize: a11y.scale(FontSize.lg) }]}>Heure du rendez-vous</Text>
             <Text style={styles.sectionSub}>
               {selectedTime ? `Sélectionné : ${selectedTime}` : 'Créneaux disponibles (toutes les 30 min)'}
             </Text>
@@ -401,8 +424,10 @@ export default function RendezVousScreen() {
                     onPress={() => setSelectedTime(slot)}
                     accessibilityRole="radio"
                     accessibilityState={{ selected: active }}
+                    accessibilityLabel={`Créneau ${slot}`}
+                    accessibilityHint="Double-tapez pour sélectionner ce créneau"
                   >
-                    <Text style={[styles.timeSlotText, active && styles.timeSlotTextActive]}>
+                    <Text style={[styles.timeSlotText, active && styles.timeSlotTextActive, { fontSize: a11y.scale(FontSize.sm) }]}>
                       {slot}
                     </Text>
                   </TouchableOpacity>
@@ -445,7 +470,7 @@ export default function RendezVousScreen() {
             {submitting ? (
               <ActivityIndicator color={Colors.white} />
             ) : (
-              <Text style={styles.submitText}>
+              <Text style={[styles.submitText, { fontSize: a11y.scale(FontSize.lg) }]}>
                 {canSubmit ? '✓  Confirmer la demande' : 'Complétez tous les champs'}
               </Text>
             )}

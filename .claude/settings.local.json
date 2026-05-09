@@ -32,7 +32,13 @@
       "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\" -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match 'config' -and $_.FullName -notmatch 'node_modules' } | Select-Object -ExpandProperty FullName)",
       "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\" -Recurse -File -ErrorAction SilentlyContinue | Where-Object { \\($_.Extension -match '\\\\.\\(ts|tsx|js|jsx\\)$'\\) -and \\($_.FullName -notmatch 'node_modules'\\) } | Select-Object -ExpandProperty FullName | Measure-Object | Select-Object -ExpandProperty Count)",
       "Bash(Select-Object -Property Name, PSIsContainer)",
-      "WebFetch(domain:img.youtube.com)"
+      "WebFetch(domain:img.youtube.com)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\" -Force | Format-Table Name, @{Name=\"Type\"; Expression={if\\($_.PSIsContainer\\){\"DIR\"}else{\"FILE\"}}} -AutoSize)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\\\\app\\\\\\(tabs\\)\" -Force | Format-Table Name, @{Name=\"Type\"; Expression={if\\($_.PSIsContainer\\){\"DIR\"}else{\"FILE\"}}} -AutoSize)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\\\\context\" -Force | Format-Table Name, @{Name=\"Type\"; Expression={if\\($_.PSIsContainer\\){\"DIR\"}else{\"FILE\"}}} -AutoSize)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\\\\hooks\" -Force | Format-Table Name, @{Name=\"Type\"; Expression={if\\($_.PSIsContainer\\){\"DIR\"}else{\"FILE\"}}} -AutoSize)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\\\\components\" -Force | Format-Table Name, @{Name=\"Type\"; Expression={if\\($_.PSIsContainer\\){\"DIR\"}else{\"FILE\"}}} -AutoSize)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\\\\components\\\\ui\" -Force | Format-Table Name, @{Name=\"Type\"; Expression={if\\($_.PSIsContainer\\){\"DIR\"}else{\"FILE\"}}} -AutoSize)"
     ]
   }
 }
