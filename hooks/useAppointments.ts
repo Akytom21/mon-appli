@@ -1,13 +1,18 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert } from 'react-native';
 import {
   addDoc,
   arrayUnion,
   collection,
   doc,
+  getDocs,
   limit,
   onSnapshot,
+  orderBy,
   query,
+  QueryDocumentSnapshot,
   serverTimestamp,
+  startAfter,
   updateDoc,
   where,
 } from 'firebase/firestore';
@@ -15,7 +20,7 @@ import { db } from '@/config/firebase';
 import { useAuth } from '@/context/AuthContext';
 
 export type AppointmentType = 'generaliste' | 'urgences' | 'specialiste' | 'pharmacie';
-export type AppointmentStatus = 'pending' | 'accepted' | 'declined';
+export type AppointmentStatus = 'pending' | 'accepted' | 'declined' | 'cancelled';
 
 export type Appointment = {
   id: string;
@@ -162,31 +167,75 @@ export function useCreateAppointment() {
 /* ── RDV du patient en temps réel ─────────────────────────── */
 export function usePatientAppointments() {
   const { user } = useAuth();
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [realtimeAppts, setRealtimeAppts] = useState<Appointment[]>([]);
+  const [extraAppts, setExtraAppts]       = useState<Appointment[]>([]);
+  const [loading, setLoading]             = useState(true);
+  const [hasMore, setHasMore]             = useState(false);
+  const [loadingMore, setLoadingMore]     = useState(false);
+  const lastDocRef = useRef<QueryDocumentSnapshot | null>(null);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
+    setRealtimeAppts([]);
+    setExtraAppts([]);
+    setHasMore(false);
+    lastDocRef.current = null;
 
     const q = query(
       collection(db, 'appointments'),
       where('patientId', '==', user.id),
+      orderBy('createdAt', 'desc'),
+      limit(50),
     );
 
-    const unsub = onSnapshot(q, (snap) => {
-      const docs = snap.docs
-        .map((d) => ({ id: d.id, ...d.data() } as Appointment))
-        .sort((a, b) => {
-          const ta = a.createdAt?.toMillis?.() ?? 0;
-          const tb = b.createdAt?.toMillis?.() ?? 0;
-          return tb - ta;
-        });
-      setAppointments(docs);
-      setLoading(false);
-    });
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        setRealtimeAppts(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Appointment)));
+        lastDocRef.current = snap.docs[snap.docs.length - 1] ?? null;
+        setHasMore(snap.docs.length === 50);
+        setLoading(false);
+      },
+      () => {
+        Alert.alert('Erreur', 'Impossible de charger vos rendez-vous. Vérifiez votre connexion.');
+        setLoading(false);
+      },
+    );
 
     return unsub;
   }, [user?.id]);
 
-  return { appointments, loading };
+  const loadMore = useCallback(async () => {
+    if (!user || !lastDocRef.current || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const q = query(
+        collection(db, 'appointments'),
+        where('patientId', '==', user.id),
+        orderBy('createdAt', 'desc'),
+        startAfter(lastDocRef.current),
+        limit(50),
+      );
+      const snap = await getDocs(q);
+      const more = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Appointment));
+      setExtraAppts((prev) => [...prev, ...more]);
+      if (snap.docs.length > 0) lastDocRef.current = snap.docs[snap.docs.length - 1];
+      setHasMore(snap.docs.length === 50);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [user, loadingMore]);
+
+  const cancelAppointment = useCallback(async (id: string) => {
+    await updateDoc(doc(db, 'appointments', id), { status: 'cancelled' });
+  }, []);
+
+  const appointments = useMemo(() => {
+    const map = new Map<string, Appointment>();
+    for (const a of realtimeAppts) map.set(a.id, a);
+    for (const a of extraAppts) if (!map.has(a.id)) map.set(a.id, a);
+    return Array.from(map.values());
+  }, [realtimeAppts, extraAppts]);
+
+  return { appointments, loading, hasMore, loadingMore, loadMore, cancelAppointment };
 }

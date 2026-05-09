@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Alert } from 'react-native';
 import {
   addDoc,
   collection,
@@ -66,6 +67,8 @@ export function usePatientReviews() {
         averageRating: Math.round(avg * 10) / 10,
         reviewCount: ratings.length,
       });
+    } catch {
+      Alert.alert('Erreur', 'Impossible d\'envoyer votre avis. Veuillez réessayer.');
     } finally {
       setSubmitting(false);
     }

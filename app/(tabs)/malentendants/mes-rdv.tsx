@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Linking,
   Modal,
   Platform,
   ScrollView,
@@ -53,9 +54,10 @@ const STATUS_CFG: Record<string, {
 
 /* ── History badge config ────────────────────────────────── */
 const HIST_BADGE = {
-  accepted: { label: 'Effectué', color: '#059669', bg: '#ECFDF5', dot: '#059669' },
-  declined: { label: 'Refusé',   color: '#DC2626', bg: '#FEF2F2', dot: '#DC2626' },
-  expired:  { label: 'Expiré',   color: INK_3,     bg: BG,        dot: INK_3     },
+  accepted:  { label: 'Effectué', color: '#059669', bg: '#ECFDF5', dot: '#059669' },
+  declined:  { label: 'Refusé',   color: '#DC2626', bg: '#FEF2F2', dot: '#DC2626' },
+  expired:   { label: 'Expiré',   color: INK_3,     bg: BG,        dot: INK_3     },
+  cancelled: { label: 'Annulé',   color: '#94A3B8', bg: '#F8FAFC', dot: '#94A3B8' },
 };
 
 /* ── Type labels (for export — no JSX) ──────────────────── */
@@ -105,8 +107,9 @@ function getInitials(name: string): string {
 }
 
 function getHistKey(appt: Appointment): keyof typeof HIST_BADGE {
-  if (appt.status === 'accepted') return 'accepted';
-  if (appt.status === 'declined') return 'declined';
+  if (appt.status === 'accepted')  return 'accepted';
+  if (appt.status === 'declined')  return 'declined';
+  if (appt.status === 'cancelled') return 'cancelled';
   return 'expired';
 }
 
@@ -235,7 +238,9 @@ const pSt = StyleSheet.create({
 });
 
 /* ── RdvCard — onglets À venir & En attente ──────────────── */
-const RdvCard = memo(function RdvCard({ appt }: { appt: Appointment }) {
+const RdvCard = memo(function RdvCard({
+  appt, onCancel, onReschedule,
+}: { appt: Appointment; onCancel?: () => void; onReschedule?: () => void }) {
   const typeCfg  = TYPE_CFG[appt.type] ?? TYPE_CFG.generaliste;
   const statusCfg = STATUS_CFG[appt.status] ?? STATUS_CFG.pending;
   const isAccepted = appt.status === 'accepted';
@@ -266,8 +271,20 @@ const RdvCard = memo(function RdvCard({ appt }: { appt: Appointment }) {
             <Text style={cSt.acceptedLabel}>Interprète confirmé</Text>
             <Text style={cSt.acceptedName} numberOfLines={1}>{appt.interpreterName ?? 'Interprète assigné'}</Text>
           </View>
-          <TouchableOpacity style={cSt.actionBtn}><Feather name="phone"          size={14} color="#065F46" /></TouchableOpacity>
-          <TouchableOpacity style={cSt.actionBtn}><Feather name="message-circle" size={14} color="#065F46" /></TouchableOpacity>
+          <TouchableOpacity
+            style={cSt.actionBtn}
+            onPress={() => Linking.openURL('tel:+33600000000').catch(() => Alert.alert('Erreur', 'Impossible de lancer l\'appel.'))}
+            accessibilityLabel="Appeler l'interprète"
+          >
+            <Feather name="phone" size={14} color="#065F46" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={cSt.actionBtn}
+            onPress={() => Alert.alert('Bientôt disponible', 'La messagerie sera disponible prochainement.')}
+            accessibilityLabel="Envoyer un message"
+          >
+            <Feather name="message-circle" size={14} color="#065F46" />
+          </TouchableOpacity>
         </View>
       )}
       {isPending && (
@@ -276,10 +293,21 @@ const RdvCard = memo(function RdvCard({ appt }: { appt: Appointment }) {
           <Text style={cSt.pendingText}>Demande envoyée à plusieurs interprètes · Réponse sous 2h</Text>
         </View>
       )}
+      {isPending && onCancel && (
+        <TouchableOpacity style={cSt.cancelBtn} onPress={onCancel} accessibilityRole="button">
+          <Feather name="x-circle" size={13} color="#DC2626" />
+          <Text style={cSt.cancelBtnText}>Annuler ce rendez-vous</Text>
+        </TouchableOpacity>
+      )}
       {isDeclined && (
         <View style={cSt.declinedBanner}>
           <Feather name="info" size={14} color="#DC2626" />
-          <Text style={cSt.declinedText}>Aucun interprète disponible · <Text style={{ fontWeight: '700', textDecorationLine: 'underline' }}>Reprogrammer</Text></Text>
+          <View style={{ flex: 1, gap: 3 }}>
+            <Text style={cSt.declinedText}>Aucun interprète disponible</Text>
+            <TouchableOpacity onPress={onReschedule} accessibilityRole="button">
+              <Text style={cSt.rescheduleTxt}>Reprogrammer →</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
     </View>
@@ -308,7 +336,10 @@ const cSt = StyleSheet.create({
   pendingBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, paddingHorizontal: 12, backgroundColor: '#FFFBEB', borderWidth: 1, borderColor: '#FDE68A', borderRadius: 10 },
   pendingText: { fontSize: 12, color: '#92400E', lineHeight: 17, flex: 1 },
   declinedBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, paddingHorizontal: 12, backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA', borderRadius: 10 },
-  declinedText: { fontSize: 12, color: '#991B1B', lineHeight: 17, flex: 1 },
+  declinedText: { fontSize: 12, color: '#991B1B', lineHeight: 17 },
+  rescheduleTxt: { fontSize: 12, fontWeight: '700', color: '#991B1B', textDecorationLine: 'underline' },
+  cancelBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: 10, borderWidth: 1.5, borderColor: '#FECACA', backgroundColor: '#FFF5F5' },
+  cancelBtnText: { fontSize: 12.5, fontWeight: '600', color: '#DC2626' },
 });
 
 /* ── HistoryCard ─────────────────────────────────────────── */
@@ -476,7 +507,7 @@ const ffSt = StyleSheet.create({
 
 /* ── Main screen ─────────────────────────────────────────── */
 export default function MesRdvScreen() {
-  const { appointments, loading }       = usePatientAppointments();
+  const { appointments, loading, hasMore, loadingMore, loadMore, cancelAppointment } = usePatientAppointments();
   const { reviews, submitting, submitReview } = usePatientReviews();
   const [tab, setTab]                   = useState<Tab>('upcoming');
   const [reviewTarget, setReviewTarget] = useState<Appointment | null>(null);
@@ -499,7 +530,7 @@ export default function MesRdvScreen() {
   );
   const history = useMemo(
     () => appointments
-      .filter((a) => a.date < TODAY)
+      .filter((a) => a.date < TODAY || a.status === 'cancelled')
       .sort((a, b) => b.date === a.date ? b.time.localeCompare(a.time) : b.date.localeCompare(a.date)),
     [appointments],
   );
@@ -558,6 +589,17 @@ export default function MesRdvScreen() {
     await submitReview(reviewTarget.id, reviewTarget.interpreterId, rating, comment);
     setReviewTarget(null);
   }, [reviewTarget, submitReview]);
+
+  const handleCancel = useCallback((appt: Appointment) => {
+    Alert.alert(
+      'Annuler ce rendez-vous',
+      `Voulez-vous vraiment annuler votre RDV du ${formatDateChip(appt.date)} à ${appt.time} ?`,
+      [
+        { text: 'Non', style: 'cancel' },
+        { text: 'Oui, annuler', style: 'destructive', onPress: () => cancelAppointment(appt.id) },
+      ],
+    );
+  }, [cancelAppointment]);
 
   const TABS: Array<{ id: Tab; label: string; count: number; amber?: boolean }> = [
     { id: 'upcoming', label: 'À venir',    count: upcoming.length    },
@@ -675,9 +717,24 @@ export default function MesRdvScreen() {
             <EmptyState onPress={() => router.push('/(tabs)/malentendants/rendez-vous')} />
           ) : (
             <View style={s.cardList}>
-              {activeList.map((a) => <RdvCard key={a.id} appt={a} />)}
+              {activeList.map((a) => (
+                <RdvCard
+                  key={a.id}
+                  appt={a}
+                  onCancel={a.status === 'pending' ? () => handleCancel(a) : undefined}
+                  onReschedule={() => router.push('/(tabs)/malentendants/rendez-vous')}
+                />
+              ))}
             </View>
           )
+        )}
+        {hasMore && (
+          <TouchableOpacity style={s.loadMoreBtn} onPress={loadMore} disabled={loadingMore}>
+            {loadingMore
+              ? <ActivityIndicator color={BRAND} size="small" />
+              : <Text style={s.loadMoreTxt}>Charger plus de RDV</Text>
+            }
+          </TouchableOpacity>
         )}
       </ScrollView>
 
@@ -780,4 +837,6 @@ const s = StyleSheet.create({
   emptyBtnText: { fontSize: 14, fontWeight: '700', color: '#fff', letterSpacing: -0.1 },
   emptyFooter: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 },
   emptyFooterTxt: { fontSize: 12, color: INK_3 },
+  loadMoreBtn: { alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1.5, borderColor: BORDER, marginTop: 8 },
+  loadMoreTxt: { fontSize: 13.5, fontWeight: '600', color: BRAND },
 });
