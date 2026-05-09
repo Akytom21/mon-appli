@@ -1,19 +1,26 @@
 import { useEffect, useState } from 'react';
-import { collection, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
+import {
+  collection,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  startAfter,
+  where,
+} from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { HEALTH_PROFESSIONALS, type HealthProfessional } from '@/data/healthProfessionals';
 
-/* ─── Hook carte : limité pour les performances (marqueurs) ─
-   Requiert des index composites Firestore (category ASC, name ASC).
-   Si Firestore renvoie une erreur d'index, le message contient
-   un lien direct pour les créer en un clic dans la console Firebase. */
-
 export type FirestoreCategory = 'doctor' | 'specialist' | 'pharmacy';
 
+/* ─── Hook carte : ~25 marqueurs max pour les performances ───
+   Hôpitaux (7) viennent du fichier statique.
+   Requiert des index composites Firestore (category ASC, name ASC). */
+
 const MAP_LIMITS: Record<FirestoreCategory, number> = {
-  doctor:     100,
-  specialist: 150,
-  pharmacy:   202,
+  doctor:     8,
+  specialist: 5,
+  pharmacy:   5,
 };
 
 export function useHealthProfessionals(categoryFilter?: FirestoreCategory) {
@@ -45,7 +52,6 @@ export function useHealthProfessionals(categoryFilter?: FirestoreCategory) {
             } as HealthProfessional;
           }),
         );
-        // Les hôpitaux viennent du fichier statique (absents des données RPPS)
         const hospitals = HEALTH_PROFESSIONALS.filter((h) => h.category === 'hospital');
         setProfessionals(categoryFilter ? fromFirestore : [...hospitals, ...fromFirestore]);
         setLoading(false);
@@ -60,29 +66,63 @@ export function useHealthProfessionals(categoryFilter?: FirestoreCategory) {
   return { professionals, loading };
 }
 
-/* ─── Hook recherche : tous les documents, pas de limite ──── */
+/* ─── Helper pagination : charge tous les docs d'une catégorie ─
+   Pagine par batches de 500 pour couvrir les grandes collections
+   (1 757 spécialistes, 407 généralistes, 202 pharmaciens). */
+
+async function fetchCategoryAll(
+  col: ReturnType<typeof collection>,
+  category: FirestoreCategory,
+  batchSize = 500,
+): Promise<HealthProfessional[]> {
+  const results: HealthProfessional[] = [];
+  let lastVisible: any = null;
+
+  for (;;) {
+    const q = lastVisible
+      ? query(col, where('category', '==', category), orderBy('name'), startAfter(lastVisible), limit(batchSize))
+      : query(col, where('category', '==', category), orderBy('name'), limit(batchSize));
+
+    const snap = await getDocs(q);
+    for (const d of snap.docs) {
+      const data = d.data();
+      results.push({
+        id: d.id,
+        ...data,
+        latitude: Number(data.latitude),
+        longitude: Number(data.longitude),
+      } as HealthProfessional);
+    }
+
+    if (snap.docs.length < batchSize) break;
+    lastVisible = snap.docs[snap.docs.length - 1];
+  }
+
+  return results;
+}
+
+/* ─── Hook recherche : TOUS les professionnels (formulaire RDV) ─
+   Requêtes paginées par catégorie pour garantir l'exhaustivité :
+   ~407 généralistes + ~1 757 spécialistes + 202 pharmaciens. */
 
 export function useHealthProfessionalsSearch() {
   const [professionals, setProfessionals] = useState<HealthProfessional[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getDocs(collection(db, 'healthProfessionals'))
-      .then((snap) => {
-        const results: HealthProfessional[] = snap.docs.map((d) => {
-          const data = d.data();
-          return {
-            id: d.id,
-            ...data,
-            latitude: Number(data.latitude),
-            longitude: Number(data.longitude),
-          } as HealthProfessional;
-        });
-        setProfessionals(results);
+    const col = collection(db, 'healthProfessionals');
+    const categories: FirestoreCategory[] = ['doctor', 'specialist', 'pharmacy'];
+
+    Promise.all(categories.map((cat) => fetchCategoryAll(col, cat)))
+      .then((results) => {
+        const fromFirestore = results.flat();
+        const hospitals = HEALTH_PROFESSIONALS.filter((h) => h.category === 'hospital');
+        setProfessionals([...hospitals, ...fromFirestore]);
         setLoading(false);
       })
       .catch((err) => {
         console.error('[useHealthProfessionalsSearch] Erreur :', err?.code ?? err?.message ?? err);
+        setProfessionals(HEALTH_PROFESSIONALS);
         setLoading(false);
       });
   }, []);

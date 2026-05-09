@@ -37,101 +37,168 @@ type Video = {
   title: string;
   channel: string;
   duration: string;
-  category: 'medical' | 'basics';
+  category: 'medical' | 'basics' | 'professional';
   description: string;
 };
 
 const VIDEOS: Video[] = [
+  /* ── Vocabulaire médical LSF ─────────────────────────────── */
   {
     id: 'v1',
-    youtubeId: 'qFb1R_DSch8',
-    title: 'Le corps humain en LSF',
-    channel: 'LSF apprentissage',
-    duration: '~10 min',
+    youtubeId: 'rmGPHSGpmXQ',
+    title: 'Les personnels médicaux en LSF',
+    channel: 'maelanguedessignes.com',
+    duration: '~8 min',
     category: 'medical',
     description:
-      'Découvrez le vocabulaire des parties du corps humain en Langue des Signes Française. Indispensable pour les consultations médicales.',
+      'Vocabulaire des professions médicales : médecin, infirmier, pédiatre, chirurgien… Indispensable pour orienter un patient en consultation.',
   },
   {
     id: 'v2',
+    youtubeId: 'i9zvSita0Qs',
+    title: '75 signes sur le thème médical',
+    channel: 'AD Signes',
+    duration: '~12 min',
+    category: 'medical',
+    description:
+      'Cours complet de 75 signes LSF autour du médical : symptômes, examens, traitement, hospitalisation. Avec sous-titres.',
+  },
+  {
+    id: 'v3',
+    youtubeId: 'DwzSea3TOoU',
+    title: 'Signes médicaux essentiels à connaître',
+    channel: 'Langue des Signes / LSF',
+    duration: '~7 min',
+    category: 'medical',
+    description:
+      'Les signes médicaux de base pour sauver des vies : urgence, douleur, allergie, médicament, opération. Vocabulaire prioritaire.',
+  },
+  {
+    id: 'v4',
     youtubeId: 'K_Sf7pQo0L0',
-    title: 'Santé & médicaments en LSF',
+    title: 'Santé, sécurité et médicaments en LSF',
+    channel: 'Apprendre la LSF',
+    duration: '~10 min',
+    category: 'medical',
+    description:
+      'Vocabulaire LSF de la santé et de la sécurité : médicaments, danger, premiers secours. Série pédagogique structurée.',
+  },
+  {
+    id: 'v5',
+    youtubeId: 'XClNbWky3Fo',
+    title: 'Vocabulaire Santé et Médecine (2)',
     channel: 'Apprendre la LSF',
     duration: '~8 min',
     category: 'medical',
     description:
-      'Vocabulaire de la santé, des médicaments et de la sécurité en LSF. Leçon structurée avec exercices.',
+      'Suite du cours vocabulaire santé : hôpital, cabinet médical, ordonnance, consultation spécialisée. Série complète en LSF.',
   },
-  {
-    id: 'v3',
-    youtubeId: 'VkzBsU_4J7Y',
-    title: 'Décrire sa douleur en LSF',
-    channel: 'Lexique LSF',
-    duration: '~5 min',
-    category: 'medical',
-    description:
-      "Apprenez à signer « avoir mal », « douleur », localiser et qualifier une douleur. Essentiel pour les consultations.",
-  },
-  {
-    id: 'v4',
-    youtubeId: 'iiAhJYJKRyw',
-    title: 'Urgences médicales en LSF',
-    channel: 'Lexique LSF',
-    duration: '~6 min',
-    category: 'medical',
-    description:
-      'Signes clés pour les situations d\'urgence : appeler les secours, décrire une urgence vitale, rassurer un patient.',
-  },
-  {
-    id: 'v5',
-    youtubeId: 'SN6uaYn9VDA',
-    title: "L'alphabet LSF (dactylologie)",
-    channel: 'Signes & Vous',
-    duration: '~7 min',
-    category: 'basics',
-    description:
-      "Maîtrisez l'alphabet LSF lettre par lettre. La dactylologie vous permettra d'épeler tous les termes médicaux.",
-  },
+
+  /* ── Bases LSF ───────────────────────────────────────────── */
   {
     id: 'v6',
-    youtubeId: 'uRFBFQSISlg',
-    title: 'Les chiffres en LSF (1 à 20)',
-    channel: 'LSF apprentissage',
-    duration: '~6 min',
+    youtubeId: 'QF-qooXEY_o',
+    title: "L'alphabet LSF — la dactylologie",
+    channel: 'Langue des Signes TV',
+    duration: '~9 min',
     category: 'basics',
     description:
-      'Les chiffres de 1 à 20 en LSF. Indispensable pour communiquer les dosages, dates de rendez-vous et numéros de chambre.',
+      "Maîtrisez l'alphabet LSF lettre par lettre. La dactylologie permet d'épeler les noms, termes médicaux et adresses.",
   },
   {
     id: 'v7',
-    youtubeId: 'pQO0oCFLeiA',
+    youtubeId: 'iXDmwxzrdVo',
+    title: 'Les nombres en LSF',
+    channel: 'LSF Point par Point',
+    duration: '~6 min',
+    category: 'basics',
+    description:
+      'Les chiffres et nombres en LSF. Essentiel pour les dosages, dates de rendez-vous, numéros de chambre et codes postaux.',
+  },
+  {
+    id: 'v8',
+    youtubeId: 'defJsB_CJmo',
+    title: 'Salutations en LSF',
+    channel: 'Fais moi signe',
+    duration: '~7 min',
+    category: 'basics',
+    description:
+      'Bonjour, bonsoir, ça va, au revoir, merci… Les salutations de base en LSF pour débuter toute interaction avec un patient sourd.',
+  },
+  {
+    id: 'v9',
+    youtubeId: '4osXMXPoRvc',
     title: 'Se présenter en LSF',
     channel: 'Apprendre la LSF',
     duration: '~8 min',
     category: 'basics',
     description:
-      "Bonjour, je m'appelle, je suis interprète LSF… Apprenez à vous présenter en consultation. Base de toute communication.",
+      "Je m'appelle, je suis interprète, je parle LSF… Apprenez à vous présenter clairement en consultation. Base de toute communication.",
+  },
+  {
+    id: 'v10',
+    youtubeId: 'rz3jw0_XXoc',
+    title: '300 mots du quotidien en LSF',
+    channel: 'Apprendre la LSF',
+    duration: '~20 min',
+    category: 'basics',
+    description:
+      'Les essentiels de la vie quotidienne en LSF : famille, maison, travail, courses, transports. Référence complète pour débutants.',
+  },
+
+  /* ── LSF Professionnelle ─────────────────────────────────── */
+  {
+    id: 'v11',
+    youtubeId: 'wBFkBa28KNI',
+    title: 'Regards croisés sur la LSF',
+    channel: 'IVT Paris',
+    duration: '~15 min',
+    category: 'professional',
+    description:
+      "Soirée de l'International Visual Theatre : linguistes, interprètes et sourds échangent sur la pratique professionnelle de la LSF en milieu médical.",
+  },
+  {
+    id: 'v12',
+    youtubeId: 'IheJzumKIBs',
+    title: 'IVT Paris — présentation',
+    channel: 'IVT Paris',
+    duration: '~3 min',
+    category: 'professional',
+    description:
+      "L'International Visual Theatre forme des interprètes LSF depuis 40 ans. Présentation de la structure de référence pour la formation professionnelle.",
+  },
+  {
+    id: 'v13',
+    youtubeId: 'Vem9eDdTGN4',
+    title: 'Présentation de Média\'Pi ! (en LSF)',
+    channel: "Mediapi Infos LSF",
+    duration: '~4 min',
+    category: 'professional',
+    description:
+      "Média'Pi ! est le premier média numérique en LSF. Cette vidéo présente leur mission : informer la communauté sourde, en LSF, sur l'actualité.",
   },
 ];
 
 const TOTAL = VIDEOS.length;
 
 function getLevelInfo(count: number): { label: string; color: string; next: string | null } {
-  if (count === 0) return { label: 'Débutant',      color: INK_3,     next: '1 vidéo pour débuter' };
-  if (count <= 2)  return { label: 'Débutant',      color: INK_3,     next: `${3 - count} vidéo(s) pour Intermédiaire` };
-  if (count <= 4)  return { label: 'Intermédiaire', color: AMBER,     next: `${5 - count} vidéo(s) pour Avancé` };
-  if (count <= 6)  return { label: 'Avancé',        color: BRAND,     next: count < TOTAL ? `${TOTAL - count} vidéo(s) pour Expert` : null };
-  return              { label: 'Expert',        color: '#7C3AED', next: null };
+  if (count === 0)  return { label: 'Débutant',      color: INK_3,     next: '1 vidéo pour débuter' };
+  if (count <= 3)   return { label: 'Débutant',      color: INK_3,     next: `${4 - count} vidéo(s) pour Intermédiaire` };
+  if (count <= 6)   return { label: 'Intermédiaire', color: AMBER,     next: `${7 - count} vidéo(s) pour Avancé` };
+  if (count <= 10)  return { label: 'Avancé',        color: BRAND,     next: `${11 - count} vidéo(s) pour Expert` };
+  return               { label: 'Expert',        color: '#7C3AED', next: null };
 }
 
 /* ── Category badge ──────────────────────────────────────── */
 const CategoryBadge = memo(function CategoryBadge({ category }: { category: Video['category'] }) {
-  const isMedical = category === 'medical';
+  const cfg = {
+    medical:      { bg: '#FEF2F2', color: '#DC2626', label: 'Médical'   },
+    basics:       { bg: BRAND_TINT, color: BRAND,    label: 'Bases LSF' },
+    professional: { bg: '#F5F3FF', color: '#7C3AED', label: 'Pro LSF'   },
+  }[category];
   return (
-    <View style={[badgeStyles.pill, { backgroundColor: isMedical ? '#FEF2F2' : BRAND_TINT }]}>
-      <Text style={[badgeStyles.text, { color: isMedical ? '#DC2626' : BRAND }]}>
-        {isMedical ? 'Médical' : 'Bases LSF'}
-      </Text>
+    <View style={[badgeStyles.pill, { backgroundColor: cfg.bg }]}>
+      <Text style={[badgeStyles.text, { color: cfg.color }]}>{cfg.label}</Text>
     </View>
   );
 });
@@ -195,8 +262,9 @@ export default function RessourcesScreen() {
   const levelInfo     = useMemo(() => getLevelInfo(watchedCount), [watchedCount]);
   const progressPct   = useMemo(() => Math.round((watchedCount / TOTAL) * 100), [watchedCount]);
   const firstUnwatched = useMemo(() => VIDEOS.find((v) => !isWatched(v.id)), [isWatched]);
-  const medicalVideos  = useMemo(() => VIDEOS.filter((v) => v.category === 'medical'), []);
-  const basicVideos    = useMemo(() => VIDEOS.filter((v) => v.category === 'basics'), []);
+  const medicalVideos       = useMemo(() => VIDEOS.filter((v) => v.category === 'medical'), []);
+  const basicVideos         = useMemo(() => VIDEOS.filter((v) => v.category === 'basics'), []);
+  const professionalVideos  = useMemo(() => VIDEOS.filter((v) => v.category === 'professional'), []);
 
   const openModal  = useCallback((video: Video) => setSelectedVideo(video), []);
   const closeModal = useCallback(() => setSelectedVideo(null), []);
@@ -322,6 +390,29 @@ export default function RessourcesScreen() {
           </View>
           <View style={styles.cardGrid}>
             {basicVideos.map((v) => (
+              <VideoCard
+                key={v.id}
+                video={v}
+                watched={isWatched(v.id)}
+                onPress={openModal}
+              />
+            ))}
+          </View>
+        </View>
+
+        {/* ── LSF Professionnelle ──────────────── */}
+        <View style={styles.section}>
+          <View style={styles.sectionRow}>
+            <View style={[styles.sectionDot, { backgroundColor: '#7C3AED' }]} />
+            <Text style={styles.sectionTitle}>LSF Professionnelle</Text>
+            <View style={[styles.sectionCount, { backgroundColor: '#F5F3FF' }]}>
+              <Text style={[styles.sectionCountText, { color: '#7C3AED' }]}>
+                {professionalVideos.filter((v) => isWatched(v.id)).length}/{professionalVideos.length}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.cardGrid}>
+            {professionalVideos.map((v) => (
               <VideoCard
                 key={v.id}
                 video={v}

@@ -161,10 +161,8 @@ export default function FormationScreen() {
         ) : formations.length === 0 ? (
           <View style={s.emptyWrap}>
             <Feather name="calendar" size={48} color={INK_3} />
-            <Text style={s.emptyTitle}>Aucune session disponible</Text>
-            <Text style={s.emptySub}>
-              De nouvelles formations seront ajoutées prochainement.
-            </Text>
+            <Text style={s.emptyTitle}>Aucune formation disponible pour le moment.</Text>
+            <Text style={s.emptySub}>Revenez bientôt !</Text>
           </View>
         ) : (
           <View style={s.sessions}>

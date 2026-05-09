@@ -31,7 +31,8 @@
       "PowerShell(head *)",
       "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\" -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match 'config' -and $_.FullName -notmatch 'node_modules' } | Select-Object -ExpandProperty FullName)",
       "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\" -Recurse -File -ErrorAction SilentlyContinue | Where-Object { \\($_.Extension -match '\\\\.\\(ts|tsx|js|jsx\\)$'\\) -and \\($_.FullName -notmatch 'node_modules'\\) } | Select-Object -ExpandProperty FullName | Measure-Object | Select-Object -ExpandProperty Count)",
-      "Bash(Select-Object -Property Name, PSIsContainer)"
+      "Bash(Select-Object -Property Name, PSIsContainer)",
+      "WebFetch(domain:img.youtube.com)"
     ]
   }
 }

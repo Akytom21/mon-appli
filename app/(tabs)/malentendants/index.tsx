@@ -22,7 +22,7 @@ import {
   type HealthCategory,
   type HealthProfessional,
 } from '@/data/healthProfessionals';
-import { useHealthProfessionals } from '@/hooks/useHealthProfessionals';
+import { useHealthProfessionals, useHealthProfessionalsSearch } from '@/hooks/useHealthProfessionals';
 import { usePatientAppointments } from '@/hooks/useAppointments';
 import { getDoctolibUrl } from '@/utils/doctolib';
 
@@ -265,6 +265,7 @@ export default function MalentendantsHome() {
   const { user } = useAuth();
   const prenom = user?.name?.split(' ')[0] ?? '';
   const { professionals, loading: profLoading } = useHealthProfessionals();
+  const { professionals: allProfessionals } = useHealthProfessionalsSearch();
   const { appointments: myRdv } = usePatientAppointments();
   const pendingRdvCount = myRdv.filter((a) => a.status === 'pending').length;
 
@@ -350,6 +351,14 @@ export default function MalentendantsHome() {
     }
     return list;
   }, [professionals, activeFilters, userCoords, availableNow, sortBy]);
+
+  // Total RPPS dans le rayon sélectionné (tous les professionnels, pas seulement les marqueurs)
+  const totalInRadius = useMemo(() => {
+    if (!userCoords || allProfessionals.length === 0) return allProfessionals.length;
+    return allProfessionals.filter(
+      (h) => haversineKm(userCoords.latitude, userCoords.longitude, h.latitude, h.longitude) <= searchRadius,
+    ).length;
+  }, [allProfessionals, userCoords, searchRadius]);
 
   const distanceKm = useMemo(
     () =>
@@ -457,15 +466,6 @@ export default function MalentendantsHome() {
         </TouchableOpacity>
       </ScrollView>
 
-      {/* Results counter */}
-      <View style={styles.countBanner}>
-        <Feather name="map-pin" size={11} color={Colors.primaryDark} />
-        <Text style={styles.countBannerText}>
-          {visibleHealth.length} professionnel{visibleHealth.length !== 1 ? 's' : ''} trouvé{visibleHealth.length !== 1 ? 's' : ''}
-          {userCoords ? ` · ${mapHealth.length} sur la carte (${searchRadius} km)` : ''}
-          {availableNow ? ' · Disponibles' : ''}
-        </Text>
-      </View>
 
       {/* Map */}
       <View style={styles.mapWrapper}>
@@ -516,6 +516,33 @@ export default function MalentendantsHome() {
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Bandeau informatif : total RPPS dans le rayon */}
+      <View style={styles.radiusBanner} accessibilityRole="text">
+        <Feather name="info" size={13} color={Colors.primary} />
+        <Text style={styles.radiusBannerText}>
+          <Text style={styles.radiusBannerCount}>{totalInRadius}</Text>
+          {` professionnel${totalInRadius !== 1 ? 's' : ''} de santé dans un rayon de `}
+          <Text style={styles.radiusBannerCount}>{searchRadius} km</Text>
+        </Text>
+      </View>
+
+      {/* Bannière : accès aux 2 350 professionnels via le formulaire */}
+      <TouchableOpacity
+        style={styles.searchBanner}
+        onPress={() => router.push('/(tabs)/malentendants/rendez-vous')}
+        activeOpacity={0.82}
+        accessibilityRole="button"
+        accessibilityLabel="Rechercher parmi 2 350 professionnels dans le formulaire de RDV"
+      >
+        <Feather name="search" size={14} color={Colors.primary} />
+        <Text style={styles.searchBannerText}>
+          Recherchez parmi{' '}
+          <Text style={styles.searchBannerBold}>2 350 professionnels</Text>
+          {' '}dans le formulaire de RDV
+        </Text>
+        <Feather name="chevron-right" size={14} color={Colors.primary} />
+      </TouchableOpacity>
 
       {/* List */}
       <ScrollView
@@ -723,15 +750,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 2,
   },
 
-  /* Counter banner */
-  countBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: Colors.primaryLight,
-    paddingHorizontal: Spacing.lg, paddingVertical: 5,
-    borderBottomWidth: 1, borderBottomColor: Colors.border,
-  },
-  countBannerText: { fontSize: FontSize.xs, color: Colors.primaryDark, fontWeight: '600' },
-
   /* Map */
   mapWrapper: { height: 240, position: 'relative' },
   mapFallback: {
@@ -909,4 +927,46 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4,
   },
   rdvBtnText: { fontSize: FontSize.md, fontWeight: '700', color: Colors.white },
+
+  radiusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 9,
+    backgroundColor: Colors.primaryLight,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  radiusBannerText: {
+    flex: 1,
+    fontSize: FontSize.xs,
+    color: Colors.primaryDark,
+    lineHeight: 17,
+  },
+  radiusBannerCount: {
+    fontWeight: '800',
+    color: Colors.primary,
+  },
+
+  searchBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 10,
+    backgroundColor: Colors.primaryLight,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  searchBannerText: {
+    flex: 1,
+    fontSize: FontSize.xs,
+    color: Colors.primaryDark,
+    lineHeight: 17,
+  },
+  searchBannerBold: {
+    fontWeight: '700',
+    color: Colors.primary,
+  },
 });
