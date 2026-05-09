@@ -314,24 +314,30 @@ export default function MalentendantsHome() {
     });
   }, []);
 
-  const visibleHealth = useMemo(() => {
+  // Marqueurs carte uniquement : filtrés par rayon
+  const mapHealth = useMemo(() => {
     let list = professionals.filter(
       (h) => activeFilters.has(h.category) && !isNaN(h.latitude) && !isNaN(h.longitude),
     );
-
-    // Radius filter (applies only when user location is known)
     if (userCoords) {
       list = list.filter(
         (h) => haversineKm(userCoords.latitude, userCoords.longitude, h.latitude, h.longitude) <= searchRadius,
       );
     }
-
-    // Available now filter
     if (availableNow) {
       list = list.filter((h) => isOpenNow(h.hours));
     }
+    return list;
+  }, [professionals, activeFilters, userCoords, searchRadius, availableNow]);
 
-    // Sort
+  // Liste et compteur : catégorie + disponibilité, SANS limite de rayon
+  const visibleHealth = useMemo(() => {
+    let list = professionals.filter(
+      (h) => activeFilters.has(h.category) && !isNaN(h.latitude) && !isNaN(h.longitude),
+    );
+    if (availableNow) {
+      list = list.filter((h) => isOpenNow(h.hours));
+    }
     if (sortBy === 'distance' && userCoords) {
       list = [...list].sort(
         (a, b) =>
@@ -342,9 +348,8 @@ export default function MalentendantsHome() {
       const order: HealthCategory[] = ['hospital', 'pharmacy', 'doctor', 'specialist'];
       list = [...list].sort((a, b) => order.indexOf(a.category) - order.indexOf(b.category));
     }
-
     return list;
-  }, [professionals, activeFilters, userCoords, searchRadius, availableNow, sortBy]);
+  }, [professionals, activeFilters, userCoords, availableNow, sortBy]);
 
   const distanceKm = useMemo(
     () =>
@@ -457,8 +462,8 @@ export default function MalentendantsHome() {
         <Feather name="map-pin" size={11} color={Colors.primaryDark} />
         <Text style={styles.countBannerText}>
           {visibleHealth.length} professionnel{visibleHealth.length !== 1 ? 's' : ''} trouvé{visibleHealth.length !== 1 ? 's' : ''}
-          {userCoords ? ` · rayon ${searchRadius} km` : ''}
-          {availableNow ? ' · Disponible maintenant' : ''}
+          {userCoords ? ` · ${mapHealth.length} sur la carte (${searchRadius} km)` : ''}
+          {availableNow ? ' · Disponibles' : ''}
         </Text>
       </View>
 
@@ -477,7 +482,7 @@ export default function MalentendantsHome() {
               </Marker>
             )}
 
-            {visibleHealth.map((prof) => (
+            {mapHealth.map((prof) => (
               <Marker
                 key={prof.id}
                 coordinate={{ latitude: prof.latitude, longitude: prof.longitude }}
@@ -493,7 +498,7 @@ export default function MalentendantsHome() {
           <View style={styles.mapFallback}>
             <Text style={styles.mapFallbackEmoji}>🗺️</Text>
             <Text style={styles.mapFallbackText}>Carte disponible sur mobile</Text>
-            <Text style={styles.mapFallbackSub}>{visibleHealth.length} établissements</Text>
+            <Text style={styles.mapFallbackSub}>{mapHealth.length} établissements dans le rayon</Text>
           </View>
         )}
 

@@ -384,6 +384,53 @@ export default function MissionsScreen() {
 
   const hasActiveSearch = searchQuery.trim() !== '' || activeFilterCount > 0;
 
+  // Callbacks déclarés AVANT tout return conditionnel (règles des hooks)
+  const renderMissionItem = useCallback(
+    ({ item }: { item: Appointment }) => (
+      <AppointmentCard
+        appt={item}
+        tab={activeTab}
+        distance={getDistanceLabel(item.coordinates)}
+        isAccepting={accepting === item.id}
+        acceptAnim={acceptAnim}
+        onAccept={handleAccept}
+        onDecline={declineMission}
+      />
+    ),
+    [activeTab, accepting, acceptAnim, getDistanceLabel, handleAccept, declineMission],
+  );
+
+  const renderEmpty = useCallback(
+    () => (
+      <View style={styles.emptyState}>
+        <Text style={styles.emptyIcon}>
+          {hasActiveSearch
+            ? '🔍'
+            : activeTab === 'disponibles' ? '🎉' : activeTab === 'missions' ? '📅' : '📋'}
+        </Text>
+        <Text style={styles.emptyTitle}>
+          {hasActiveSearch
+            ? 'Aucun résultat'
+            : activeTab === 'disponibles'
+            ? 'Aucune demande disponible'
+            : activeTab === 'missions'
+            ? 'Aucune mission en cours'
+            : 'Aucun historique'}
+        </Text>
+        <Text style={styles.emptySub}>
+          {hasActiveSearch
+            ? 'Modifiez votre recherche ou vos filtres.'
+            : activeTab === 'disponibles'
+            ? 'Revenez plus tard pour voir de nouvelles demandes.'
+            : activeTab === 'missions'
+            ? "Acceptez des demandes dans l'onglet Disponibles."
+            : 'Vos missions passées apparaîtront ici.'}
+        </Text>
+      </View>
+    ),
+    [activeTab, hasActiveSearch],
+  );
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -491,44 +538,8 @@ export default function MissionsScreen() {
         initialNumToRender={10}
         maxToRenderPerBatch={5}
         windowSize={5}
-        renderItem={useCallback(({ item }: { item: Appointment }) => (
-          <AppointmentCard
-            appt={item}
-            tab={activeTab}
-            distance={getDistanceLabel(item.coordinates)}
-            isAccepting={accepting === item.id}
-            acceptAnim={acceptAnim}
-            onAccept={handleAccept}
-            onDecline={declineMission}
-          />
-        ), [activeTab, accepting, acceptAnim, getDistanceLabel, handleAccept, declineMission])}
-        ListEmptyComponent={useCallback(() => (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>
-              {hasActiveSearch
-                ? '🔍'
-                : activeTab === 'disponibles' ? '🎉' : activeTab === 'missions' ? '📅' : '📋'}
-            </Text>
-            <Text style={styles.emptyTitle}>
-              {hasActiveSearch
-                ? 'Aucun résultat'
-                : activeTab === 'disponibles'
-                ? 'Aucune demande disponible'
-                : activeTab === 'missions'
-                ? 'Aucune mission en cours'
-                : 'Aucun historique'}
-            </Text>
-            <Text style={styles.emptySub}>
-              {hasActiveSearch
-                ? 'Modifiez votre recherche ou vos filtres.'
-                : activeTab === 'disponibles'
-                ? 'Revenez plus tard pour voir de nouvelles demandes.'
-                : activeTab === 'missions'
-                ? "Acceptez des demandes dans l'onglet Disponibles."
-                : 'Vos missions passées apparaîtront ici.'}
-            </Text>
-          </View>
-        ), [activeTab, hasActiveSearch])}
+        renderItem={renderMissionItem}
+        ListEmptyComponent={renderEmpty}
       />
 
       {/* Filter bottom sheet */}

@@ -11,9 +11,9 @@ import { HEALTH_PROFESSIONALS, type HealthProfessional } from '@/data/healthProf
 export type FirestoreCategory = 'doctor' | 'specialist' | 'pharmacy';
 
 const MAP_LIMITS: Record<FirestoreCategory, number> = {
-  doctor:     15,
-  specialist: 10,
-  pharmacy:   10,
+  doctor:     100,
+  specialist: 150,
+  pharmacy:   202,
 };
 
 export function useHealthProfessionals(categoryFilter?: FirestoreCategory) {
