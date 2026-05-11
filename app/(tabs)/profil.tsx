@@ -47,9 +47,10 @@ export default function ProfilScreen() {
   const [phone,      setPhone]      = useState(user?.phone ?? '');
   const [avatarUri,  setAvatarUri]  = useState<string | null>(user?.avatarUrl ?? null);
   /* Interprète */
-  const [zoneKm,    setZoneKm]    = useState(String(user?.zoneKm ?? 20));
-  const [languages, setLanguages] = useState(user?.languages?.join(', ') ?? 'LSF, Français');
+  const [zoneKm,     setZoneKm]     = useState(String(user?.zoneKm ?? 20));
+  const [languages,  setLanguages]  = useState(user?.languages?.join(', ') ?? 'LSF, Français');
   const [disponible, setDisponible] = useState(user?.disponible ?? true);
+  const [hourlyRate, setHourlyRate] = useState(String((user as any)?.hourlyRate ?? ''));
   /* Apprenti */
   const [niveauLSF, setNiveauLSF] = useState(user?.niveauLSF ?? 'Débutant');
   /* Sourd */
@@ -149,6 +150,8 @@ export default function ProfilScreen() {
         updates.zoneKm     = parseInt(zoneKm, 10) || 20;
         updates.languages  = languages.split(',').map((l) => l.trim()).filter(Boolean);
         updates.disponible = disponible;
+        const rate = parseFloat(hourlyRate.replace(',', '.'));
+        updates.hourlyRate = rate > 0 ? rate : null;
       }
       if (user?.role === 'apprenti') updates.niveauLSF  = niveauLSF;
       if (user?.role === 'sourd')     updates.prefCommun = prefCommun;
@@ -321,6 +324,28 @@ export default function ProfilScreen() {
                   autoCapitalize="words"
                 />
                 <Text style={styles.fieldHint}>Séparées par des virgules</Text>
+              </View>
+
+              <View style={styles.field}>
+                <Text style={styles.label}>
+                  Tarif horaire{'  '}
+                  <Text style={styles.labelNote}>(optionnel)</Text>
+                </Text>
+                <View style={styles.rateInputRow}>
+                  <TextInput
+                    style={[styles.input, { flex: 1 }]}
+                    value={hourlyRate}
+                    onChangeText={setHourlyRate}
+                    placeholder="25"
+                    placeholderTextColor={INK_3}
+                    keyboardType="decimal-pad"
+                    maxLength={6}
+                  />
+                  <View style={styles.rateUnit}>
+                    <Text style={styles.rateUnitText}>€/heure</Text>
+                  </View>
+                </View>
+                <Text style={styles.fieldHint}>Affiché sur la fiche du rendez-vous confirmé</Text>
               </View>
 
               <View style={[styles.field, styles.fieldRow, { marginBottom: 0 }]}>
@@ -584,6 +609,13 @@ const styles = StyleSheet.create({
   },
   inputDisabled: { backgroundColor: BG, color: INK_3 },
   fieldHint: { fontSize: 11, color: INK_3, marginTop: 1 },
+  rateInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  rateUnit: {
+    borderWidth: 1.5, borderColor: BORDER, borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: 11,
+    backgroundColor: BG,
+  },
+  rateUnitText: { fontSize: 14, fontWeight: '600', color: INK_2 },
 
   niveauGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   niveauChip: {

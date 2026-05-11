@@ -35,6 +35,7 @@ export type Appointment = {
   status: AppointmentStatus;
   interpreterId: string | null;
   interpreterName?: string | null;
+  interpreterHourlyRate?: number | null;
   declinedBy?: string[];
   createdAt?: { toMillis?: () => number };
 };
@@ -115,6 +116,7 @@ export function useAppointments() {
       status: 'accepted',
       interpreterId: user.id,
       interpreterName: user.name,
+      interpreterHourlyRate: (user as any).hourlyRate ?? null,
     });
   }, [user]);
 

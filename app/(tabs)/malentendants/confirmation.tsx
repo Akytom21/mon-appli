@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
 
 type CategoryId = 'generaliste' | 'urgences' | 'specialiste' | 'pharmacie';
@@ -169,6 +170,19 @@ export default function ConfirmationScreen() {
           </View>
         </Animated.View>
 
+        {/* Bandeau paiement */}
+        <Animated.View
+          style={[
+            styles.paymentBanner,
+            { opacity: contentOp, transform: [{ translateY: contentY }] },
+          ]}
+        >
+          <Feather name="credit-card" size={18} color="#92400E" style={{ flexShrink: 0, marginTop: 1 }} />
+          <Text style={styles.paymentText}>
+            💳 Le paiement s'effectue directement avec l'interprète. Un système de paiement en ligne sera disponible prochainement.
+          </Text>
+        </Animated.View>
+
         {/* Actions */}
         <Animated.View
           style={[
@@ -289,6 +303,19 @@ const styles = StyleSheet.create({
   statusTextWrap: { flex: 1, gap: 3 },
   statusTitle: { fontSize: FontSize.sm, fontWeight: '700', color: '#92400E' },
   statusSub: { fontSize: FontSize.xs, color: '#B45309', lineHeight: 18 },
+
+  paymentBanner: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    backgroundColor: '#FFFBEB',
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    width: '100%',
+    alignItems: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  paymentText: { fontSize: FontSize.sm, color: '#92400E', lineHeight: 20, flex: 1 },
 
   actions: { width: '100%', gap: Spacing.sm },
   primaryBtn: {
