@@ -589,6 +589,30 @@ export default function MalentendantsHome() {
           )}
         </TouchableOpacity>
 
+        {/* Quick access: dictionnaire + annuaire */}
+        <View style={styles.quickRow}>
+          <TouchableOpacity
+            style={styles.quickBtn}
+            onPress={() => router.push('/(tabs)/malentendants/dictionnaire')}
+            activeOpacity={0.82}
+            accessibilityRole="button"
+            accessibilityLabel="Dictionnaire LSF médical"
+          >
+            <Text style={styles.quickBtnEmoji}>📚</Text>
+            <Text style={styles.quickBtnLabel}>Dictionnaire{'\n'}LSF</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.quickBtn}
+            onPress={() => router.push('/(tabs)/malentendants/annuaire')}
+            activeOpacity={0.82}
+            accessibilityRole="button"
+            accessibilityLabel="Annuaire LSF Nice"
+          >
+            <Text style={styles.quickBtnEmoji}>📍</Text>
+            <Text style={styles.quickBtnLabel}>Annuaire{'\n'}LSF Nice</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Stats */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
@@ -984,5 +1008,31 @@ const styles = StyleSheet.create({
   searchBannerBold: {
     fontWeight: '700',
     color: Colors.primary,
+  },
+
+  quickRow: { flexDirection: 'row', gap: Spacing.sm },
+  quickBtn: {
+    flex: 1,
+    backgroundColor: Colors.white,
+    borderRadius: Radius.md,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    alignItems: 'center',
+    gap: Spacing.xs,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  quickBtnEmoji: { fontSize: 26 },
+  quickBtnLabel: {
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    lineHeight: 16,
   },
 });

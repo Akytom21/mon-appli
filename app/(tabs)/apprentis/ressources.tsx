@@ -269,10 +269,15 @@ export default function RessourcesScreen() {
   const openModal  = useCallback((video: Video) => setSelectedVideo(video), []);
   const closeModal = useCallback(() => setSelectedVideo(null), []);
 
-  const openYouTube = useCallback(async (youtubeId: string) => {
-    const url = `https://www.youtube.com/watch?v=${youtubeId}`;
-    const supported = await Linking.canOpenURL(url);
-    if (supported) await Linking.openURL(url);
+  const openYouTube = useCallback(async (videoId: string) => {
+    const nativeUrl = `vnd.youtube:${videoId}`;
+    const webUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    try {
+      const canOpen = await Linking.canOpenURL(nativeUrl);
+      await Linking.openURL(canOpen ? nativeUrl : webUrl);
+    } catch {
+      await Linking.openURL(webUrl);
+    }
   }, []);
 
   return (
