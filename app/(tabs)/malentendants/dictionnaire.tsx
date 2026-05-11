@@ -261,15 +261,27 @@ export default function DictionnaireScreen() {
   }, [filtered]);
 
   const openSign = async (entry: DictEntry) => {
+    // Extract search_query from stored URL to build the native deep-link
+    const match = entry.youtubeUrl.match(/search_query=([^&]+)/);
+    const query = match ? match[1] : encodeURIComponent(`${entry.word} LSF`);
+    const nativeUrl = `vnd.youtube://results?search_query=${query}`;
+    const webUrl = entry.youtubeUrl;
+
     try {
-      const supported = await Linking.canOpenURL(entry.youtubeUrl);
-      if (supported) {
-        await Linking.openURL(entry.youtubeUrl);
-      } else {
-        Alert.alert('Impossible d\'ouvrir', 'Vérifiez votre connexion Internet.');
-      }
+      // canOpenURL works for custom schemes (vnd.youtube://) but is unreliable
+      // for https:// on Android 11+ — try native first, fall back to web
+      const canOpenNative = await Linking.canOpenURL(nativeUrl);
+      await Linking.openURL(canOpenNative ? nativeUrl : webUrl);
     } catch {
-      Alert.alert('Erreur', 'Impossible d\'ouvrir la vidéo.');
+      try {
+        await Linking.openURL(webUrl);
+      } catch {
+        Alert.alert(
+          'Lien indisponible',
+          `Impossible d'ouvrir YouTube pour « ${entry.word} ».\n\nVérifiez votre connexion internet ou recherchez manuellement : ${entry.word} LSF Elix`,
+          [{ text: 'OK' }],
+        );
+      }
     }
   };
 
@@ -398,8 +410,8 @@ export default function DictionnaireScreen() {
 
         <View style={s.footer}>
           <Text style={s.footerText}>
-            Les vidéos s'ouvrent sur YouTube — chaîne Elix LSF.{'\n'}
-            Connexion Internet requise.
+            Les recherches s'ouvrent dans l'app YouTube (si installée) ou dans le navigateur.{'\n'}
+            Chaîne de référence : Elix LSF · Connexion requise.
           </Text>
         </View>
       </ScrollView>

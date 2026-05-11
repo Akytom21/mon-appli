@@ -552,6 +552,22 @@ export default function MalentendantsHome() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* SOS Urgences — bouton proéminent */}
+        <TouchableOpacity
+          style={styles.sosBtn}
+          onPress={() => router.push('/(tabs)/malentendants/sos')}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="SOS Urgences — 114, SAMU 15, Pompiers 18, Police 17"
+        >
+          <Text style={styles.sosBtnEmoji}>🚨</Text>
+          <View style={styles.sosBtnInfo}>
+            <Text style={styles.sosBtnTitle}>SOS Urgences</Text>
+            <Text style={styles.sosBtnSub}>114 · SAMU 15 · Pompiers 18 · Police 17</Text>
+          </View>
+          <Feather name="chevron-right" size={18} color="#fff" />
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={[
             styles.rdvMainBtn,
@@ -589,7 +605,7 @@ export default function MalentendantsHome() {
           )}
         </TouchableOpacity>
 
-        {/* Quick access: dictionnaire + annuaire */}
+        {/* Quick access: dictionnaire + annuaire + FALC */}
         <View style={styles.quickRow}>
           <TouchableOpacity
             style={styles.quickBtn}
@@ -610,6 +626,16 @@ export default function MalentendantsHome() {
           >
             <Text style={styles.quickBtnEmoji}>📍</Text>
             <Text style={styles.quickBtnLabel}>Annuaire{'\n'}LSF Nice</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.quickBtn}
+            onPress={() => router.push('/(tabs)/malentendants/falc')}
+            activeOpacity={0.82}
+            accessibilityRole="button"
+            accessibilityLabel="Fiches Santé FALC — langage simplifié"
+          >
+            <Text style={styles.quickBtnEmoji}>📄</Text>
+            <Text style={styles.quickBtnLabel}>Fiches{'\n'}Santé FALC</Text>
           </TouchableOpacity>
         </View>
 
@@ -1009,6 +1035,24 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.primary,
   },
+
+  sosBtn: {
+    backgroundColor: '#DC2626',
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  sosBtnEmoji: { fontSize: 28, flexShrink: 0 },
+  sosBtnInfo: { flex: 1 },
+  sosBtnTitle: { fontSize: FontSize.lg, fontWeight: '800', color: Colors.white },
+  sosBtnSub: { fontSize: FontSize.xs, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
 
   quickRow: { flexDirection: 'row', gap: Spacing.sm },
   quickBtn: {
