@@ -48,8 +48,9 @@ const TODAY = new Date().toISOString().split('T')[0];
 export function useAppointments() {
   const { user } = useAuth();
   const [pendingAppts, setPendingAppts] = useState<Appointment[]>([]);
-  const [myAppts, setMyAppts]   = useState<Appointment[]>([]);
-  const [loading, setLoading]   = useState(true);
+  const [myAppts, setMyAppts]     = useState<Appointment[]>([]);
+  const [declinedCount, setDeclinedCount] = useState(0);
+  const [loading, setLoading]     = useState(true);
 
   const uid = user?.id ?? '';
 
@@ -59,7 +60,8 @@ export function useAppointments() {
     setLoading(true);
     let q1Done = false;
     let q2Done = false;
-    const tryFinish = () => { if (q1Done && q2Done) setLoading(false); };
+    let q3Done = false;
+    const tryFinish = () => { if (q1Done && q2Done && q3Done) setLoading(false); };
 
     // Q1 — demandes en attente (limitées à 50)
     const q1 = query(
@@ -90,7 +92,21 @@ export function useAppointments() {
       () => { q2Done = true; tryFinish(); },
     );
 
-    return () => { unsub1(); unsub2(); };
+    // Q3 — missions refusées par cet interprète (pour le taux d'acceptation)
+    const q3 = query(
+      collection(db, 'appointments'),
+      where('declinedBy', 'array-contains', uid),
+    );
+    const unsub3 = onSnapshot(
+      q3,
+      (snap) => {
+        setDeclinedCount(snap.size);
+        q3Done = true; tryFinish();
+      },
+      () => { q3Done = true; tryFinish(); },
+    );
+
+    return () => { unsub1(); unsub2(); unsub3(); };
   }, [uid]);
 
   const acceptMission = useCallback(async (id: string) => {
@@ -129,7 +145,7 @@ export function useAppointments() {
     [myAppts],
   );
 
-  return { pending, myMissions, history, loading, acceptMission, declineMission };
+  return { pending, myMissions, history, loading, acceptMission, declineMission, declinedCount };
 }
 
 /* ── Création d'un RDV par le patient ─────────────────────── */

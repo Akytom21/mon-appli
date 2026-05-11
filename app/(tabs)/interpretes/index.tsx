@@ -14,6 +14,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useAppointments, type Appointment, type AppointmentType } from '@/hooks/useAppointments';
 import { useInterpreterReviews } from '@/hooks/useReviews';
+import { useInterpreterStats } from '@/hooks/useInterpreterStats';
 
 const NICE_CENTER = {
   latitude: 43.7102,
@@ -40,7 +41,8 @@ const TYPE_INFO: Record<AppointmentType, { label: string; icon: string }> = {
 export default function InterpretesHome() {
   const { user } = useAuth();
   const { pending, acceptMission } = useAppointments();
-  const { averageRating, reviews } = useInterpreterReviews();
+  const { reviews } = useInterpreterReviews();
+  const { missionsThisMonth, averageRating, acceptanceRate } = useInterpreterStats();
   const [selected, setSelected] = useState<Appointment | null>(null);
   const prenom = user?.name?.split(' ')[0] ?? '';
   console.log('[interpretes/index] render — profileBtn visible dans headerRow');
@@ -207,6 +209,28 @@ export default function InterpretesHome() {
             </View>
             <Text style={styles.actionLabel}>Toutes les missions</Text>
           </TouchableOpacity>
+        </View>
+
+        {/* Statistiques */}
+        <View style={styles.statsRow}>
+          <View style={styles.statTile}>
+            <Text style={styles.statValue}>
+              {missionsThisMonth !== null ? String(missionsThisMonth) : '—'}
+            </Text>
+            <Text style={styles.statLabel}>Missions{'\n'}ce mois</Text>
+          </View>
+          <View style={styles.statTile}>
+            <Text style={styles.statValue}>
+              {averageRating !== null ? `${averageRating}/5` : '—'}
+            </Text>
+            <Text style={styles.statLabel}>Note{'\n'}moyenne</Text>
+          </View>
+          <View style={styles.statTile}>
+            <Text style={styles.statValue}>
+              {acceptanceRate !== null ? `${acceptanceRate}%` : '—'}
+            </Text>
+            <Text style={styles.statLabel}>Taux{'\n'}d'acceptation</Text>
+          </View>
         </View>
 
         {/* Requests list */}
@@ -427,6 +451,23 @@ const styles = StyleSheet.create({
     color: Colors.interpretes,
     textAlign: 'center',
   },
+
+  statsRow: { flexDirection: 'row', gap: Spacing.sm },
+  statTile: {
+    flex: 1,
+    backgroundColor: Colors.white,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    alignItems: 'center',
+    gap: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  statValue: { fontSize: FontSize.xl, fontWeight: '800', color: Colors.interpretes },
+  statLabel: { fontSize: FontSize.xs, color: Colors.textSecondary, textAlign: 'center' },
 
   section: { gap: Spacing.sm },
   sectionTitle: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.textPrimary },
