@@ -12,7 +12,9 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "PharmaSign utilise votre position pour centrer la carte et calculer la distance aux interprètes proches.",
-        "NSPhotoLibraryUsageDescription": "PharmaSign a besoin d'accéder à vos photos pour votre photo de profil."
+        "NSPhotoLibraryUsageDescription": "PharmaSign a besoin d'accéder à vos photos pour votre photo de profil.",
+        "NSMicrophoneUsageDescription": "PharmaSign utilise le microphone pour transcrire la parole en texte pendant vos consultations médicales.",
+        "NSSpeechRecognitionUsageDescription": "PharmaSign utilise la reconnaissance vocale pour retranscrire vos consultations médicales en temps réel."
       }
     },
     "android": {
@@ -57,6 +59,13 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "PharmaSign utilise le microphone pour transcrire la parole en texte pendant vos consultations médicales.",
+          "speechRecognitionPermission": "PharmaSign utilise la reconnaissance vocale pour retranscrire vos consultations médicales en temps réel."
+        }
+      ],
       [
         "expo-image-picker",
         {

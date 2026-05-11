@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -13,6 +15,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import {
+  ExpoSpeechRecognitionModule,
+  useSpeechRecognitionEvent,
+} from 'expo-speech-recognition';
 import { useChat, type ChatMessage } from '@/hooks/useChat';
 import { useAuth } from '@/context/AuthContext';
 
@@ -55,8 +61,42 @@ export default function ChatScreen() {
     appointmentId ?? '',
     recipientId ?? '',
   );
-  const [input, setInput] = useState('');
+  const [input, setInput]           = useState('');
+  const [voiceOn, setVoiceOn]       = useState(false);
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
+
+  /* ── Voice mic pulse ─────────────────────────────── */
+  const micPulse = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (!voiceOn) { micPulse.setValue(1); return; }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(micPulse, { toValue: 1.22, duration: 500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(micPulse, { toValue: 1, duration: 500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [voiceOn, micPulse]);
+
+  /* ── Voice recognition events ───────────────────── */
+  useSpeechRecognitionEvent('result', (event) => {
+    const transcript = event.results[0]?.transcript ?? '';
+    setInput(transcript);
+  });
+  useSpeechRecognitionEvent('start', () => setVoiceOn(true));
+  useSpeechRecognitionEvent('end',   () => setVoiceOn(false));
+  useSpeechRecognitionEvent('error', () => setVoiceOn(false));
+
+  const toggleVoice = useCallback(async () => {
+    if (voiceOn) {
+      ExpoSpeechRecognitionModule.stop();
+      return;
+    }
+    const { granted } = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+    if (!granted) return;
+    ExpoSpeechRecognitionModule.start({ lang: 'fr-FR', interimResults: true, continuous: false });
+  }, [voiceOn]);
 
   useEffect(() => {
     markAllRead();
@@ -163,12 +203,25 @@ export default function ChatScreen() {
 
         {/* ── Input bar ───────────────────────────── */}
         <View style={st.inputBar}>
+          {/* Mic button */}
+          <Animated.View style={{ transform: [{ scale: micPulse }] }}>
+            <TouchableOpacity
+              style={[st.voiceBtn, voiceOn && st.voiceBtnOn]}
+              onPress={toggleVoice}
+              accessibilityRole="button"
+              accessibilityLabel={voiceOn ? 'Arrêter la dictée vocale' : 'Démarrer la dictée vocale'}
+              accessibilityState={{ selected: voiceOn }}
+            >
+              <Feather name="mic" size={18} color={voiceOn ? '#fff' : INK_3} />
+            </TouchableOpacity>
+          </Animated.View>
+
           <TextInput
-            style={st.input}
+            style={[st.input, voiceOn && st.inputVoiceOn]}
             value={input}
             onChangeText={setInput}
-            placeholder="Écrivez un message…"
-            placeholderTextColor={INK_3}
+            placeholder={voiceOn ? 'Parlez maintenant…' : 'Écrivez un message…'}
+            placeholderTextColor={voiceOn ? BRAND : INK_3}
             multiline
             maxLength={1000}
             accessibilityLabel="Zone de saisie du message"
@@ -290,4 +343,20 @@ const st = StyleSheet.create({
     shadowOpacity: 0.35, shadowRadius: 8, elevation: 5,
   },
   sendBtnOff: { backgroundColor: INK_3, shadowOpacity: 0, elevation: 0 },
+
+  voiceBtn: {
+    width: 44, height: 44, borderRadius: 14,
+    backgroundColor: BG,
+    borderWidth: 1.5, borderColor: BORDER,
+    alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+  },
+  voiceBtnOn: {
+    backgroundColor: '#EF4444',
+    borderColor: '#EF4444',
+  },
+  inputVoiceOn: {
+    borderColor: BRAND,
+    backgroundColor: '#F0FBF9',
+  },
 });

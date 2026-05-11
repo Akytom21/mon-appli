@@ -19,7 +19,8 @@ export default function MalentendantsLayout() {
       <Stack.Screen name="dictionnaire" options={{ title: 'Dictionnaire LSF', headerShown: false }} />
       <Stack.Screen name="annuaire"     options={{ title: 'Annuaire LSF Nice', headerShown: false }} />
       <Stack.Screen name="sos"          options={{ title: 'SOS Urgences', headerShown: false, animation: 'slide_from_bottom' }} />
-      <Stack.Screen name="falc"         options={{ title: 'Fiches Santé FALC', headerShown: false }} />
+      <Stack.Screen name="falc"          options={{ title: 'Fiches Santé FALC', headerShown: false }} />
+      <Stack.Screen name="transcription" options={{ title: 'Transcription vocale', headerShown: false, animation: 'slide_from_bottom' }} />
     </Stack>
   );
 }

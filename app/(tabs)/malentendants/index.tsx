@@ -568,6 +568,22 @@ export default function MalentendantsHome() {
           <Feather name="chevron-right" size={18} color="#fff" />
         </TouchableOpacity>
 
+        {/* Transcription RDV */}
+        <TouchableOpacity
+          style={styles.transcriptionBtn}
+          onPress={() => router.push('/(tabs)/malentendants/transcription')}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Mode RDV — Transcription vocale en temps réel"
+        >
+          <Text style={styles.transcriptionBtnEmoji}>🎤</Text>
+          <View style={styles.transcriptionBtnInfo}>
+            <Text style={styles.transcriptionBtnTitle}>Mode RDV — Transcription</Text>
+            <Text style={styles.transcriptionBtnSub}>Voix → texte en temps réel pendant la consultation</Text>
+          </View>
+          <Feather name="chevron-right" size={18} color="rgba(255,255,255,0.7)" />
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={[
             styles.rdvMainBtn,
@@ -1035,6 +1051,26 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.primary,
   },
+
+  transcriptionBtn: {
+    backgroundColor: '#1E3A5F',
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    borderWidth: 1.5,
+    borderColor: '#2E5A8A',
+    shadowColor: '#0D1B2A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  transcriptionBtnEmoji: { fontSize: 26, flexShrink: 0 },
+  transcriptionBtnInfo: { flex: 1 },
+  transcriptionBtnTitle: { fontSize: FontSize.md, fontWeight: '800', color: Colors.white },
+  transcriptionBtnSub: { fontSize: FontSize.xs, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
 
   sosBtn: {
     backgroundColor: '#DC2626',
