@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Image,
   Linking,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -32,9 +33,17 @@ const GOLD       = '#F59E0B';
 
 export default function ApprentisHome() {
   const { user, logout, upgradeToInterprete } = useAuth();
-  const { formations, loading: formationsLoading } = useFormations();
+  const { formations, loading: formationsLoading, reload: reloadFormations } = useFormations();
   const { etapes, done, progress } = useApprentisProgress();
-  const [upgrading, setUpgrading] = useState(false);
+  const [upgrading, setUpgrading]   = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    reloadFormations();
+    await new Promise<void>((r) => setTimeout(r, 900));
+    setRefreshing(false);
+  }, [reloadFormations]);
 
   const handleUpgrade = async () => {
     setUpgrading(true);
@@ -70,6 +79,9 @@ export default function ApprentisHome() {
         style={s.scroll}
         contentContainerStyle={s.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND} colors={[BRAND]} />
+        }
       >
         {/* ── Header teal ────────────────────────────────── */}
         <View style={s.header}>

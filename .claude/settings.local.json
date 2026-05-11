@@ -42,7 +42,9 @@
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\)['dependencies']; print\\('\\\\n'.join\\(f'{k}: {v}' for k in ['expo-location','expo-sharing','react-native-reanimated'] if k in d\\)\\)\")",
       "Bash(findstr /C:\"expo-location\" /C:\"expo-sharing\" /C:\"react-native-reanimated\" package.json)",
       "Bash(findstr \"expo-location\\\\|expo-sharing\\\\|reanimated\\\\|expo-linear\")",
-      "Bash(npx expo-router *)"
+      "Bash(npx expo-router *)",
+      "Bash(sed -i 's/headerBackTitle: .Retour.,$/headerBackTitle: '\\\\''Retour'\\\\'',\\\\n        animation: '\\\\''slide_from_right'\\\\'',/' \"app/\\(tabs\\)/interpretes/_layout.tsx\")",
+      "Bash(sed -i 's/headerBackTitle: .Retour.,$/headerBackTitle: '\\\\''Retour'\\\\'',\\\\n        animation: '\\\\''slide_from_right'\\\\'',/' \"app/\\(tabs\\)/apprentis/_layout.tsx\")"
     ]
   }
 }

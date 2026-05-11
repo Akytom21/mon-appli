@@ -8,6 +8,7 @@ import {
   Linking,
   Modal,
   Platform,
+  RefreshControl,
   ScrollView,
   Share,
   StyleSheet,
@@ -341,6 +342,14 @@ export default function AdminScreen() {
 
   useEffect(() => { fetchAppointments(); }, [fetchAppointments]);
 
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchAppointments();
+    setRefreshing(false);
+  }, [fetchAppointments]);
+
   /* ── Derived data ── */
   const pendingBrevets = users.filter(
     (u) => u.brevetSubmitted && !u.brevetValidated && !u.brevetRefused,
@@ -495,6 +504,9 @@ export default function AdminScreen() {
     <ScrollView
       contentContainerStyle={styles.dashContent}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0F766E" colors={['#0F766E']} />
+      }
     >
       {/* KPI row */}
       <View style={styles.kpiRow}>

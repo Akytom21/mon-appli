@@ -1,6 +1,7 @@
 import { memo, useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -46,6 +47,13 @@ export default function PlanningScreen() {
   const { reviews } = useInterpreterReviews();
   const unreadMap = useUnreadMessages();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [refreshing, setRefreshing]     = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await new Promise<void>((r) => setTimeout(r, 800));
+    setRefreshing(false);
+  }, []);
 
   const today = useMemo(() => new Date().toISOString().split('T')[0], []);
   const uid = user?.id ?? '';
@@ -107,7 +115,13 @@ export default function PlanningScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} colors={[Colors.primary]} />
+        }
+      >
 
         {/* Calendrier mensuel */}
         <Calendar

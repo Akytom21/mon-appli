@@ -9,6 +9,7 @@ export default function InterpretesLayout() {
         headerTintColor: Colors.white,
         headerTitleStyle: { fontWeight: '700' },
         headerBackTitle: 'Retour',
+        animation: 'slide_from_right',
       }}
     >
       <Stack.Screen name="index" options={{ title: '👐 Espace Interprètes' }} />

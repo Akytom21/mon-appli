@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SkeletonFormationCard } from '@/components/ui/Skeleton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -37,11 +39,19 @@ const NIVEAU_COLOR: Record<string, { text: string; bg: string }> = {
 
 export default function FormationScreen() {
   const { user } = useAuth();
-  const { formations, loading } = useFormations();
-  const [selected, setSelected] = useState<string | null>(null);
-  const [confirming, setConfirming] = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
+  const { formations, loading, reload } = useFormations();
+  const [selected, setSelected]           = useState<string | null>(null);
+  const [confirming, setConfirming]       = useState(false);
+  const [confirmed, setConfirmed]         = useState(false);
   const [confirmedSession, setConfirmedSession] = useState<Formation | null>(null);
+  const [refreshing, setRefreshing]       = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    reload();
+    await new Promise<void>((r) => setTimeout(r, 900));
+    setRefreshing(false);
+  }, [reload]);
 
   const handleConfirm = async () => {
     if (!selected || !user) return;
@@ -147,6 +157,9 @@ export default function FormationScreen() {
         style={s.scroll}
         contentContainerStyle={s.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND} colors={[BRAND]} />
+        }
       >
         {/* Info banner */}
         <View style={s.infoBanner}>
@@ -157,7 +170,9 @@ export default function FormationScreen() {
         </View>
 
         {loading ? (
-          <ActivityIndicator color={BRAND} size="large" style={{ marginTop: 40 }} />
+          <View style={{ gap: 12 }}>
+            {[...Array(3)].map((_, i) => <SkeletonFormationCard key={i} />)}
+          </View>
         ) : formations.length === 0 ? (
           <View style={s.emptyWrap}>
             <Feather name="calendar" size={48} color={INK_3} />

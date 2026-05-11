@@ -4,6 +4,7 @@ import {
   Animated,
   FlatList,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Switch,
@@ -13,6 +14,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import { SkeletonMissionCard } from '@/components/ui/Skeleton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
@@ -243,6 +245,13 @@ export default function MissionsScreen() {
   const [accepting, setAccepting] = useState<string | null>(null);
   const acceptAnim = useRef(new Animated.Value(0)).current;
   const searchAnim = useRef(new Animated.Value(0)).current;
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await new Promise<void>((r) => setTimeout(r, 800));
+    setRefreshing(false);
+  }, []);
 
   // Search
   const [searchQuery, setSearchQuery] = useState('');
@@ -440,10 +449,16 @@ export default function MissionsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Chargement des missions…</Text>
-      </View>
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.tabBar} />
+        <FlatList
+          data={[1, 2, 3, 4]}
+          keyExtractor={(i) => String(i)}
+          contentContainerStyle={styles.listContent}
+          renderItem={() => <SkeletonMissionCard />}
+          ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+        />
+      </SafeAreaView>
     );
   }
 
@@ -540,6 +555,9 @@ export default function MissionsScreen() {
         data={filteredList}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} colors={[Colors.primary]} />
+        }
         showsVerticalScrollIndicator={false}
         removeClippedSubviews
         initialNumToRender={10}

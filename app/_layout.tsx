@@ -27,10 +27,10 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <AccessibilityProvider>
         <AuthProvider>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="onboarding" />
+          <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+            <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+            <Stack.Screen name="(auth)" options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
           </Stack>
           <StatusBar style="light" />
           {/* Vérifie si l'onboarding doit être affiché (avant que le splash fade) */}

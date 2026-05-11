@@ -10,6 +10,7 @@ export default function ApprentisLayout() {
         headerTintColor: '#fff',
         headerTitleStyle: { fontWeight: '700' },
         headerBackTitle: 'Retour',
+        animation: 'slide_from_right',
       }}
     >
       <Stack.Screen name="index"      options={{ title: 'Mon parcours' }} />

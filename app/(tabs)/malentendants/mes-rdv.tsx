@@ -6,6 +6,7 @@ import {
   Linking,
   Modal,
   Platform,
+  RefreshControl,
   ScrollView,
   Share,
   StyleSheet,
@@ -14,6 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SkeletonRDVCard } from '@/components/ui/Skeleton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -541,6 +543,14 @@ export default function MesRdvScreen() {
   const [histType, setHistType]         = useState<HistTypeFilter>('all');
   const [histStat, setHistStat]         = useState<HistStatFilter>('all');
   const [histSort, setHistSort]         = useState<HistSortOrder>('recent');
+  const [refreshing, setRefreshing]     = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    // onSnapshot est déjà temps-réel — on attend brièvement pour le feedback visuel
+    await new Promise<void>((r) => setTimeout(r, 800));
+    setRefreshing(false);
+  }, []);
 
   /* lists */
   const upcoming = useMemo(
@@ -636,10 +646,23 @@ export default function MesRdvScreen() {
 
   if (loading) {
     return (
-      <View style={s.centered}>
-        <ActivityIndicator size="large" color={BRAND} />
-        <Text style={s.loadingText}>Chargement de vos rendez-vous…</Text>
-      </View>
+      <SafeAreaView style={s.safe}>
+        <View style={[s.header, { paddingBottom: 16 }]}>
+          <View style={s.headerDeco1} /><View style={s.headerDeco2} />
+          <View style={s.headerTopRow}>
+            <TouchableOpacity style={s.backBtn} onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Retour">
+              <Feather name="chevron-left" size={18} color="#fff" />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Text style={s.headerSupra}>Mon dossier</Text>
+              <Text style={s.headerTitle}>Mes rendez-vous</Text>
+            </View>
+          </View>
+        </View>
+        <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }} showsVerticalScrollIndicator={false}>
+          {[...Array(4)].map((_, i) => <SkeletonRDVCard key={i} />)}
+        </ScrollView>
+      </SafeAreaView>
     );
   }
 
@@ -708,7 +731,14 @@ export default function MesRdvScreen() {
       </View>
 
       {/* ── Content ────────────────────────────── */}
-      <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={s.scroll}
+        contentContainerStyle={s.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND} colors={[BRAND]} />
+        }
+      >
 
         {tab === 'history' ? (
           history.length === 0 ? (
