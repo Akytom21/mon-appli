@@ -30,7 +30,9 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# env files — ne jamais commiter les valeurs sensibles
+.env
+.env.local
 .env*.local
 
 # typescript

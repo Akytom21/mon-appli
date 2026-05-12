@@ -46,7 +46,9 @@
       "Bash(sed -i 's/headerBackTitle: .Retour.,$/headerBackTitle: '\\\\''Retour'\\\\'',\\\\n        animation: '\\\\''slide_from_right'\\\\'',/' \"app/\\(tabs\\)/interpretes/_layout.tsx\")",
       "Bash(sed -i 's/headerBackTitle: .Retour.,$/headerBackTitle: '\\\\''Retour'\\\\'',\\\\n        animation: '\\\\''slide_from_right'\\\\'',/' \"app/\\(tabs\\)/apprentis/_layout.tsx\")",
       "PowerShell(New-Item *)",
-      "PowerShell(Start-Process \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\\\\assets\\\\banner\\\\play-store-banner.html\")"
+      "PowerShell(Start-Process \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\\\\assets\\\\banner\\\\play-store-banner.html\")",
+      "PowerShell(if \\($?\\) { \"CLEE ENCORE DANS app.json\" } else { \"OK - plus dans app.json\" })",
+      "PowerShell(if \\($?\\) { \"CLEE ENCORE DANS firebase.ts\" } else { \"OK - plus dans firebase.ts\" })"
     ]
   }
 }

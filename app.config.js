@@ -1,23 +1,23 @@
-// app.config.js — Expo lit ce fichier EN PRIORITÉ sur app.json.
-// app.json reste la source de vérité pour toute la config statique ;
-// ici on ajoute uniquement ce qui dépend de variables d'environnement.
-//
-// Clé Google Maps :
-//   • Build local   → .env.local  (jamais commité)
-//   • EAS Cloud     → eas secret:create --name GOOGLE_MAPS_API_KEY --value "AIza..."
+const { expo } = require('./app.json');
 
-module.exports = ({ config }) => ({
-  ...config,
-  android: {
-    ...config.android,
-    config: {
-      googleMaps: {
-        // Variable d'environnement prioritaire (EAS secret ou .env.local) ;
-        // sinon, la clé définie dans app.json est utilisée telle quelle.
-        apiKey:
-          process.env.GOOGLE_MAPS_API_KEY ||
-          config.android?.config?.googleMaps?.apiKey,
+/**
+ * app.config.js étend app.json pour injecter les valeurs sensibles
+ * depuis les variables d'environnement (lues par Expo CLI depuis .env).
+ *
+ * Build local  : copiez .env.example → .env et renseignez vos clés.
+ * EAS Cloud    : eas secret:create --name GOOGLE_MAPS_API_KEY --value "AIza..."
+ *                (voir docs/setup.md pour le détail complet)
+ */
+module.exports = {
+  expo: {
+    ...expo,
+    android: {
+      ...expo.android,
+      config: {
+        googleMaps: {
+          apiKey: process.env.GOOGLE_MAPS_API_KEY,
+        },
       },
     },
   },
-});
+};

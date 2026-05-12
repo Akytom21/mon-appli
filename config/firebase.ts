@@ -15,12 +15,12 @@ import { getStorage } from 'firebase/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDwChpwQr0kGezuX5m3pAoi89tQuKY6sqk",
-  authDomain: "pharmasign.firebaseapp.com",
-  projectId: "pharmasign",
-  storageBucket: "pharmasign.firebasestorage.app",
-  messagingSenderId: "218522199151",
-  appId: "1:218522199151:web:0c593b82351d583b1f999a",
+  apiKey:            process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain:        process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId:         process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket:     process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId:             process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);

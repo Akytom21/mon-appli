@@ -20,11 +20,7 @@
     "android": {
       "package": "com.tomcaucigh.pharmasign",
       "versionCode": 1,
-      "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyB5McxrU3_7rAFueFGA8tjDIZeGhn-xUrs"
-        }
-      },
+
       "permissions": [
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
