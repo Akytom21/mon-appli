@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Supprimer mon compte – PharmaSign</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: #F6F8FA;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #0F1B2D;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      width: 100%;
+      background: #0F766E;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    header h1 {
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: 1px;
+    }
+
+    header .logo-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    main {
+      width: 100%;
+      max-width: 480px;
+      padding: 32px 16px 64px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid #E5EAF0;
+      padding: 28px 24px;
+      box-shadow: 0 1px 4px rgba(15,27,45,0.06);
+    }
+
+    .card h2 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .card p {
+      font-size: 14px;
+      color: #475569;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    .warning-box {
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 24px;
+      font-size: 13px;
+      color: #DC2626;
+      line-height: 1.5;
+    }
+
+    .warning-box strong { display: block; margin-bottom: 4px; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 6px;
+    }
+
+    input {
+      width: 100%;
+      border: 1.5px solid #E5EAF0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 15px;
+      color: #0F1B2D;
+      outline: none;
+      transition: border-color 0.15s;
+      margin-bottom: 16px;
+      font-family: inherit;
+    }
+
+    input:focus { border-color: #0F766E; }
+
+    .btn-delete {
+      width: 100%;
+      background: #DC2626;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+      font-family: inherit;
+    }
+
+    .btn-delete:hover  { background: #b91c1c; }
+    .btn-delete:active { opacity: 0.8; }
+    .btn-delete:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    #status {
+      margin-top: 16px;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      display: none;
+    }
+
+    #status.success { background: #ECFDF5; color: #059669; border: 1px solid #A7F3D0; }
+    #status.error   { background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; }
+
+    .divider {
+      height: 1px;
+      background: #E5EAF0;
+      margin: 20px 0;
+    }
+
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 20px;
+      font-size: 13px;
+      color: #94A3B8;
+      text-decoration: none;
+    }
+
+    .back-link:hover { color: #0F766E; }
+
+    footer {
+      margin-top: auto;
+      padding: 24px;
+      font-size: 12px;
+      color: #94A3B8;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-circle">🤟</div>
+    <h1>PHARMASIGN</h1>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2>Supprimer mon compte</h2>
+      <p>
+        Vous pouvez supprimer votre compte PharmaSign à tout moment via cette page
+        ou directement dans l'application, section <strong>Profil → Compte</strong>.
+      </p>
+
+      <div class="warning-box">
+        <strong>⚠ Action irréversible</strong>
+        Cette action supprimera définitivement votre compte, vos données personnelles,
+        votre avatar et tout votre historique. Cette opération ne peut pas être annulée.
+      </div>
+
+      <form id="deleteForm">
+        <label for="email">Adresse email</label>
+        <input
+          type="email"
+          id="email"
+          placeholder="votre@email.com"
+          required
+          autocomplete="email"
+        />
+
+        <label for="password">Mot de passe</label>
+        <input
+          type="password"
+          id="password"
+          placeholder="Votre mot de passe"
+          required
+          autocomplete="current-password"
+        />
+
+        <button type="submit" class="btn-delete" id="submitBtn">
+          Supprimer définitivement mon compte
+        </button>
+      </form>
+
+      <div id="status"></div>
+
+      <div class="divider"></div>
+
+      <a href="mailto:contact@pharmasign.fr" class="back-link">
+        Une question ? Contactez le support : contact@pharmasign.fr
+      </a>
+    </div>
+  </main>
+
+  <footer>
+    &copy; 2025 PharmaSign — Politique de confidentialité
+  </footer>
+
+  <!-- Firebase JS SDK (modular CDN) -->
+  <script type="module">
+    import { initializeApp }              from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { getAuth, signInWithEmailAndPassword, deleteUser }
+                                          from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+    import { getFirestore, doc, deleteDoc }
+                                          from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+    import { getStorage, ref, deleteObject }
+                                          from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
+
+    const firebaseConfig = {
+      apiKey:            "AIzaSyDwChpwQr0kGezuX5m3pAoi89tQuKY6sqk",
+      authDomain:        "pharmasign.firebaseapp.com",
+      projectId:         "pharmasign",
+      storageBucket:     "pharmasign.firebasestorage.app",
+      messagingSenderId: "218522199151",
+      appId:             "1:218522199151:web:0c593b82351d583b1f999a",
+    };
+
+    const app     = initializeApp(firebaseConfig);
+    const auth    = getAuth(app);
+    const db      = getFirestore(app);
+    const storage = getStorage(app);
+
+    const form      = document.getElementById('deleteForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const status    = document.getElementById('status');
+
+    function showStatus(msg, type) {
+      status.textContent = msg;
+      status.className   = type;
+      status.style.display = 'block';
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      submitBtn.disabled    = true;
+      submitBtn.textContent = 'Suppression en cours…';
+      status.style.display  = 'none';
+
+      try {
+        // 1. Authentification pour confirmer l'identité
+        const credential = await signInWithEmailAndPassword(auth, email, password);
+        const firebaseUser = credential.user;
+        const uid = firebaseUser.uid;
+
+        // 2. Suppression du document Firestore
+        await deleteDoc(doc(db, 'users', uid));
+
+        // 3. Suppression de l'avatar Storage (silencieuse si absent)
+        try {
+          await deleteObject(ref(storage, `avatars/${uid}/profile.jpg`));
+        } catch {
+          // avatar inexistant ou déjà supprimé
+        }
+
+        // 4. Suppression du compte Firebase Auth
+        await deleteUser(firebaseUser);
+
+        showStatus('✓ Votre compte a été supprimé définitivement. Nous sommes désolés de vous voir partir.', 'success');
+        form.style.display = 'none';
+
+      } catch (err) {
+        let msg = 'Une erreur est survenue. Veuillez réessayer.';
+        switch (err.code) {
+          case 'auth/wrong-password':
+          case 'auth/invalid-credential':
+            msg = 'Email ou mot de passe incorrect.'; break;
+          case 'auth/user-not-found':
+            msg = 'Aucun compte associé à cet email.'; break;
+          case 'auth/too-many-requests':
+            msg = 'Trop de tentatives. Réessayez dans quelques minutes.'; break;
+          case 'auth/network-request-failed':
+            msg = 'Erreur réseau. Vérifiez votre connexion.'; break;
+        }
+        showStatus(msg, 'error');
+        submitBtn.disabled    = false;
+        submitBtn.textContent = 'Supprimer définitivement mon compte';
+      }
+    });
+  </script>
+</body>
+</html>

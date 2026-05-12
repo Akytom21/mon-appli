@@ -44,7 +44,9 @@
       "Bash(findstr \"expo-location\\\\|expo-sharing\\\\|reanimated\\\\|expo-linear\")",
       "Bash(npx expo-router *)",
       "Bash(sed -i 's/headerBackTitle: .Retour.,$/headerBackTitle: '\\\\''Retour'\\\\'',\\\\n        animation: '\\\\''slide_from_right'\\\\'',/' \"app/\\(tabs\\)/interpretes/_layout.tsx\")",
-      "Bash(sed -i 's/headerBackTitle: .Retour.,$/headerBackTitle: '\\\\''Retour'\\\\'',\\\\n        animation: '\\\\''slide_from_right'\\\\'',/' \"app/\\(tabs\\)/apprentis/_layout.tsx\")"
+      "Bash(sed -i 's/headerBackTitle: .Retour.,$/headerBackTitle: '\\\\''Retour'\\\\'',\\\\n        animation: '\\\\''slide_from_right'\\\\'',/' \"app/\\(tabs\\)/apprentis/_layout.tsx\")",
+      "PowerShell(New-Item *)",
+      "PowerShell(Start-Process \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\\\\assets\\\\banner\\\\play-store-banner.html\")"
     ]
   }
 }

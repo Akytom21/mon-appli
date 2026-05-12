@@ -18,9 +18,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { sendPasswordResetEmail } from 'firebase/auth';
-import { auth, storage } from '@/config/firebase';
+import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { sendPasswordResetEmail, deleteUser } from 'firebase/auth';
+import { deleteDoc, doc } from 'firebase/firestore';
+import { auth, db, storage } from '@/config/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { useAccessibility, type TextSize } from '@/context/AccessibilityContext';
 
@@ -58,6 +59,7 @@ export default function ProfilScreen() {
 
   const [saving,         setSaving]         = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [deleting,       setDeleting]       = useState(false);
 
   const toastOpacity = useRef(new Animated.Value(0)).current;
 
@@ -203,6 +205,54 @@ export default function ProfilScreen() {
             router.replace('/(auth)/login');
           },
         },
+      ],
+    );
+  };
+
+  /* ── Suppression de compte ─────────────────────────────── */
+  const confirmDelete = async () => {
+    if (!user || !auth.currentUser) return;
+    setDeleting(true);
+    try {
+      await deleteDoc(doc(db, 'users', user.id));
+      if (user.avatarUrl) {
+        try {
+          await deleteObject(storageRef(storage, `avatars/${user.id}/profile.jpg`));
+        } catch {
+          // l'avatar peut ne pas exister, on ignore
+        }
+      }
+      await deleteUser(auth.currentUser);
+      router.replace('/(auth)/login');
+    } catch (err: unknown) {
+      const code = (err as { code?: string })?.code;
+      if (code === 'auth/requires-recent-login') {
+        Alert.alert(
+          'Session expirée',
+          'Pour des raisons de sécurité, reconnectez-vous avant de supprimer votre compte.',
+          [
+            { text: 'Annuler', style: 'cancel' },
+            {
+              text: 'Se reconnecter',
+              onPress: async () => { await logout(); router.replace('/(auth)/login'); },
+            },
+          ],
+        );
+      } else {
+        Alert.alert('Erreur', 'Impossible de supprimer le compte. Réessayez plus tard.');
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Supprimer mon compte',
+      'Cette action est irréversible. Toutes vos données seront supprimées définitivement.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Supprimer', style: 'destructive', onPress: confirmDelete },
       ],
     );
   };
@@ -507,6 +557,28 @@ export default function ProfilScreen() {
               <Text style={[styles.actionText, { color: ERROR }]}>Se déconnecter</Text>
               <Feather name="chevron-right" size={16} color={ERROR + '80'} />
             </TouchableOpacity>
+
+            <View style={styles.cardDivider} />
+
+            <TouchableOpacity
+              style={styles.deleteRow}
+              onPress={handleDeleteAccount}
+              disabled={deleting}
+              accessibilityRole="button"
+              accessibilityLabel="Supprimer définitivement mon compte"
+            >
+              <View style={[styles.actionIcon, { backgroundColor: '#fff0f0' }]}>
+                <Feather name="trash-2" size={16} color={ERROR} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.deleteRowText}>Supprimer mon compte</Text>
+                <Text style={styles.deleteRowSub}>Action irréversible</Text>
+              </View>
+              {deleting
+                ? <ActivityIndicator size="small" color={ERROR} />
+                : <Feather name="chevron-right" size={16} color={ERROR + '80'} />
+              }
+            </TouchableOpacity>
           </View>
 
           {/* Enregistrer */}
@@ -655,6 +727,13 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   actionText: { flex: 1, fontSize: 14, fontWeight: '600', color: INK },
+
+  cardDivider: { height: 1, backgroundColor: BORDER, marginVertical: 4 },
+  deleteRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 2,
+  },
+  deleteRowText: { fontSize: 14, fontWeight: '600', color: ERROR },
+  deleteRowSub: { fontSize: 11, color: ERROR + 'AA', marginTop: 1 },
 
   toast: {
     position: 'absolute',
