@@ -29,16 +29,8 @@ import {
 } from '@/hooks/useAppointments';
 import { usePatientReviews, type Review } from '@/hooks/useReviews';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
-
-/* ── Design tokens ───────────────────────────────────────── */
-const BRAND      = '#0F766E';
-const BRAND_DARK = '#0B5F58';
-const BRAND_TINT = '#E8F4F2';
-const INK        = '#0F1B2D';
-const INK_2      = '#475569';
-const INK_3      = '#94A3B8';
-const BORDER     = '#E5EAF0';
-const BG         = '#F6F8FA';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import type { ColorTokens } from '@/constants/design';
 
 const TODAY = new Date().toISOString().split('T')[0];
 
@@ -55,14 +47,14 @@ const STATUS_CFG: Record<string, {
   pending:   { label: 'En attente',    color: '#B45309', tint: '#FEF3C7', dark: '#92400E', border: '#FCD34D' },
   accepted:  { label: 'Confirmé',      color: '#059669', tint: '#D1FADF', dark: '#065F46', border: '#A7F3D0' },
   declined:  { label: 'Non attribué',  color: '#DC2626', tint: '#FEE7E7', dark: '#991B1B', border: '#FECACA' },
-  cancelled: { label: 'Annulé',        color: '#94A3B8', tint: '#F1F5F9', dark: '#475569', border: BORDER   },
+  cancelled: { label: 'Annulé',        color: '#94A3B8', tint: '#F1F5F9', dark: '#475569', border: '#E5EAF0' },
 };
 
 /* ── History badge config ────────────────────────────────── */
 const HIST_BADGE = {
   accepted:  { label: 'Effectué', color: '#059669', bg: '#ECFDF5', dot: '#059669' },
   declined:  { label: 'Refusé',   color: '#DC2626', bg: '#FEF2F2', dot: '#DC2626' },
-  expired:   { label: 'Expiré',   color: INK_3,     bg: BG,        dot: INK_3     },
+  expired:   { label: 'Expiré',   color: '#94A3B8', bg: '#F6F8FA', dot: '#94A3B8' },
   cancelled: { label: 'Annulé',   color: '#94A3B8', bg: '#F8FAFC', dot: '#94A3B8' },
 };
 
@@ -76,10 +68,10 @@ const TYPE_LABELS: Record<AppointmentType, string> = {
 
 /* ── Type config (JSX icons) ─────────────────────────────── */
 const TYPE_CFG: Record<AppointmentType, { label: string; icon: React.ReactNode }> = {
-  generaliste: { label: TYPE_LABELS.generaliste, icon: <MaterialCommunityIcons name="stethoscope"   size={18} color={BRAND} /> },
-  urgences:    { label: TYPE_LABELS.urgences,    icon: <Feather name="alert-triangle" size={18} color={BRAND} /> },
-  specialiste: { label: TYPE_LABELS.specialiste, icon: <Feather name="user"           size={18} color={BRAND} /> },
-  pharmacie:   { label: TYPE_LABELS.pharmacie,   icon: <MaterialCommunityIcons name="pill"          size={18} color={BRAND} /> },
+  generaliste: { label: TYPE_LABELS.generaliste, icon: <MaterialCommunityIcons name="stethoscope"   size={18} color="#0F766E" /> },
+  urgences:    { label: TYPE_LABELS.urgences,    icon: <Feather name="alert-triangle" size={18} color="#0F766E" /> },
+  specialiste: { label: TYPE_LABELS.specialiste, icon: <Feather name="user"           size={18} color="#0F766E" /> },
+  pharmacie:   { label: TYPE_LABELS.pharmacie,   icon: <MaterialCommunityIcons name="pill"          size={18} color="#0F766E" /> },
 };
 
 /* ── Filter options ──────────────────────────────────────── */
@@ -140,6 +132,8 @@ function ReviewModal({
   onSubmit: (rating: number, comment: string) => void;
   submitting: boolean;
 }) {
+  const colors = useThemeColor();
+  const mSt = useMemo(() => createModalStyles(colors), [colors]);
   const [rating, setRating]   = useState(0);
   const [comment, setComment] = useState('');
   const reset = () => { setRating(0); setComment(''); };
@@ -155,7 +149,7 @@ function ReviewModal({
         <View style={mSt.card}>
           <View style={mSt.header}>
             <Text style={mSt.title}>Noter l'interprète</Text>
-            <TouchableOpacity onPress={handleClose}><Feather name="x" size={20} color={INK_2} /></TouchableOpacity>
+            <TouchableOpacity onPress={handleClose}><Feather name="x" size={20} color={colors.INK_2} /></TouchableOpacity>
           </View>
           <View style={mSt.interpRow}>
             <View style={mSt.interpAvatar}>
@@ -181,10 +175,10 @@ function ReviewModal({
               {['','Très insuffisant','Insuffisant','Correct','Bien','Excellent !'][rating]}
             </Text>
           )}
-          <Text style={mSt.commentLabel}>Commentaire <Text style={{ color: INK_3 }}>(optionnel)</Text></Text>
+          <Text style={mSt.commentLabel}>Commentaire <Text style={{ color: colors.INK_3 }}>(optionnel)</Text></Text>
           <TextInput
             style={mSt.commentInput} value={comment} onChangeText={setComment}
-            placeholder="Ponctualité, qualité de l'interprétation…" placeholderTextColor={INK_3}
+            placeholder="Ponctualité, qualité de l'interprétation…" placeholderTextColor={colors.INK_3}
             multiline numberOfLines={3} maxLength={300}
           />
           <View style={mSt.actions}>
@@ -204,29 +198,31 @@ function ReviewModal({
   );
 }
 
-const mSt = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(15,27,45,0.6)', justifyContent: 'flex-end' },
-  card: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 36, gap: 14 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontSize: 18, fontWeight: '700', color: INK, letterSpacing: -0.3 },
-  interpRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  interpAvatar: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#059669', alignItems: 'center', justifyContent: 'center' },
-  interpInitials: { fontSize: 15, fontWeight: '700', color: '#fff' },
-  interpLabel: { fontSize: 11, fontWeight: '600', color: INK_3, textTransform: 'uppercase', letterSpacing: 0.8 },
-  interpName: { fontSize: 15, fontWeight: '700', color: INK },
-  starsLabel: { fontSize: 13.5, fontWeight: '600', color: INK },
-  starsRow: { flexDirection: 'row', gap: 10, justifyContent: 'center' },
-  star: { fontSize: 44 },
-  ratingHint: { textAlign: 'center', fontSize: 13, fontWeight: '600', color: '#F59E0B' },
-  commentLabel: { fontSize: 13.5, fontWeight: '600', color: INK },
-  commentInput: { borderWidth: 1.5, borderColor: BORDER, borderRadius: 12, padding: 12, fontSize: 14, color: INK, minHeight: 80, textAlignVertical: 'top' },
-  actions: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  btnCancel: { flex: 1, borderWidth: 1.5, borderColor: BORDER, borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
-  btnCancelText: { fontSize: 14, fontWeight: '600', color: INK_2 },
-  btnSubmit: { flex: 1, backgroundColor: BRAND, borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
-  btnDisabled: { backgroundColor: INK_3 },
-  btnSubmitText: { fontSize: 14, fontWeight: '700', color: '#fff' },
-});
+function createModalStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: 'rgba(15,27,45,0.6)', justifyContent: 'flex-end' },
+    card: { backgroundColor: colors.SURFACE, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 36, gap: 14 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    title: { fontSize: 18, fontWeight: '700', color: colors.INK_1, letterSpacing: -0.3 },
+    interpRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    interpAvatar: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#059669', alignItems: 'center', justifyContent: 'center' },
+    interpInitials: { fontSize: 15, fontWeight: '700', color: '#fff' },
+    interpLabel: { fontSize: 11, fontWeight: '600', color: colors.INK_3, textTransform: 'uppercase', letterSpacing: 0.8 },
+    interpName: { fontSize: 15, fontWeight: '700', color: colors.INK_1 },
+    starsLabel: { fontSize: 13.5, fontWeight: '600', color: colors.INK_1 },
+    starsRow: { flexDirection: 'row', gap: 10, justifyContent: 'center' },
+    star: { fontSize: 44 },
+    ratingHint: { textAlign: 'center', fontSize: 13, fontWeight: '600', color: '#F59E0B' },
+    commentLabel: { fontSize: 13.5, fontWeight: '600', color: colors.INK_1 },
+    commentInput: { borderWidth: 1.5, borderColor: colors.BORDER, borderRadius: 12, padding: 12, fontSize: 14, color: colors.INK_1, minHeight: 80, textAlignVertical: 'top' },
+    actions: { flexDirection: 'row', gap: 10, marginTop: 4 },
+    btnCancel: { flex: 1, borderWidth: 1.5, borderColor: colors.BORDER, borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
+    btnCancelText: { fontSize: 14, fontWeight: '600', color: colors.INK_2 },
+    btnSubmit: { flex: 1, backgroundColor: colors.BRAND, borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
+    btnDisabled: { backgroundColor: colors.INK_3 },
+    btnSubmitText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  });
+}
 
 /* ── StatusPill ──────────────────────────────────────────── */
 const StatusPill = memo(function StatusPill({ status }: { status: string }) {
@@ -254,6 +250,8 @@ const RdvCard = memo(function RdvCard({
   onMessage?: () => void;
   unreadCount?: number;
 }) {
+  const colors = useThemeColor();
+  const cSt = useMemo(() => createCardStyles(colors), [colors]);
   const typeCfg  = TYPE_CFG[appt.type] ?? TYPE_CFG.generaliste;
   const statusCfg = STATUS_CFG[appt.status] ?? STATUS_CFG.pending;
   const isAccepted = appt.status === 'accepted';
@@ -281,11 +279,11 @@ const RdvCard = memo(function RdvCard({
         <StatusPill status={appt.status} />
       </View>
       <View style={cSt.chipsRow}>
-        <View style={cSt.chip}><Feather name="calendar" size={13} color={INK_2} /><Text style={cSt.chipText}>{formatDateChip(appt.date)}</Text></View>
-        <View style={cSt.chip}><Feather name="clock"    size={13} color={INK_2} /><Text style={cSt.chipText}>{appt.time}</Text></View>
+        <View style={cSt.chip}><Feather name="calendar" size={13} color={colors.INK_2} /><Text style={cSt.chipText}>{formatDateChip(appt.date)}</Text></View>
+        <View style={cSt.chip}><Feather name="clock"    size={13} color={colors.INK_2} /><Text style={cSt.chipText}>{appt.time}</Text></View>
       </View>
       <View style={cSt.addressRow}>
-        <Feather name="map-pin" size={13} color={INK_3} style={{ marginTop: 1 }} />
+        <Feather name="map-pin" size={13} color={colors.INK_3} style={{ marginTop: 1 }} />
         <Text style={cSt.addressText} numberOfLines={1}>{appt.address}</Text>
       </View>
       {isAccepted && (
@@ -324,7 +322,7 @@ const RdvCard = memo(function RdvCard({
       )}
       {isAccepted && (
         <View style={cSt.paymentNote}>
-          <Feather name="credit-card" size={12} color={INK_3} />
+          <Feather name="credit-card" size={12} color={colors.INK_3} />
           <Text style={cSt.paymentNoteText}>
             {appt.interpreterHourlyRate
               ? `💳 Tarif : ${appt.interpreterHourlyRate}€/h · Paiement à convenir avec l'interprète`
@@ -359,42 +357,46 @@ const RdvCard = memo(function RdvCard({
   );
 });
 
-const cSt = StyleSheet.create({
-  card: { backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, padding: 14, gap: 10, shadowColor: '#0F1B2D', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 2, elevation: 1 },
-  cardAccepted: { shadowColor: '#059669', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 12, elevation: 3 },
-  topRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  typeIconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: BRAND_TINT, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  typeMeta: { flex: 1, minWidth: 0 },
-  typeLabel: { fontSize: 10.5, fontWeight: '600', color: INK_3, letterSpacing: 0.8 },
-  locationName: { fontSize: 14.5, fontWeight: '700', color: INK, letterSpacing: -0.2, lineHeight: 18, marginTop: 1 },
-  chipsRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: BG, borderWidth: 1, borderColor: BORDER },
-  chipText: { fontSize: 12.5, fontWeight: '600', color: INK, textTransform: 'capitalize' },
-  addressRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
-  addressText: { fontSize: 12, color: INK_2, lineHeight: 17, flex: 1 },
-  acceptedBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, paddingHorizontal: 12, backgroundColor: '#ECFDF5', borderWidth: 1, borderColor: '#A7F3D0', borderRadius: 12 },
-  acceptedAvatar: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#059669', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  acceptedAvatarText: { fontSize: 11, fontWeight: '700', color: '#fff', letterSpacing: 0.3 },
-  acceptedLabel: { fontSize: 10.5, fontWeight: '700', color: '#065F46', textTransform: 'uppercase', letterSpacing: 0.8 },
-  acceptedName: { fontSize: 13.5, fontWeight: '700', color: '#065F46' },
-  actionBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  pendingBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, paddingHorizontal: 12, backgroundColor: '#FFFBEB', borderWidth: 1, borderColor: '#FDE68A', borderRadius: 10 },
-  pendingText: { fontSize: 12, color: '#92400E', lineHeight: 17, flex: 1 },
-  declinedBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, paddingHorizontal: 12, backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA', borderRadius: 10 },
-  declinedText: { fontSize: 12, color: '#991B1B', lineHeight: 17 },
-  rescheduleTxt: { fontSize: 12, fontWeight: '700', color: '#991B1B', textDecorationLine: 'underline' },
-  cancelBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: 10, borderWidth: 1.5, borderColor: '#FECACA', backgroundColor: '#FFF5F5' },
-  cancelBtnText: { fontSize: 12.5, fontWeight: '600', color: '#DC2626' },
-  msgBadge: { position: 'absolute', top: -5, right: -5, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#DC2626', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: '#ECFDF5' },
-  msgBadgeTxt: { fontSize: 9, fontWeight: '800', color: '#fff' },
-  paymentNote: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 2 },
-  paymentNoteText: { fontSize: 11.5, color: INK_3, flex: 1 },
-});
+function createCardStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    card: { backgroundColor: colors.SURFACE, borderRadius: 16, borderWidth: 1, padding: 14, gap: 10, shadowColor: colors.INK_1, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 2, elevation: 1 },
+    cardAccepted: { shadowColor: '#059669', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 12, elevation: 3 },
+    topRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    typeIconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.BRAND_TINT, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    typeMeta: { flex: 1, minWidth: 0 },
+    typeLabel: { fontSize: 10.5, fontWeight: '600', color: colors.INK_3, letterSpacing: 0.8 },
+    locationName: { fontSize: 14.5, fontWeight: '700', color: colors.INK_1, letterSpacing: -0.2, lineHeight: 18, marginTop: 1 },
+    chipsRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+    chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: colors.BG, borderWidth: 1, borderColor: colors.BORDER },
+    chipText: { fontSize: 12.5, fontWeight: '600', color: colors.INK_1, textTransform: 'capitalize' },
+    addressRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
+    addressText: { fontSize: 12, color: colors.INK_2, lineHeight: 17, flex: 1 },
+    acceptedBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, paddingHorizontal: 12, backgroundColor: '#ECFDF5', borderWidth: 1, borderColor: '#A7F3D0', borderRadius: 12 },
+    acceptedAvatar: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#059669', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    acceptedAvatarText: { fontSize: 11, fontWeight: '700', color: '#fff', letterSpacing: 0.3 },
+    acceptedLabel: { fontSize: 10.5, fontWeight: '700', color: '#065F46', textTransform: 'uppercase', letterSpacing: 0.8 },
+    acceptedName: { fontSize: 13.5, fontWeight: '700', color: '#065F46' },
+    actionBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    pendingBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, paddingHorizontal: 12, backgroundColor: '#FFFBEB', borderWidth: 1, borderColor: '#FDE68A', borderRadius: 10 },
+    pendingText: { fontSize: 12, color: '#92400E', lineHeight: 17, flex: 1 },
+    declinedBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, paddingHorizontal: 12, backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA', borderRadius: 10 },
+    declinedText: { fontSize: 12, color: '#991B1B', lineHeight: 17 },
+    rescheduleTxt: { fontSize: 12, fontWeight: '700', color: '#991B1B', textDecorationLine: 'underline' },
+    cancelBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: 10, borderWidth: 1.5, borderColor: '#FECACA', backgroundColor: '#FFF5F5' },
+    cancelBtnText: { fontSize: 12.5, fontWeight: '600', color: '#DC2626' },
+    msgBadge: { position: 'absolute', top: -5, right: -5, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#DC2626', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: '#ECFDF5' },
+    msgBadgeTxt: { fontSize: 9, fontWeight: '800', color: '#fff' },
+    paymentNote: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 2 },
+    paymentNoteText: { fontSize: 11.5, color: colors.INK_3, flex: 1 },
+  });
+}
 
 /* ── HistoryCard ─────────────────────────────────────────── */
 const HistoryCard = memo(function HistoryCard({
   appt, review, onRate,
 }: { appt: Appointment; review?: Review; onRate?: () => void }) {
+  const colors = useThemeColor();
+  const hSt = useMemo(() => createHistoryCardStyles(colors), [colors]);
   const typeCfg = TYPE_CFG[appt.type] ?? TYPE_CFG.generaliste;
   const badge   = HIST_BADGE[getHistKey(appt)];
   return (
@@ -411,11 +413,11 @@ const HistoryCard = memo(function HistoryCard({
         </View>
       </View>
       <View style={hSt.chipsRow}>
-        <View style={hSt.chip}><Feather name="calendar" size={12} color={INK_2} /><Text style={hSt.chipText}>{formatDateChip(appt.date)}</Text></View>
-        <View style={hSt.chip}><Feather name="clock"    size={12} color={INK_2} /><Text style={hSt.chipText}>{appt.time}</Text></View>
+        <View style={hSt.chip}><Feather name="calendar" size={12} color={colors.INK_2} /><Text style={hSt.chipText}>{formatDateChip(appt.date)}</Text></View>
+        <View style={hSt.chip}><Feather name="clock"    size={12} color={colors.INK_2} /><Text style={hSt.chipText}>{appt.time}</Text></View>
       </View>
       <View style={hSt.addressRow}>
-        <Feather name="map-pin" size={12} color={INK_3} style={{ marginTop: 1 }} />
+        <Feather name="map-pin" size={12} color={colors.INK_3} style={{ marginTop: 1 }} />
         <Text style={hSt.addressText} numberOfLines={1}>{appt.address}</Text>
       </View>
       {appt.status === 'accepted' && appt.interpreterName && (
@@ -432,42 +434,46 @@ const HistoryCard = memo(function HistoryCard({
       ) : onRate ? (
         <TouchableOpacity style={hSt.rateBtn} onPress={onRate} accessibilityRole="button">
           <Text style={hSt.rateBtnText}>⭐ Noter l'interprète</Text>
-          <Feather name="chevron-right" size={13} color={BRAND} />
+          <Feather name="chevron-right" size={13} color={colors.BRAND} />
         </TouchableOpacity>
       ) : null}
     </View>
   );
 });
 
-const hSt = StyleSheet.create({
-  card: { backgroundColor: '#fff', borderRadius: 14, borderWidth: 1, borderColor: BORDER, padding: 14, gap: 9, shadowColor: '#0F1B2D', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 2, elevation: 1 },
-  topRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  typeIcon: { width: 34, height: 34, borderRadius: 9, backgroundColor: BRAND_TINT, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  typeMeta: { flex: 1, minWidth: 0 },
-  typeLabel: { fontSize: 10, fontWeight: '600', color: INK_3, letterSpacing: 0.8 },
-  locationName: { fontSize: 14, fontWeight: '700', color: INK, letterSpacing: -0.2, marginTop: 1 },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, flexShrink: 0 },
-  statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusText: { fontSize: 11.5, fontWeight: '700' },
-  chipsRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8, backgroundColor: BG, borderWidth: 1, borderColor: BORDER },
-  chipText: { fontSize: 12, fontWeight: '600', color: INK, textTransform: 'capitalize' },
-  addressRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
-  addressText: { fontSize: 12, color: INK_2, lineHeight: 17, flex: 1 },
-  interpRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  interpAvatar: { width: 26, height: 26, borderRadius: 8, backgroundColor: '#059669', alignItems: 'center', justifyContent: 'center' },
-  interpInitials: { fontSize: 10, fontWeight: '700', color: '#fff' },
-  interpName: { fontSize: 13, fontWeight: '600', color: '#065F46', flex: 1 },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#FFFBEB', borderRadius: 9, borderWidth: 1, borderColor: '#FDE68A' },
-  ratingComment: { fontSize: 11.5, color: '#92400E', fontStyle: 'italic', flex: 1 },
-  rateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, paddingHorizontal: 12, backgroundColor: BRAND_TINT, borderRadius: 9, borderWidth: 1.5, borderColor: BRAND + '40' },
-  rateBtnText: { fontSize: 12.5, fontWeight: '700', color: BRAND },
-});
+function createHistoryCardStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    card: { backgroundColor: colors.SURFACE, borderRadius: 14, borderWidth: 1, borderColor: colors.BORDER, padding: 14, gap: 9, shadowColor: colors.INK_1, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 2, elevation: 1 },
+    topRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    typeIcon: { width: 34, height: 34, borderRadius: 9, backgroundColor: colors.BRAND_TINT, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    typeMeta: { flex: 1, minWidth: 0 },
+    typeLabel: { fontSize: 10, fontWeight: '600', color: colors.INK_3, letterSpacing: 0.8 },
+    locationName: { fontSize: 14, fontWeight: '700', color: colors.INK_1, letterSpacing: -0.2, marginTop: 1 },
+    statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, flexShrink: 0 },
+    statusDot: { width: 6, height: 6, borderRadius: 3 },
+    statusText: { fontSize: 11.5, fontWeight: '700' },
+    chipsRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+    chip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8, backgroundColor: colors.BG, borderWidth: 1, borderColor: colors.BORDER },
+    chipText: { fontSize: 12, fontWeight: '600', color: colors.INK_1, textTransform: 'capitalize' },
+    addressRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
+    addressText: { fontSize: 12, color: colors.INK_2, lineHeight: 17, flex: 1 },
+    interpRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    interpAvatar: { width: 26, height: 26, borderRadius: 8, backgroundColor: '#059669', alignItems: 'center', justifyContent: 'center' },
+    interpInitials: { fontSize: 10, fontWeight: '700', color: '#fff' },
+    interpName: { fontSize: 13, fontWeight: '600', color: '#065F46', flex: 1 },
+    ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingVertical: 6, paddingHorizontal: 10, backgroundColor: '#FFFBEB', borderRadius: 9, borderWidth: 1, borderColor: '#FDE68A' },
+    ratingComment: { fontSize: 11.5, color: '#92400E', fontStyle: 'italic', flex: 1 },
+    rateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, paddingHorizontal: 12, backgroundColor: colors.BRAND_TINT, borderRadius: 9, borderWidth: 1.5, borderColor: colors.BRAND + '40' },
+    rateBtnText: { fontSize: 12.5, fontWeight: '700', color: colors.BRAND },
+  });
+}
 
 /* ── StatsSection ────────────────────────────────────────── */
 function StatsSection({ completedCount, avgRating, favoriteInterp }: {
   completedCount: number; avgRating: number | null; favoriteInterp: string | null;
 }) {
+  const colors = useThemeColor();
+  const stSt = useMemo(() => createStatsStyles(colors), [colors]);
   return (
     <View style={stSt.row}>
       <View style={stSt.card}>
@@ -481,7 +487,7 @@ function StatsSection({ completedCount, avgRating, favoriteInterp }: {
         <Text style={stSt.label}>Note moy.</Text>
       </View>
       <View style={[stSt.card, { flex: 1.5 }]}>
-        <View style={[stSt.icon, { backgroundColor: BRAND_TINT }]}><Feather name="heart" size={18} color={BRAND} /></View>
+        <View style={[stSt.icon, { backgroundColor: colors.BRAND_TINT }]}><Feather name="heart" size={18} color={colors.BRAND} /></View>
         <Text style={[stSt.value, { fontSize: 13, marginTop: 2 }]} numberOfLines={1}>{favoriteInterp ?? '—'}</Text>
         <Text style={stSt.label}>Interp. favori</Text>
       </View>
@@ -489,13 +495,15 @@ function StatsSection({ completedCount, avgRating, favoriteInterp }: {
   );
 }
 
-const stSt = StyleSheet.create({
-  row: { flexDirection: 'row', gap: 8, marginBottom: 4 },
-  card: { flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 12, alignItems: 'center', gap: 4, borderWidth: 1, borderColor: BORDER, shadowColor: '#0F1B2D', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 2, elevation: 1 },
-  icon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  value: { fontSize: 20, fontWeight: '800', color: INK, letterSpacing: -0.5 },
-  label: { fontSize: 10.5, color: INK_3, fontWeight: '500', textAlign: 'center' },
-});
+function createStatsStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    row: { flexDirection: 'row', gap: 8, marginBottom: 4 },
+    card: { flex: 1, backgroundColor: colors.SURFACE, borderRadius: 12, padding: 12, alignItems: 'center', gap: 4, borderWidth: 1, borderColor: colors.BORDER, shadowColor: colors.INK_1, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 2, elevation: 1 },
+    icon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+    value: { fontSize: 20, fontWeight: '800', color: colors.INK_1, letterSpacing: -0.5 },
+    label: { fontSize: 10.5, color: colors.INK_3, fontWeight: '500', textAlign: 'center' },
+  });
+}
 
 /* ── HistoryFilters ──────────────────────────────────────── */
 function HistoryFilters({
@@ -506,6 +514,8 @@ function HistoryFilters({
   onTypeChange: (v: HistTypeFilter) => void; onStatChange: (v: HistStatFilter) => void;
   onSortChange: (v: HistSortOrder) => void; onExport: () => void;
 }) {
+  const colors = useThemeColor();
+  const ffSt = useMemo(() => createFiltersStyles(colors), [colors]);
   return (
     <View style={ffSt.wrap}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={ffSt.chipRow}>
@@ -523,12 +533,12 @@ function HistoryFilters({
             </TouchableOpacity>
           ))}
           <TouchableOpacity style={ffSt.sortBtn} onPress={() => onSortChange(sortOrder === 'recent' ? 'oldest' : 'recent')}>
-            <Feather name={sortOrder === 'recent' ? 'arrow-down' : 'arrow-up'} size={12} color={INK_2} />
+            <Feather name={sortOrder === 'recent' ? 'arrow-down' : 'arrow-up'} size={12} color={colors.INK_2} />
             <Text style={ffSt.sortTxt}>{sortOrder === 'recent' ? 'Plus récent' : 'Plus ancien'}</Text>
           </TouchableOpacity>
         </ScrollView>
         <TouchableOpacity style={ffSt.exportBtn} onPress={onExport}>
-          <Feather name="share" size={14} color={BRAND} />
+          <Feather name="share" size={14} color={colors.BRAND} />
           <Text style={ffSt.exportTxt}>Exporter</Text>
         </TouchableOpacity>
       </View>
@@ -536,26 +546,30 @@ function HistoryFilters({
   );
 }
 
-const ffSt = StyleSheet.create({
-  wrap: { gap: 8, marginBottom: 12 },
-  chipRow: { gap: 6, paddingBottom: 2 },
-  chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1.5, borderColor: BORDER, backgroundColor: '#fff' },
-  chipOn: { backgroundColor: BRAND, borderColor: BRAND },
-  chipTxt: { fontSize: 12.5, fontWeight: '600', color: INK_2 },
-  chipTxtOn: { color: '#fff' },
-  row2: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  chip2: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: BORDER, backgroundColor: BG },
-  chip2On: { backgroundColor: BRAND_TINT, borderColor: BRAND },
-  chip2Txt: { fontSize: 12, fontWeight: '600', color: INK_2 },
-  chip2TxtOn: { color: BRAND },
-  sortBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: BORDER, backgroundColor: BG },
-  sortTxt: { fontSize: 12, fontWeight: '600', color: INK_2 },
-  exportBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: BRAND_TINT, borderWidth: 1.5, borderColor: BRAND + '30', flexShrink: 0 },
-  exportTxt: { fontSize: 12.5, fontWeight: '700', color: BRAND },
-});
+function createFiltersStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    wrap: { gap: 8, marginBottom: 12 },
+    chipRow: { gap: 6, paddingBottom: 2 },
+    chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1.5, borderColor: colors.BORDER, backgroundColor: colors.SURFACE },
+    chipOn: { backgroundColor: colors.BRAND, borderColor: colors.BRAND },
+    chipTxt: { fontSize: 12.5, fontWeight: '600', color: colors.INK_2 },
+    chipTxtOn: { color: '#fff' },
+    row2: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    chip2: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: colors.BORDER, backgroundColor: colors.BG },
+    chip2On: { backgroundColor: colors.BRAND_TINT, borderColor: colors.BRAND },
+    chip2Txt: { fontSize: 12, fontWeight: '600', color: colors.INK_2 },
+    chip2TxtOn: { color: colors.BRAND },
+    sortBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: colors.BORDER, backgroundColor: colors.BG },
+    sortTxt: { fontSize: 12, fontWeight: '600', color: colors.INK_2 },
+    exportBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: colors.BRAND_TINT, borderWidth: 1.5, borderColor: colors.BRAND + '30', flexShrink: 0 },
+    exportTxt: { fontSize: 12.5, fontWeight: '700', color: colors.BRAND },
+  });
+}
 
 /* ── Main screen ─────────────────────────────────────────── */
 export default function MesRdvScreen() {
+  const colors = useThemeColor();
+  const s = useMemo(() => createStyles(colors), [colors]);
   const { appointments, loading, hasMore, loadingMore, loadMore, cancelAppointment } = usePatientAppointments();
   const { reviews, submitting, submitReview } = usePatientReviews();
   const unreadMap = useUnreadMessages();
@@ -757,7 +771,7 @@ export default function MesRdvScreen() {
         contentContainerStyle={s.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND} colors={[BRAND]} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.BRAND} colors={[colors.BRAND]} />
         }
       >
 
@@ -774,7 +788,7 @@ export default function MesRdvScreen() {
               />
               {filteredHistory.length === 0 ? (
                 <View style={s.filterEmpty}>
-                  <Feather name="search" size={32} color={INK_3} />
+                  <Feather name="search" size={32} color={colors.INK_3} />
                   <Text style={s.filterEmptyTxt}>Aucun RDV avec ces filtres</Text>
                 </View>
               ) : (
@@ -813,7 +827,7 @@ export default function MesRdvScreen() {
         {hasMore && (
           <TouchableOpacity style={s.loadMoreBtn} onPress={loadMore} disabled={loadingMore}>
             {loadingMore
-              ? <ActivityIndicator color={BRAND} size="small" />
+              ? <ActivityIndicator color={colors.BRAND} size="small" />
               : <Text style={s.loadMoreTxt}>Charger plus de RDV</Text>
             }
           </TouchableOpacity>
@@ -838,14 +852,16 @@ export default function MesRdvScreen() {
 
 /* ── Empty state ─────────────────────────────────────────── */
 const EmptyState = memo(function EmptyState({ onPress }: { onPress: () => void }) {
+  const colors = useThemeColor();
+  const s = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={s.emptyWrap}>
       <View style={s.emptyIconWrap}>
         <View style={s.emptyCalCard}>
           <View style={s.emptyCalHeader}>{[0,1,2].map((i) => <View key={i} style={s.emptyCalBar} />)}</View>
-          <View style={s.emptyCalGrid}>{Array.from({ length: 12 }).map((_, i) => <View key={i} style={[s.emptyCalCell, i === 6 && { backgroundColor: BRAND }]} />)}</View>
+          <View style={s.emptyCalGrid}>{Array.from({ length: 12 }).map((_, i) => <View key={i} style={[s.emptyCalCell, i === 6 && { backgroundColor: colors.BRAND }]} />)}</View>
         </View>
-        <View style={s.emptyPlusBtn}><Feather name="plus" size={20} color={BRAND} /></View>
+        <View style={s.emptyPlusBtn}><Feather name="plus" size={20} color={colors.BRAND} /></View>
       </View>
       <Text style={s.emptyTitle}>Aucun rendez-vous pour l'instant</Text>
       <Text style={s.emptySub}>Vos demandes de RDV avec interprète apparaîtront ici, avec leur statut en temps réel.</Text>
@@ -854,7 +870,7 @@ const EmptyState = memo(function EmptyState({ onPress }: { onPress: () => void }
         <Text style={s.emptyBtnText}>Prendre un premier RDV</Text>
       </TouchableOpacity>
       <View style={s.emptyFooter}>
-        <Feather name="check" size={13} color={BRAND} />
+        <Feather name="check" size={13} color={colors.BRAND} />
         <Text style={s.emptyFooterTxt}>Service gratuit · Réponse sous 2h en moyenne</Text>
       </View>
     </View>
@@ -862,13 +878,14 @@ const EmptyState = memo(function EmptyState({ onPress }: { onPress: () => void }
 });
 
 /* ── Styles ──────────────────────────────────────────────── */
-const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BG },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12, backgroundColor: BG },
-  loadingText: { fontSize: 14, color: INK_2 },
+function createStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.BG },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12, backgroundColor: colors.BG },
+  loadingText: { fontSize: 14, color: colors.INK_2 },
 
   /* Header */
-  header: { backgroundColor: BRAND, paddingTop: 14, paddingBottom: 16, paddingHorizontal: 20, overflow: 'hidden', position: 'relative', gap: 14 },
+  header: { backgroundColor: colors.BRAND, paddingTop: 14, paddingBottom: 16, paddingHorizontal: 20, overflow: 'hidden', position: 'relative', gap: 14 },
   headerDeco1: { position: 'absolute', top: -50, right: -40, width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.06)' },
   headerDeco2: { position: 'absolute', top: 20, right: 60, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.04)' },
   headerTopRow: { flexDirection: 'row', alignItems: 'center', gap: 12, zIndex: 1 },
@@ -882,43 +899,44 @@ const s = StyleSheet.create({
   miniStatLabel: { fontSize: 11, color: 'rgba(255,255,255,0.8)', marginTop: 3 },
 
   /* Tabs */
-  tabsBar: { padding: 12, paddingHorizontal: 20, backgroundColor: BG, borderBottomWidth: 1, borderBottomColor: BORDER },
-  tabsTrack: { flexDirection: 'row', gap: 4, padding: 5, backgroundColor: BG, borderRadius: 14, borderWidth: 1, borderColor: BORDER },
+  tabsBar: { padding: 12, paddingHorizontal: 20, backgroundColor: colors.BG, borderBottomWidth: 1, borderBottomColor: colors.BORDER },
+  tabsTrack: { flexDirection: 'row', gap: 4, padding: 5, backgroundColor: colors.BG, borderRadius: 14, borderWidth: 1, borderColor: colors.BORDER },
   tabBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 9, paddingHorizontal: 8, borderRadius: 10 },
-  tabBtnActive: { backgroundColor: '#fff', shadowColor: '#0F1B2D', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 3, elevation: 2 },
-  tabLabel: { fontSize: 12.5, fontWeight: '600', color: INK_2, letterSpacing: -0.1 },
-  tabLabelActive: { color: INK },
-  tabBadge: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999, backgroundColor: BORDER },
-  tabBadgeActive: { backgroundColor: BRAND_TINT },
-  tabBadgeTxt: { fontSize: 11, fontWeight: '700', color: INK_3 },
-  tabBadgeTxtActive: { color: BRAND },
+  tabBtnActive: { backgroundColor: colors.SURFACE, shadowColor: colors.INK_1, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 3, elevation: 2 },
+  tabLabel: { fontSize: 12.5, fontWeight: '600', color: colors.INK_2, letterSpacing: -0.1 },
+  tabLabelActive: { color: colors.INK_1 },
+  tabBadge: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999, backgroundColor: colors.BORDER },
+  tabBadgeActive: { backgroundColor: colors.BRAND_TINT },
+  tabBadgeTxt: { fontSize: 11, fontWeight: '700', color: colors.INK_3 },
+  tabBadgeTxtActive: { color: colors.BRAND },
 
   /* Content */
   scroll: { flex: 1 },
   scrollContent: { padding: 14, paddingHorizontal: 20, paddingBottom: 100 },
   cardList: { gap: 10 },
   filterEmpty: { alignItems: 'center', gap: 10, paddingVertical: 40 },
-  filterEmptyTxt: { fontSize: 14, color: INK_3, fontWeight: '500' },
+  filterEmptyTxt: { fontSize: 14, color: colors.INK_3, fontWeight: '500' },
 
   /* FAB */
-  fab: { position: 'absolute', bottom: 20, right: 20, flexDirection: 'row', alignItems: 'center', gap: 8, height: 52, paddingHorizontal: 18, borderRadius: 999, backgroundColor: BRAND, shadowColor: BRAND, shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.45, shadowRadius: 20, elevation: 8 },
+  fab: { position: 'absolute', bottom: 20, right: 20, flexDirection: 'row', alignItems: 'center', gap: 8, height: 52, paddingHorizontal: 18, borderRadius: 999, backgroundColor: colors.BRAND, shadowColor: colors.BRAND, shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.45, shadowRadius: 20, elevation: 8 },
   fabText: { fontSize: 14, fontWeight: '700', color: '#fff', letterSpacing: -0.1 },
 
   /* Empty state */
   emptyWrap: { alignItems: 'center', paddingVertical: 40, paddingHorizontal: 24, gap: 8 },
   emptyIconWrap: { width: 120, height: 120, marginBottom: 14, position: 'relative', alignItems: 'center', justifyContent: 'center' },
-  emptyCalCard: { position: 'absolute', top: 14, left: 14, right: 14, bottom: 14, backgroundColor: '#fff', borderRadius: 18, borderWidth: 1.5, borderColor: BORDER, overflow: 'hidden', shadowColor: BRAND, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 16, elevation: 4 },
-  emptyCalHeader: { height: 22, backgroundColor: BRAND, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 8 },
+  emptyCalCard: { position: 'absolute', top: 14, left: 14, right: 14, bottom: 14, backgroundColor: colors.SURFACE, borderRadius: 18, borderWidth: 1.5, borderColor: colors.BORDER, overflow: 'hidden', shadowColor: colors.BRAND, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 16, elevation: 4 },
+  emptyCalHeader: { height: 22, backgroundColor: colors.BRAND, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 8 },
   emptyCalBar: { width: 4, height: 8, backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: 2 },
   emptyCalGrid: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', padding: 6, gap: 3 },
-  emptyCalCell: { width: '22%', aspectRatio: 1, backgroundColor: BG, borderRadius: 3 },
-  emptyPlusBtn: { position: 'absolute', top: 4, right: 0, width: 38, height: 38, borderRadius: 19, backgroundColor: '#fff', borderWidth: 2, borderColor: BRAND, alignItems: 'center', justifyContent: 'center', shadowColor: BRAND, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 3 },
-  emptyTitle: { fontSize: 19, fontWeight: '700', color: INK, letterSpacing: -0.4, textAlign: 'center' },
-  emptySub: { fontSize: 13.5, color: INK_2, lineHeight: 20, textAlign: 'center', maxWidth: 280 },
-  emptyBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: BRAND, borderRadius: 14, paddingHorizontal: 24, paddingVertical: 14, marginTop: 8, shadowColor: BRAND, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.35, shadowRadius: 16, elevation: 5 },
+  emptyCalCell: { width: '22%', aspectRatio: 1, backgroundColor: colors.BG, borderRadius: 3 },
+  emptyPlusBtn: { position: 'absolute', top: 4, right: 0, width: 38, height: 38, borderRadius: 19, backgroundColor: colors.SURFACE, borderWidth: 2, borderColor: colors.BRAND, alignItems: 'center', justifyContent: 'center', shadowColor: colors.BRAND, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 3 },
+  emptyTitle: { fontSize: 19, fontWeight: '700', color: colors.INK_1, letterSpacing: -0.4, textAlign: 'center' },
+  emptySub: { fontSize: 13.5, color: colors.INK_2, lineHeight: 20, textAlign: 'center', maxWidth: 280 },
+  emptyBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.BRAND, borderRadius: 14, paddingHorizontal: 24, paddingVertical: 14, marginTop: 8, shadowColor: colors.BRAND, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.35, shadowRadius: 16, elevation: 5 },
   emptyBtnText: { fontSize: 14, fontWeight: '700', color: '#fff', letterSpacing: -0.1 },
   emptyFooter: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 },
-  emptyFooterTxt: { fontSize: 12, color: INK_3 },
-  loadMoreBtn: { alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 12, backgroundColor: '#fff', borderWidth: 1.5, borderColor: BORDER, marginTop: 8 },
-  loadMoreTxt: { fontSize: 13.5, fontWeight: '600', color: BRAND },
-});
+  emptyFooterTxt: { fontSize: 12, color: colors.INK_3 },
+  loadMoreBtn: { alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: 12, backgroundColor: colors.SURFACE, borderWidth: 1.5, borderColor: colors.BORDER, marginTop: 8 },
+  loadMoreTxt: { fontSize: 13.5, fontWeight: '600', color: colors.BRAND },
+  });
+}

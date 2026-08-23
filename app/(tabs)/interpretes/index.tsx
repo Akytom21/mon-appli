@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Platform,
   ScrollView,
@@ -11,7 +11,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
-import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
+import { FontSize, Radius, Spacing } from '@/constants/theme';
+import type { ColorTokens } from '@/constants/design';
+import { useThemeColor } from '@/hooks/use-theme-color';
 import { useAppointments, type Appointment, type AppointmentType } from '@/hooks/useAppointments';
 import { useInterpreterReviews } from '@/hooks/useReviews';
 import { useInterpreterStats } from '@/hooks/useInterpreterStats';
@@ -44,6 +46,8 @@ export default function InterpretesHome() {
   const { reviews } = useInterpreterReviews();
   const { missionsThisMonth, averageRating, acceptanceRate } = useInterpreterStats();
   const [selected, setSelected] = useState<Appointment | null>(null);
+  const colors = useThemeColor();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const prenom = user?.name?.split(' ')[0] ?? '';
   console.log('[interpretes/index] render — profileBtn visible dans headerRow');
 
@@ -103,7 +107,7 @@ export default function InterpretesHome() {
               <Marker
                 key={appt.id}
                 coordinate={{ latitude: appt.coordinates.lat, longitude: appt.coordinates.lng }}
-                pinColor={appt.type === 'urgences' ? '#EF4444' : '#2A9D8F'}
+                pinColor={appt.type === 'urgences' ? colors.ERROR : colors.BRAND}
                 onPress={() => setSelected(appt)}
               >
                 <Callout tooltip>
@@ -138,11 +142,11 @@ export default function InterpretesHome() {
         {/* Map legend */}
         <View style={styles.mapLegend}>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: Colors.malentendants }]} />
+            <View style={[styles.legendDot, { backgroundColor: colors.BRAND }]} />
             <Text style={styles.legendText}>Standard</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: Colors.error }]} />
+            <View style={[styles.legendDot, { backgroundColor: colors.ERROR }]} />
             <Text style={styles.legendText}>Urgent</Text>
           </View>
         </View>
@@ -156,7 +160,7 @@ export default function InterpretesHome() {
       >
         {/* Selected request card */}
         {selected && (
-          <View style={[styles.selectedCard, selected.type === 'urgences' && { borderColor: Colors.error }]}>
+          <View style={[styles.selectedCard, selected.type === 'urgences' && { borderColor: colors.ERROR }]}>
             <View style={styles.selectedLeft}>
               {selected.type === 'urgences' && (
                 <View style={styles.urgentBadge}>
@@ -301,229 +305,231 @@ export default function InterpretesHome() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.interpretes },
+function createStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.BRAND },
 
-  header: {
-    backgroundColor: Colors.interpretes,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.md,
-  },
-  headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
-  profileBtn: {
-    width: 38, height: 38, borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    alignItems: 'center', justifyContent: 'center',
-    flexShrink: 0,
-  },
-  headerTitle: { fontSize: FontSize.xl, fontWeight: '800', color: Colors.white },
-  headerSub: { fontSize: FontSize.sm, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
-  ratingBadge: {
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderRadius: Radius.md,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    alignItems: 'center',
-    gap: 2,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
-  },
-  ratingStars: { fontSize: 14, letterSpacing: 1 },
-  ratingValue: { fontSize: FontSize.sm, fontWeight: '800', color: Colors.white },
-  ratingCount: { fontSize: 10, color: 'rgba(255,255,255,0.7)' },
+    header: {
+      backgroundColor: colors.BRAND,
+      paddingHorizontal: Spacing.lg,
+      paddingTop: Spacing.sm,
+      paddingBottom: Spacing.md,
+    },
+    headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
+    profileBtn: {
+      width: 38, height: 38, borderRadius: 10,
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      alignItems: 'center', justifyContent: 'center',
+      flexShrink: 0,
+    },
+    headerTitle: { fontSize: FontSize.xl, fontWeight: '800', color: '#fff' },
+    headerSub: { fontSize: FontSize.sm, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
+    ratingBadge: {
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      borderRadius: Radius.md,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      alignItems: 'center',
+      gap: 2,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.25)',
+    },
+    ratingStars: { fontSize: 14, letterSpacing: 1 },
+    ratingValue: { fontSize: FontSize.sm, fontWeight: '800', color: '#fff' },
+    ratingCount: { fontSize: 10, color: 'rgba(255,255,255,0.7)' },
 
-  mapWrapper: { height: 240, position: 'relative' },
-  mapFallback: {
-    flex: 1,
-    backgroundColor: '#C8E6E3',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-  },
-  mapFallbackEmoji: { fontSize: 40 },
-  mapFallbackText: { fontSize: FontSize.md, fontWeight: '700', color: Colors.interpretesDark },
-  mapFallbackSub: { fontSize: FontSize.sm, color: Colors.textSecondary },
-  mapLegend: {
-    position: 'absolute',
-    top: Spacing.sm,
-    right: Spacing.sm,
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    borderRadius: Radius.md,
-    padding: Spacing.sm,
-    gap: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  legendDot: { width: 10, height: 10, borderRadius: 5 },
-  legendText: { fontSize: FontSize.xs, color: Colors.textPrimary },
+    mapWrapper: { height: 240, position: 'relative' },
+    mapFallback: {
+      flex: 1,
+      backgroundColor: colors.BRAND_TINT,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: Spacing.xs,
+    },
+    mapFallbackEmoji: { fontSize: 40 },
+    mapFallbackText: { fontSize: FontSize.md, fontWeight: '700', color: colors.BRAND_DARK },
+    mapFallbackSub: { fontSize: FontSize.sm, color: colors.INK_2 },
+    mapLegend: {
+      position: 'absolute',
+      top: Spacing.sm,
+      right: Spacing.sm,
+      backgroundColor: colors.SURFACE,
+      borderRadius: Radius.md,
+      padding: Spacing.sm,
+      gap: 4,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    legendDot: { width: 10, height: 10, borderRadius: 5 },
+    legendText: { fontSize: FontSize.xs, color: colors.INK_1 },
 
-  callout: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
-    minWidth: 160,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
-    gap: 4,
-  },
-  calloutUrgent: {
-    backgroundColor: '#FEE2E2',
-    borderRadius: Radius.sm,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    alignSelf: 'flex-start',
-  },
-  calloutUrgentText: { fontSize: FontSize.xs, fontWeight: '700', color: Colors.error },
-  calloutBesoin: { fontSize: FontSize.md, fontWeight: '700', color: Colors.textPrimary },
-  calloutMeta: { fontSize: FontSize.xs, color: Colors.textSecondary },
+    callout: {
+      backgroundColor: colors.SURFACE,
+      borderRadius: Radius.md,
+      padding: Spacing.md,
+      minWidth: 160,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+      elevation: 5,
+      gap: 4,
+    },
+    calloutUrgent: {
+      backgroundColor: colors.ERROR_TINT,
+      borderRadius: Radius.sm,
+      paddingHorizontal: Spacing.sm,
+      paddingVertical: 2,
+      alignSelf: 'flex-start',
+    },
+    calloutUrgentText: { fontSize: FontSize.xs, fontWeight: '700', color: colors.ERROR },
+    calloutBesoin: { fontSize: FontSize.md, fontWeight: '700', color: colors.INK_1 },
+    calloutMeta: { fontSize: FontSize.xs, color: colors.INK_2 },
 
-  scroll: { flex: 1, backgroundColor: Colors.background },
-  scrollContent: { padding: Spacing.lg, paddingBottom: Spacing.xxl, gap: Spacing.md },
+    scroll: { flex: 1, backgroundColor: colors.BG },
+    scrollContent: { padding: Spacing.lg, paddingBottom: Spacing.xxl, gap: Spacing.md },
 
-  selectedCard: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    borderWidth: 2,
-    borderColor: Colors.interpretes,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  selectedLeft: { flex: 1, gap: 3 },
-  selectedBesoin: { fontSize: FontSize.md, fontWeight: '700', color: Colors.textPrimary },
-  selectedPatient: { fontSize: FontSize.sm, color: Colors.textSecondary },
-  selectedMeta: { fontSize: FontSize.sm, color: Colors.textSecondary },
-  selectedActions: { flexShrink: 0 },
-  acceptBtn: {
-    backgroundColor: Colors.interpretes,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-  },
-  acceptBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: Colors.white },
+    selectedCard: {
+      backgroundColor: colors.SURFACE,
+      borderRadius: Radius.lg,
+      padding: Spacing.md,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.md,
+      borderWidth: 2,
+      borderColor: colors.BRAND,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.08,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    selectedLeft: { flex: 1, gap: 3 },
+    selectedBesoin: { fontSize: FontSize.md, fontWeight: '700', color: colors.INK_1 },
+    selectedPatient: { fontSize: FontSize.sm, color: colors.INK_2 },
+    selectedMeta: { fontSize: FontSize.sm, color: colors.INK_2 },
+    selectedActions: { flexShrink: 0 },
+    acceptBtn: {
+      backgroundColor: colors.BRAND,
+      borderRadius: Radius.md,
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.sm,
+    },
+    acceptBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: '#fff' },
 
-  actionRow: { flexDirection: 'row', gap: Spacing.sm },
-  actionBtn: {
-    flex: 1,
-    backgroundColor: Colors.white,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
-    alignItems: 'center',
-    gap: Spacing.xs,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  actionIconWrap: { position: 'relative', alignItems: 'center' },
-  actionEmoji: { fontSize: 26 },
-  badge: {
-    position: 'absolute',
-    top: -6,
-    right: -10,
-    backgroundColor: Colors.error,
-    borderRadius: Radius.full,
-    minWidth: 18,
-    height: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-  },
-  badgeText: { fontSize: 10, fontWeight: '800', color: Colors.white },
-  actionLabel: {
-    fontSize: FontSize.sm,
-    fontWeight: '700',
-    color: Colors.interpretes,
-    textAlign: 'center',
-  },
+    actionRow: { flexDirection: 'row', gap: Spacing.sm },
+    actionBtn: {
+      flex: 1,
+      backgroundColor: colors.SURFACE,
+      borderRadius: Radius.md,
+      padding: Spacing.md,
+      alignItems: 'center',
+      gap: Spacing.xs,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 6,
+      elevation: 2,
+    },
+    actionIconWrap: { position: 'relative', alignItems: 'center' },
+    actionEmoji: { fontSize: 26 },
+    badge: {
+      position: 'absolute',
+      top: -6,
+      right: -10,
+      backgroundColor: colors.ERROR,
+      borderRadius: Radius.full,
+      minWidth: 18,
+      height: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 3,
+    },
+    badgeText: { fontSize: 10, fontWeight: '800', color: '#fff' },
+    actionLabel: {
+      fontSize: FontSize.sm,
+      fontWeight: '700',
+      color: colors.BRAND,
+      textAlign: 'center',
+    },
 
-  statsRow: { flexDirection: 'row', gap: Spacing.sm },
-  statTile: {
-    flex: 1,
-    backgroundColor: Colors.white,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
-    alignItems: 'center',
-    gap: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  statValue: { fontSize: FontSize.xl, fontWeight: '800', color: Colors.interpretes },
-  statLabel: { fontSize: FontSize.xs, color: Colors.textSecondary, textAlign: 'center' },
+    statsRow: { flexDirection: 'row', gap: Spacing.sm },
+    statTile: {
+      flex: 1,
+      backgroundColor: colors.SURFACE,
+      borderRadius: Radius.md,
+      padding: Spacing.md,
+      alignItems: 'center',
+      gap: 4,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 6,
+      elevation: 2,
+    },
+    statValue: { fontSize: FontSize.xl, fontWeight: '800', color: colors.BRAND },
+    statLabel: { fontSize: FontSize.xs, color: colors.INK_2, textAlign: 'center' },
 
-  section: { gap: Spacing.sm },
-  sectionTitle: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.textPrimary },
-  sectionSub: { fontSize: FontSize.sm, color: Colors.textSecondary },
+    section: { gap: Spacing.sm },
+    sectionTitle: { fontSize: FontSize.lg, fontWeight: '700', color: colors.INK_1 },
+    sectionSub: { fontSize: FontSize.sm, color: colors.INK_2 },
 
-  emptyState: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xl },
-  emptyIcon: { fontSize: 44 },
-  emptyTitle: { fontSize: FontSize.md, fontWeight: '700', color: Colors.textPrimary },
-  emptySub: { fontSize: FontSize.sm, color: Colors.textSecondary, textAlign: 'center' },
+    emptyState: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xl },
+    emptyIcon: { fontSize: 44 },
+    emptyTitle: { fontSize: FontSize.md, fontWeight: '700', color: colors.INK_1 },
+    emptySub: { fontSize: FontSize.sm, color: colors.INK_2, textAlign: 'center' },
 
-  demandeCard: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  demandeCardSelected: { borderColor: Colors.interpretes },
-  demandeCardUrgent: { borderColor: Colors.error + '60' },
-  demandeLeft: { flex: 1, gap: 3 },
-  urgentBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#FEE2E2',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: Radius.full,
-    marginBottom: 2,
-  },
-  urgentText: { fontSize: FontSize.xs, fontWeight: '700', color: Colors.error },
-  demandeBesoin: { fontSize: FontSize.md, fontWeight: '700', color: Colors.textPrimary },
-  demandePatient: { fontSize: FontSize.sm, color: Colors.textSecondary },
-  demandeMeta: { fontSize: FontSize.xs, color: Colors.textSecondary },
-  demandeRight: { flexShrink: 0, gap: Spacing.xs },
-  voirBtn: {
-    borderWidth: 2,
-    borderColor: Colors.interpretes,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    alignItems: 'center',
-  },
-  voirBtnText: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.interpretes },
-  accepterBtn: {
-    backgroundColor: Colors.interpretes,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    alignItems: 'center',
-  },
-  accepterBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: Colors.white },
-});
+    demandeCard: {
+      backgroundColor: colors.SURFACE,
+      borderRadius: Radius.md,
+      padding: Spacing.md,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.md,
+      borderWidth: 2,
+      borderColor: colors.BORDER,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.04,
+      shadowRadius: 4,
+      elevation: 1,
+    },
+    demandeCardSelected: { borderColor: colors.BRAND },
+    demandeCardUrgent: { borderColor: colors.ERROR + '60' },
+    demandeLeft: { flex: 1, gap: 3 },
+    urgentBadge: {
+      alignSelf: 'flex-start',
+      backgroundColor: colors.ERROR_TINT,
+      paddingHorizontal: Spacing.sm,
+      paddingVertical: 2,
+      borderRadius: Radius.full,
+      marginBottom: 2,
+    },
+    urgentText: { fontSize: FontSize.xs, fontWeight: '700', color: colors.ERROR },
+    demandeBesoin: { fontSize: FontSize.md, fontWeight: '700', color: colors.INK_1 },
+    demandePatient: { fontSize: FontSize.sm, color: colors.INK_2 },
+    demandeMeta: { fontSize: FontSize.xs, color: colors.INK_2 },
+    demandeRight: { flexShrink: 0, gap: Spacing.xs },
+    voirBtn: {
+      borderWidth: 2,
+      borderColor: colors.BRAND,
+      borderRadius: Radius.md,
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.xs,
+      alignItems: 'center',
+    },
+    voirBtnText: { fontSize: FontSize.sm, fontWeight: '600', color: colors.BRAND },
+    accepterBtn: {
+      backgroundColor: colors.BRAND,
+      borderRadius: Radius.md,
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.xs,
+      alignItems: 'center',
+    },
+    accepterBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: '#fff' },
+  });
+}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -31,7 +31,9 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { type Role, useAuth } from '@/context/AuthContext';
-import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
+import { FontSize, Radius, Spacing } from '@/constants/theme';
+import type { ColorTokens } from '@/constants/design';
+import { useThemeColor } from '@/hooks/use-theme-color';
 import { type Appointment } from '@/hooks/useAppointments';
 import { type Review } from '@/hooks/useReviews';
 
@@ -62,16 +64,26 @@ const TODAY      = new Date().toISOString().split('T')[0];
 const CUR_MONTH  = TODAY.slice(0, 7);
 const DAY_SHORT  = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
 
-const CHART_CFG = {
-  backgroundColor: '#fff',
-  backgroundGradientFrom: '#fff',
-  backgroundGradientTo: '#fff',
-  decimalPlaces: 0,
-  color: (opacity = 1) => `rgba(15, 118, 110, ${opacity})`,
-  labelColor: (opacity = 1) => `rgba(71, 85, 105, ${opacity})`,
-  propsForDots: { r: '5', strokeWidth: '2', stroke: '#0B5F58' },
-  propsForBackgroundLines: { stroke: '#E5EAF0', strokeWidth: 1 },
-};
+function hexToRgba(hex: string, opacity: number): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+}
+
+function getChartConfig(colors: ColorTokens) {
+  return {
+    backgroundColor: colors.SURFACE,
+    backgroundGradientFrom: colors.SURFACE,
+    backgroundGradientTo: colors.SURFACE,
+    decimalPlaces: 0,
+    color: (opacity = 1) => hexToRgba(colors.BRAND, opacity),
+    labelColor: (opacity = 1) => hexToRgba(colors.INK_2, opacity),
+    propsForDots: { r: '5', strokeWidth: '2', stroke: colors.BRAND_DARK },
+    propsForBackgroundLines: { stroke: colors.BORDER, strokeWidth: 1 },
+  };
+}
 
 const ROLE_CONFIG: Record<Role, { label: string; color: string; bg: string }> = {
   sourd:      { label: 'Sourd',      color: '#1D4ED8', bg: '#DBEAFE' },
@@ -163,6 +175,8 @@ function KpiCard({
 }: {
   label: string; value: number | string; icon: string; color: string; sub?: string;
 }) {
+  const colors = useThemeColor();
+  const kpi = useMemo(() => createKpiStyles(colors), [colors]);
   return (
     <View style={[kpi.card, { borderTopColor: color }]}>
       <View style={[kpi.iconWrap, { backgroundColor: color + '1A' }]}>
@@ -175,27 +189,31 @@ function KpiCard({
   );
 }
 
-const kpi = StyleSheet.create({
-  card: {
-    flex: 1, minWidth: '45%',
-    backgroundColor: '#fff',
-    borderRadius: Radius.md, padding: Spacing.md,
-    borderWidth: 1, borderColor: Colors.border, borderTopWidth: 3,
-    gap: 3,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
-  },
-  iconWrap: {
-    width: 34, height: 34, borderRadius: 10,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 4,
-  },
-  value: { fontSize: FontSize.xxl, fontWeight: '800', letterSpacing: -0.5 },
-  label: { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: '500' },
-  sub:   { fontSize: 11, color: Colors.textSecondary },
-});
+function createKpiStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    card: {
+      flex: 1, minWidth: '45%',
+      backgroundColor: colors.SURFACE,
+      borderRadius: Radius.md, padding: Spacing.md,
+      borderWidth: 1, borderColor: colors.BORDER, borderTopWidth: 3,
+      gap: 3,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    },
+    iconWrap: {
+      width: 34, height: 34, borderRadius: 10,
+      alignItems: 'center', justifyContent: 'center', marginBottom: 4,
+    },
+    value: { fontSize: FontSize.xxl, fontWeight: '800', letterSpacing: -0.5 },
+    label: { fontSize: FontSize.sm, color: colors.INK_2, fontWeight: '500' },
+    sub:   { fontSize: 11, color: colors.INK_2 },
+  });
+}
 
 /* ── ChartCard wrapper ──────────────────────────────────────── */
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
+  const colors = useThemeColor();
+  const cc = useMemo(() => createCcStyles(colors), [colors]);
   return (
     <View style={cc.card}>
       <Text style={cc.title}>{title}</Text>
@@ -204,25 +222,33 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
   );
 }
 
-const cc = StyleSheet.create({
-  card: {
-    backgroundColor: '#fff', borderRadius: Radius.md,
-    padding: Spacing.md, borderWidth: 1, borderColor: Colors.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2, gap: 12,
-  },
-  title: { fontSize: FontSize.md, fontWeight: '700', color: Colors.textPrimary },
-});
+function createCcStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    card: {
+      backgroundColor: colors.SURFACE, borderRadius: Radius.md,
+      padding: Spacing.md, borderWidth: 1, borderColor: colors.BORDER,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05, shadowRadius: 6, elevation: 2, gap: 12,
+    },
+    title: { fontSize: FontSize.md, fontWeight: '700', color: colors.INK_1 },
+  });
+}
 
 /* ── RoleBadge ──────────────────────────────────────────────── */
 function RoleBadge({ role }: { role: Role }) {
   const cfg = ROLE_CONFIG[role];
   return (
-    <View style={[styles.badge, { backgroundColor: cfg.bg }]}>
-      <Text style={[styles.badgeText, { color: cfg.color }]}>{cfg.label}</Text>
+    <View style={[badgeStyles.badge, { backgroundColor: cfg.bg }]}>
+      <Text style={[badgeStyles.badgeText, { color: cfg.color }]}>{cfg.label}</Text>
     </View>
   );
 }
+
+/* Styles sans dépendance de thème — la couleur vient de ROLE_CONFIG. */
+const badgeStyles = StyleSheet.create({
+  badge:     { borderRadius: Radius.full, paddingHorizontal: Spacing.sm, paddingVertical: 3, alignSelf: 'flex-start' },
+  badgeText: { fontSize: FontSize.xs, fontWeight: '700' },
+});
 
 /* ── RefusalModal ───────────────────────────────────────────── */
 function RefusalModal({
@@ -230,33 +256,35 @@ function RefusalModal({
 }: {
   visible: boolean; userName: string; onCancel: () => void; onConfirm: (reason: string) => void;
 }) {
+  const colors = useThemeColor();
+  const mStyles = useMemo(() => createModalStyles(colors), [colors]);
   const [reason, setReason] = useState('');
   useEffect(() => { if (visible) setReason(''); }, [visible]);
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.modalOverlay}
+        style={mStyles.modalOverlay}
       >
-        <View style={styles.modalCard}>
-          <Text style={styles.modalTitle}>Refuser le brevet</Text>
-          <Text style={styles.modalSubtitle}>Apprenti : {userName}</Text>
-          <Text style={styles.modalLabel}>Raison du refus (optionnel)</Text>
+        <View style={mStyles.modalCard}>
+          <Text style={mStyles.modalTitle}>Refuser le brevet</Text>
+          <Text style={mStyles.modalSubtitle}>Apprenti : {userName}</Text>
+          <Text style={mStyles.modalLabel}>Raison du refus (optionnel)</Text>
           <TextInput
-            style={styles.textInput}
+            style={mStyles.textInput}
             placeholder="Ex : Document illisible, brevet expiré…"
-            placeholderTextColor={Colors.textSecondary}
+            placeholderTextColor={colors.INK_2}
             value={reason}
             onChangeText={setReason}
             multiline
             numberOfLines={3}
           />
-          <View style={styles.modalActions}>
-            <TouchableOpacity style={styles.btnCancel} onPress={onCancel}>
-              <Text style={styles.btnCancelText}>Annuler</Text>
+          <View style={mStyles.modalActions}>
+            <TouchableOpacity style={mStyles.btnCancel} onPress={onCancel}>
+              <Text style={mStyles.btnCancelText}>Annuler</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.btnDanger} onPress={() => onConfirm(reason)}>
-              <Text style={styles.btnWhiteText}>Confirmer le refus</Text>
+            <TouchableOpacity style={mStyles.btnDanger} onPress={() => onConfirm(reason)}>
+              <Text style={mStyles.btnWhiteText}>Confirmer le refus</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -271,34 +299,36 @@ function RoleModal({
 }: {
   visible: boolean; user: BrevetUser | null; onCancel: () => void; onConfirm: (role: Role) => void;
 }) {
+  const colors = useThemeColor();
+  const mStyles = useMemo(() => createModalStyles(colors), [colors]);
   if (!user) return null;
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalCard}>
-          <Text style={styles.modalTitle}>Changer le rôle</Text>
-          <Text style={styles.modalSubtitle}>{user.name}</Text>
+      <View style={mStyles.modalOverlay}>
+        <View style={mStyles.modalCard}>
+          <Text style={mStyles.modalTitle}>Changer le rôle</Text>
+          <Text style={mStyles.modalSubtitle}>{user.name}</Text>
           {ROLES.map((r) => {
             const cfg = ROLE_CONFIG[r];
             const active = r === user.role;
             return (
               <TouchableOpacity
                 key={r}
-                style={[styles.roleOption, active && { borderColor: cfg.color, borderWidth: 2 }]}
+                style={[mStyles.roleOption, active && { borderColor: cfg.color, borderWidth: 2 }]}
                 onPress={() => onConfirm(r)}
               >
-                <View style={[styles.badge, { backgroundColor: cfg.bg }]}>
-                  <Text style={[styles.badgeText, { color: cfg.color }]}>{cfg.label}</Text>
+                <View style={[badgeStyles.badge, { backgroundColor: cfg.bg }]}>
+                  <Text style={[badgeStyles.badgeText, { color: cfg.color }]}>{cfg.label}</Text>
                 </View>
-                {active && <Text style={[styles.activeCheck, { color: cfg.color }]}>✓ Actuel</Text>}
+                {active && <Text style={[mStyles.activeCheck, { color: cfg.color }]}>✓ Actuel</Text>}
               </TouchableOpacity>
             );
           })}
           <TouchableOpacity
-            style={[styles.btnCancel, { marginTop: Spacing.sm }]}
+            style={[mStyles.btnCancel, { marginTop: Spacing.sm }]}
             onPress={onCancel}
           >
-            <Text style={styles.btnCancelText}>Annuler</Text>
+            <Text style={mStyles.btnCancelText}>Annuler</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -306,9 +336,38 @@ function RoleModal({
   );
 }
 
+function createModalStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: Spacing.md },
+    modalCard:    { backgroundColor: colors.SURFACE, borderRadius: Radius.lg, padding: Spacing.lg },
+    modalTitle:   { fontSize: FontSize.lg, fontWeight: '700', color: colors.INK_1, marginBottom: Spacing.xs },
+    modalSubtitle:{ fontSize: FontSize.sm, color: colors.INK_2, marginBottom: Spacing.md },
+    modalLabel:   { fontSize: FontSize.sm, fontWeight: '600', color: colors.INK_1, marginBottom: Spacing.xs },
+    textInput: {
+      borderWidth: 1, borderColor: colors.BORDER, borderRadius: Radius.sm,
+      padding: Spacing.sm, fontSize: FontSize.sm, color: colors.INK_1,
+      minHeight: 80, textAlignVertical: 'top', marginBottom: Spacing.md,
+    },
+    modalActions: { flexDirection: 'row', gap: Spacing.sm },
+    btnCancel:    { flex: 1, borderWidth: 1, borderColor: colors.BORDER, borderRadius: Radius.sm, paddingVertical: Spacing.sm, alignItems: 'center' },
+    btnCancelText:{ color: colors.INK_2, fontWeight: '600', fontSize: FontSize.sm },
+    btnDanger:    { flex: 1, backgroundColor: colors.ERROR, borderRadius: Radius.sm, paddingVertical: Spacing.sm, alignItems: 'center' },
+    btnWhiteText: { color: '#fff', fontWeight: '700', fontSize: FontSize.sm },
+    roleOption: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      padding: Spacing.sm, borderRadius: Radius.sm,
+      borderWidth: 1, borderColor: colors.BORDER, marginBottom: Spacing.xs,
+    },
+    activeCheck: { fontSize: FontSize.sm, fontWeight: '700' },
+  });
+}
+
 /* ── AdminScreen ────────────────────────────────────────────── */
 export default function AdminScreen() {
   const { logout } = useAuth();
+  const colors = useThemeColor();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const chartCfg = useMemo(() => getChartConfig(colors), [colors]);
   const [tab, setTab]               = useState<AdminTab>('dashboard');
   const [users, setUsers]           = useState<BrevetUser[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -382,9 +441,9 @@ export default function AdminScreen() {
   };
   const totalRoles = roleCounts.sourd + roleCounts.interprete + roleCounts.apprenti;
   const pieData = [
-    { name: 'Sourds',      population: Math.max(roleCounts.sourd, 0.01),      color: '#1D4ED8', legendFontColor: Colors.textSecondary, legendFontSize: 12 },
-    { name: 'Interprètes', population: Math.max(roleCounts.interprete, 0.01), color: '#059669', legendFontColor: Colors.textSecondary, legendFontSize: 12 },
-    { name: 'Apprentis',   population: Math.max(roleCounts.apprenti, 0.01),   color: '#D97706', legendFontColor: Colors.textSecondary, legendFontSize: 12 },
+    { name: 'Sourds',      population: Math.max(roleCounts.sourd, 0.01),      color: '#1D4ED8', legendFontColor: colors.INK_2, legendFontSize: 12 },
+    { name: 'Interprètes', population: Math.max(roleCounts.interprete, 0.01), color: '#059669', legendFontColor: colors.INK_2, legendFontSize: 12 },
+    { name: 'Apprentis',   population: Math.max(roleCounts.apprenti, 0.01),   color: '#D97706', legendFontColor: colors.INK_2, legendFontSize: 12 },
   ];
 
   /* ── Handlers ── */
@@ -449,9 +508,9 @@ export default function AdminScreen() {
           style={styles.certBtn}
           onPress={() => Linking.openURL(u.certificateUrl!)}
         >
-          <Feather name="paperclip" size={14} color={Colors.primary} />
+          <Feather name="paperclip" size={14} color={colors.BRAND} />
           <Text style={styles.certBtnText}>Voir le certificat</Text>
-          <Feather name="external-link" size={13} color={Colors.primary} />
+          <Feather name="external-link" size={13} color={colors.BRAND} />
         </TouchableOpacity>
       )}
       <View style={styles.cardActions}>
@@ -463,7 +522,7 @@ export default function AdminScreen() {
         </TouchableOpacity>
       </View>
     </View>
-  ), [handleValidate]);
+  ), [handleValidate, styles, colors]);
 
   const renderUserCard = useCallback(({ item: u }: { item: BrevetUser }) => {
     const brevetStatus = u.brevetValidated
@@ -497,7 +556,7 @@ export default function AdminScreen() {
         </View>
       </View>
     );
-  }, []);
+  }, [styles]);
 
   /* ── Dashboard tab ── */
   const renderDashboard = () => (
@@ -520,7 +579,7 @@ export default function AdminScreen() {
           label="RDV ce mois"
           value={rdvThisMonth}
           icon="calendar"
-          color={Colors.primary}
+          color={colors.BRAND}
         />
       </View>
       <View style={styles.kpiRow}>
@@ -547,8 +606,8 @@ export default function AdminScreen() {
           disabled={loadingAppts}
         >
           {loadingAppts
-            ? <ActivityIndicator size="small" color={Colors.primary} />
-            : <Feather name="refresh-cw" size={14} color={Colors.primary} />
+            ? <ActivityIndicator size="small" color={colors.BRAND} />
+            : <Feather name="refresh-cw" size={14} color={colors.BRAND} />
           }
           <Text style={styles.refreshBtnText}>
             {loadingAppts ? 'Chargement…' : 'Actualiser'}
@@ -565,7 +624,7 @@ export default function AdminScreen() {
 
       {loadingAppts ? (
         <View style={styles.chartLoading}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <ActivityIndicator size="large" color={colors.BRAND} />
           <Text style={styles.chartLoadingTxt}>Chargement des données…</Text>
         </View>
       ) : (
@@ -579,7 +638,7 @@ export default function AdminScreen() {
               }}
               width={CHART_W - 32}
               height={180}
-              chartConfig={CHART_CFG}
+              chartConfig={chartCfg}
               bezier
               fromZero
               style={styles.chart}
@@ -600,7 +659,7 @@ export default function AdminScreen() {
               width={CHART_W - 32}
               height={180}
               chartConfig={{
-                ...CHART_CFG,
+                ...chartCfg,
                 color: (opacity = 1) => `rgba(15, 118, 110, ${opacity})`,
                 barPercentage: 0.65,
               }}
@@ -623,7 +682,7 @@ export default function AdminScreen() {
                 data={pieData}
                 width={CHART_W - 32}
                 height={180}
-                chartConfig={CHART_CFG}
+                chartConfig={chartCfg}
                 accessor="population"
                 backgroundColor="transparent"
                 paddingLeft="10"
@@ -674,7 +733,7 @@ export default function AdminScreen() {
       <ScrollView contentContainerStyle={styles.list}>
         <Text style={styles.sectionTitle}>Utilisateurs</Text>
         <View style={styles.statsGrid}>
-          <StatBox label="Total"       value={statsData.total}       color={Colors.primary} />
+          <StatBox label="Total"       value={statsData.total}       color={colors.BRAND} />
           <StatBox label="Sourds"      value={statsData.sourds}      color="#1D4ED8" />
           <StatBox label="Interprètes" value={statsData.interpretes} color="#065F46" />
           <StatBox label="Apprentis"   value={statsData.apprentis}   color="#92400E" />
@@ -687,7 +746,7 @@ export default function AdminScreen() {
         </View>
         <Text style={[styles.sectionTitle, { marginTop: Spacing.lg }]}>Rendez-vous</Text>
         <View style={styles.statsGrid}>
-          <StatBox label="Total RDV"   value={statsData.rdvTotal}    color={Colors.primary} />
+          <StatBox label="Total RDV"   value={statsData.rdvTotal}    color={colors.BRAND} />
           <StatBox label="Acceptés"    value={accepted}              color="#059669" />
           <StatBox label="Ce mois"     value={rdvThisMonth}          color="#1D4ED8" />
         </View>
@@ -726,7 +785,7 @@ export default function AdminScreen() {
             style={styles.logoutBtn}
             accessibilityLabel="Déconnexion"
           >
-            <Feather name="log-out" size={20} color={Colors.white} />
+            <Feather name="log-out" size={20} color={"#fff"} />
           </TouchableOpacity>
         </View>
       </View>
@@ -764,7 +823,7 @@ export default function AdminScreen() {
       {/* Content */}
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <ActivityIndicator size="large" color={colors.BRAND} />
         </View>
       ) : tab === 'dashboard' ? (
         renderDashboard()
@@ -830,168 +889,153 @@ export default function AdminScreen() {
 
 /* ── StatBox ────────────────────────────────────────────────── */
 function StatBox({ label, value, color }: { label: string; value: number | string; color: string }) {
+  const colors = useThemeColor();
+  const s = useMemo(() => createStatBoxStyles(colors), [colors]);
   return (
-    <View style={[styles.statBox, { borderLeftColor: color }]}>
-      <Text style={[styles.statValue, { color }]}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+    <View style={[s.statBox, { borderLeftColor: color }]}>
+      <Text style={[s.statValue, { color }]}>{value}</Text>
+      <Text style={s.statLabel}>{label}</Text>
     </View>
   );
 }
 
+function createStatBoxStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    statBox: {
+      flex: 1, minWidth: '45%',
+      backgroundColor: colors.SURFACE, borderRadius: Radius.md, padding: Spacing.md,
+      borderWidth: 1, borderColor: colors.BORDER, borderLeftWidth: 4,
+    },
+    statValue: { fontSize: FontSize.xxl, fontWeight: '800' },
+    statLabel: { fontSize: FontSize.sm, color: colors.INK_2, marginTop: 2 },
+  });
+}
+
 /* ── Styles ─────────────────────────────────────────────────── */
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+function createStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.BG },
 
-  /* Header */
-  header: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headerTitle:    { color: Colors.white, fontSize: FontSize.xl, fontWeight: '700' },
-  headerSubtitle: { color: 'rgba(255,255,255,0.8)', fontSize: FontSize.sm },
-  headerRight:    { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  logoutBtn: {
-    width: 36, height: 36, borderRadius: Radius.sm,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  headerBadge: {
-    backgroundColor: '#EF4444', borderRadius: Radius.full,
-    minWidth: 28, height: 28,
-    alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xs,
-  },
-  headerBadgeText: { color: Colors.white, fontWeight: '700', fontSize: FontSize.sm },
+    /* Header */
+    header: {
+      backgroundColor: colors.BRAND,
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.md,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    headerTitle:    { color: '#fff', fontSize: FontSize.xl, fontWeight: '700' },
+    headerSubtitle: { color: 'rgba(255,255,255,0.8)', fontSize: FontSize.sm },
+    headerRight:    { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+    logoutBtn: {
+      width: 36, height: 36, borderRadius: Radius.sm,
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      alignItems: 'center', justifyContent: 'center',
+    },
+    headerBadge: {
+      backgroundColor: '#EF4444', borderRadius: Radius.full,
+      minWidth: 28, height: 28,
+      alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xs,
+    },
+    headerBadgeText: { color: '#fff', fontWeight: '700', fontSize: FontSize.sm },
 
-  /* Tabs (scrollable) */
-  tabsScroll:   { flexGrow: 0, backgroundColor: Colors.primaryLight, borderBottomWidth: 1, borderBottomColor: Colors.border },
-  tabsContent:  { flexDirection: 'row', paddingHorizontal: 4 },
-  tab: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingVertical: Spacing.sm + 2, paddingHorizontal: Spacing.md,
-  },
-  tabActive:     { borderBottomWidth: 2, borderBottomColor: Colors.primary },
-  tabText:       { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: '500' },
-  tabTextActive: { color: Colors.primary, fontWeight: '700' },
-  tabBadge: {
-    backgroundColor: '#EF4444', borderRadius: Radius.full,
-    minWidth: 18, height: 18,
-    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4,
-  },
-  tabBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
+    /* Tabs (scrollable) */
+    tabsScroll:   { flexGrow: 0, backgroundColor: colors.BRAND_TINT, borderBottomWidth: 1, borderBottomColor: colors.BORDER },
+    tabsContent:  { flexDirection: 'row', paddingHorizontal: 4 },
+    tab: {
+      flexDirection: 'row', alignItems: 'center', gap: 5,
+      paddingVertical: Spacing.sm + 2, paddingHorizontal: Spacing.md,
+    },
+    tabActive:     { borderBottomWidth: 2, borderBottomColor: colors.BRAND },
+    tabText:       { fontSize: FontSize.sm, color: colors.INK_2, fontWeight: '500' },
+    tabTextActive: { color: colors.BRAND, fontWeight: '700' },
+    tabBadge: {
+      backgroundColor: '#EF4444', borderRadius: Radius.full,
+      minWidth: 18, height: 18,
+      alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4,
+    },
+    tabBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
 
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: Spacing.xl },
-  list:   { padding: Spacing.md, gap: Spacing.sm, paddingBottom: Spacing.xxl },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: Spacing.xl },
+    list:   { padding: Spacing.md, gap: Spacing.sm, paddingBottom: Spacing.xxl },
 
-  emptyIcon:  { fontSize: 48, marginBottom: Spacing.sm },
-  emptyTitle: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.textPrimary, marginBottom: Spacing.xs },
-  emptyText:  { fontSize: FontSize.sm, color: Colors.textSecondary, textAlign: 'center' },
+    emptyIcon:  { fontSize: 48, marginBottom: Spacing.sm },
+    emptyTitle: { fontSize: FontSize.lg, fontWeight: '700', color: colors.INK_1, marginBottom: Spacing.xs },
+    emptyText:  { fontSize: FontSize.sm, color: colors.INK_2, textAlign: 'center' },
 
-  /* Card (brevet / user) */
-  card: {
-    backgroundColor: Colors.white, borderRadius: Radius.md,
-    padding: Spacing.md,
-    borderWidth: 1, borderColor: Colors.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06, shadowRadius: 3, elevation: 2,
-  },
-  cardHeader:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  cardName:    { fontSize: FontSize.md, fontWeight: '700', color: Colors.textPrimary },
-  cardEmail:   { fontSize: FontSize.xs, color: Colors.textSecondary, marginTop: 2 },
-  brevetInfo:  { marginTop: Spacing.sm, backgroundColor: Colors.primaryLight, borderRadius: Radius.sm, padding: Spacing.sm, gap: 2 },
-  brevetDetail:{ fontSize: FontSize.sm, color: Colors.textPrimary },
-  brevetStatus:{ fontSize: FontSize.xs, fontWeight: '600', marginTop: 4 },
-  certBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.xs,
-    alignSelf: 'flex-start', backgroundColor: Colors.primaryLight,
-    borderRadius: Radius.sm, paddingHorizontal: Spacing.sm, paddingVertical: 6,
-    marginTop: Spacing.xs, borderWidth: 1, borderColor: Colors.primary + '40',
-  },
-  certBtnText:    { fontSize: FontSize.sm, fontWeight: '600', color: Colors.primary },
-  cardActions:    { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.md },
-  changeRoleHint: { fontSize: 10, color: Colors.textSecondary, textAlign: 'center', marginTop: 2 },
+    /* Card (brevet / user) */
+    card: {
+      backgroundColor: colors.SURFACE, borderRadius: Radius.md,
+      padding: Spacing.md,
+      borderWidth: 1, borderColor: colors.BORDER,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.06, shadowRadius: 3, elevation: 2,
+    },
+    cardHeader:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+    cardName:    { fontSize: FontSize.md, fontWeight: '700', color: colors.INK_1 },
+    cardEmail:   { fontSize: FontSize.xs, color: colors.INK_2, marginTop: 2 },
+    brevetInfo:  { marginTop: Spacing.sm, backgroundColor: colors.BRAND_TINT, borderRadius: Radius.sm, padding: Spacing.sm, gap: 2 },
+    brevetDetail:{ fontSize: FontSize.sm, color: colors.INK_1 },
+    brevetStatus:{ fontSize: FontSize.xs, fontWeight: '600', marginTop: 4 },
+    certBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: Spacing.xs,
+      alignSelf: 'flex-start', backgroundColor: colors.BRAND_TINT,
+      borderRadius: Radius.sm, paddingHorizontal: Spacing.sm, paddingVertical: 6,
+      marginTop: Spacing.xs, borderWidth: 1, borderColor: colors.BRAND + '40',
+    },
+    certBtnText:    { fontSize: FontSize.sm, fontWeight: '600', color: colors.BRAND },
+    cardActions:    { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.md },
+    changeRoleHint: { fontSize: 10, color: colors.INK_2, textAlign: 'center', marginTop: 2 },
 
-  /* Buttons */
-  btnSuccess:  { flex: 1, backgroundColor: '#16A34A', borderRadius: Radius.sm, paddingVertical: Spacing.sm, alignItems: 'center' },
-  btnDanger:   { flex: 1, backgroundColor: '#DC2626', borderRadius: Radius.sm, paddingVertical: Spacing.sm, alignItems: 'center' },
-  btnWhiteText:{ color: Colors.white, fontWeight: '700', fontSize: FontSize.sm },
+    /* Buttons */
+    btnSuccess:  { flex: 1, backgroundColor: colors.SUCCESS, borderRadius: Radius.sm, paddingVertical: Spacing.sm, alignItems: 'center' },
+    btnDanger:   { flex: 1, backgroundColor: colors.ERROR, borderRadius: Radius.sm, paddingVertical: Spacing.sm, alignItems: 'center' },
+    btnWhiteText:{ color: '#fff', fontWeight: '700', fontSize: FontSize.sm },
 
-  badge:     { borderRadius: Radius.full, paddingHorizontal: Spacing.sm, paddingVertical: 3, alignSelf: 'flex-start' },
-  badgeText: { fontSize: FontSize.xs, fontWeight: '700' },
+    /* Stats tab */
+    sectionTitle: { fontSize: FontSize.lg, fontWeight: '700', color: colors.INK_1, marginBottom: Spacing.sm },
+    statsGrid:    { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+    topInterpCard: {
+      backgroundColor: '#FFFBEB', borderRadius: Radius.md, padding: Spacing.md,
+      borderWidth: 1, borderColor: '#FDE68A', marginTop: Spacing.sm,
+    },
+    topInterpLabel: { fontSize: FontSize.sm, fontWeight: '700', color: '#92400E', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4 },
+    topInterpValue: { fontSize: FontSize.lg, fontWeight: '800', color: '#B45309' },
 
-  /* Stats tab */
-  sectionTitle: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.textPrimary, marginBottom: Spacing.sm },
-  statsGrid:    { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
-  statBox: {
-    flex: 1, minWidth: '45%',
-    backgroundColor: Colors.white, borderRadius: Radius.md, padding: Spacing.md,
-    borderWidth: 1, borderColor: Colors.border, borderLeftWidth: 4,
-  },
-  statValue: { fontSize: FontSize.xxl, fontWeight: '800' },
-  statLabel: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: 2 },
-  topInterpCard: {
-    backgroundColor: '#FFFBEB', borderRadius: Radius.md, padding: Spacing.md,
-    borderWidth: 1, borderColor: '#FDE68A', marginTop: Spacing.sm,
-  },
-  topInterpLabel: { fontSize: FontSize.sm, fontWeight: '700', color: '#92400E', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4 },
-  topInterpValue: { fontSize: FontSize.lg, fontWeight: '800', color: '#B45309' },
+    /* Dashboard */
+    dashContent:  { padding: 20, gap: 14, paddingBottom: 48 },
+    kpiRow:       { flexDirection: 'row', gap: 10 },
+    actionRow:    { flexDirection: 'row', gap: 10, alignItems: 'center' },
+    refreshBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      paddingHorizontal: 14, paddingVertical: 9, borderRadius: Radius.sm,
+      borderWidth: 1.5, borderColor: colors.BORDER, backgroundColor: colors.SURFACE, flex: 1,
+      justifyContent: 'center',
+    },
+    refreshBtnText: { fontSize: FontSize.sm, fontWeight: '600', color: colors.BRAND },
+    chart: { borderRadius: 8, alignSelf: 'center' },
+    chartLoading: { paddingVertical: 60, alignItems: 'center', gap: 12 },
+    chartLoadingTxt: { fontSize: FontSize.sm, color: colors.INK_2 },
+    chartEmpty: { paddingVertical: 30, alignItems: 'center' },
+    chartEmptyTxt: { fontSize: FontSize.sm, color: colors.INK_2, fontStyle: 'italic' },
 
-  /* Dashboard */
-  dashContent:  { padding: 20, gap: 14, paddingBottom: 48 },
-  kpiRow:       { flexDirection: 'row', gap: 10 },
-  actionRow:    { flexDirection: 'row', gap: 10, alignItems: 'center' },
-  refreshBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 9, borderRadius: Radius.sm,
-    borderWidth: 1.5, borderColor: Colors.border, backgroundColor: '#fff', flex: 1,
-    justifyContent: 'center',
-  },
-  refreshBtnText: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.primary },
-  chart: { borderRadius: 8, alignSelf: 'center' },
-  chartLoading: { paddingVertical: 60, alignItems: 'center', gap: 12 },
-  chartLoadingTxt: { fontSize: FontSize.sm, color: Colors.textSecondary },
-  chartEmpty: { paddingVertical: 30, alignItems: 'center' },
-  chartEmptyTxt: { fontSize: FontSize.sm, color: Colors.textSecondary, fontStyle: 'italic' },
+    /* Users list header */
+    listHeader: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: Spacing.md, paddingVertical: 10,
+      backgroundColor: colors.BRAND_TINT,
+      borderBottomWidth: 1, borderBottomColor: colors.BORDER,
+    },
+    listHeaderTxt: { fontSize: FontSize.sm, color: colors.INK_2, fontWeight: '500' },
 
-  /* Users list header */
-  listHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md, paddingVertical: 10,
-    backgroundColor: Colors.primaryLight,
-    borderBottomWidth: 1, borderBottomColor: Colors.border,
-  },
-  listHeaderTxt: { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: '500' },
-
-  /* Export button */
-  exportBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 9, borderRadius: Radius.sm,
-    backgroundColor: Colors.primary,
-    shadowColor: Colors.primary, shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3, shadowRadius: 6, elevation: 4,
-  },
-  exportBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: '#fff' },
-
-  /* Modals */
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: Spacing.md },
-  modalCard:    { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: Spacing.lg },
-  modalTitle:   { fontSize: FontSize.lg, fontWeight: '700', color: Colors.textPrimary, marginBottom: Spacing.xs },
-  modalSubtitle:{ fontSize: FontSize.sm, color: Colors.textSecondary, marginBottom: Spacing.md },
-  modalLabel:   { fontSize: FontSize.sm, fontWeight: '600', color: Colors.textPrimary, marginBottom: Spacing.xs },
-  textInput: {
-    borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.sm,
-    padding: Spacing.sm, fontSize: FontSize.sm, color: Colors.textPrimary,
-    minHeight: 80, textAlignVertical: 'top', marginBottom: Spacing.md,
-  },
-  modalActions: { flexDirection: 'row', gap: Spacing.sm },
-  btnCancel:    { flex: 1, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.sm, paddingVertical: Spacing.sm, alignItems: 'center' },
-  btnCancelText:{ color: Colors.textSecondary, fontWeight: '600', fontSize: FontSize.sm },
-  roleOption: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: Spacing.sm, borderRadius: Radius.sm,
-    borderWidth: 1, borderColor: Colors.border, marginBottom: Spacing.xs,
-  },
-  activeCheck: { fontSize: FontSize.sm, fontWeight: '700' },
-});
+    /* Export button */
+    exportBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      paddingHorizontal: 14, paddingVertical: 9, borderRadius: Radius.sm,
+      backgroundColor: colors.BRAND,
+      shadowColor: colors.BRAND, shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.3, shadowRadius: 6, elevation: 4,
+    },
+    exportBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: '#fff' },
+  });
+}

@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -13,14 +13,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth, Role } from '@/context/AuthContext';
-
-const BRAND      = '#0F766E';
-const BRAND_DARK = '#0B5F58';
-const INK        = '#0F1B2D';
-const INK_2      = '#475569';
-const INK_3      = '#94A3B8';
-const BORDER     = '#E5EAF0';
-const BG         = '#F6F8FA';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import type { ColorTokens } from '@/constants/design';
 
 const ROLE_COLORS: Record<string, { c: string; tint: string }> = {
   sourd:      { c: '#0F766E', tint: '#E8F4F2' },
@@ -47,6 +41,8 @@ function BookIcon({ color }: { color: string }) {
 
 export default function RegisterScreen() {
   const { register } = useAuth();
+  const colors = useThemeColor();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [role, setRole]         = useState<Role>('sourd');
   const [name, setName]         = useState('');
   const [email, setEmail]       = useState('');
@@ -74,19 +70,19 @@ export default function RegisterScreen() {
       id: 'sourd',
       title: 'Malentendant / Sourd',
       sub: 'Je cherche un interprète LSF',
-      icon: <EarIcon color={role === 'sourd' ? '#fff' : INK_2} />,
+      icon: <EarIcon color={role === 'sourd' ? '#fff' : colors.INK_2} />,
     },
     {
       id: 'interprete',
       title: 'Interprète LSF agréé',
       sub: 'Je propose mes services',
-      icon: <HandsIcon color={role === 'interprete' ? '#fff' : INK_2} />,
+      icon: <HandsIcon color={role === 'interprete' ? '#fff' : colors.INK_2} />,
     },
     {
       id: 'apprenti',
       title: 'Apprenti interprète',
       sub: 'Je me forme en LSF médical',
-      icon: <BookIcon color={role === 'apprenti' ? '#fff' : INK_2} />,
+      icon: <BookIcon color={role === 'apprenti' ? '#fff' : colors.INK_2} />,
     },
   ];
 
@@ -156,7 +152,7 @@ export default function RegisterScreen() {
                         <Text
                           style={[
                             styles.roleTitle,
-                            { color: selected ? ac.c : INK },
+                            { color: selected ? ac.c : colors.INK_1 },
                           ]}
                         >
                           {r.title}
@@ -166,7 +162,7 @@ export default function RegisterScreen() {
                       <View
                         style={[
                           styles.radioCircle,
-                          { borderColor: selected ? ac.c : BORDER },
+                          { borderColor: selected ? ac.c : colors.BORDER },
                           selected && { backgroundColor: ac.c },
                         ]}
                       >
@@ -186,7 +182,7 @@ export default function RegisterScreen() {
 
               {error && (
                 <View style={styles.errorBox}>
-                  <Feather name="alert-circle" size={15} color="#DC2626" />
+                  <Feather name="alert-circle" size={15} color={colors.ERROR} />
                   <Text style={styles.errorText}>{error}</Text>
                 </View>
               )}
@@ -194,13 +190,13 @@ export default function RegisterScreen() {
               <View style={styles.field}>
                 <Text style={styles.label}>Prénom et nom</Text>
                 <View style={styles.inputRow}>
-                  <Feather name="user" size={17} color={INK_3} style={styles.inputIcon} />
+                  <Feather name="user" size={17} color={colors.INK_3} style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     value={name}
                     onChangeText={setName}
                     placeholder="Jean Dupont"
-                    placeholderTextColor={INK_3}
+                    placeholderTextColor={colors.INK_3}
                     autoCapitalize="words"
                     accessibilityLabel="Prénom et nom"
                   />
@@ -210,13 +206,13 @@ export default function RegisterScreen() {
               <View style={styles.field}>
                 <Text style={styles.label}>Adresse email</Text>
                 <View style={styles.inputRow}>
-                  <Feather name="mail" size={17} color={INK_3} style={styles.inputIcon} />
+                  <Feather name="mail" size={17} color={colors.INK_3} style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     value={email}
                     onChangeText={setEmail}
                     placeholder="exemple@email.fr"
-                    placeholderTextColor={INK_3}
+                    placeholderTextColor={colors.INK_3}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -228,13 +224,13 @@ export default function RegisterScreen() {
               <View style={styles.field}>
                 <Text style={styles.label}>Mot de passe</Text>
                 <View style={styles.inputRow}>
-                  <Feather name="lock" size={17} color={INK_3} style={styles.inputIcon} />
+                  <Feather name="lock" size={17} color={colors.INK_3} style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     value={password}
                     onChangeText={setPassword}
                     placeholder="6 caractères minimum"
-                    placeholderTextColor={INK_3}
+                    placeholderTextColor={colors.INK_3}
                     secureTextEntry={!showPwd}
                     accessibilityLabel="Mot de passe"
                   />
@@ -243,7 +239,7 @@ export default function RegisterScreen() {
                     style={styles.eyeBtn}
                     accessibilityLabel={showPwd ? 'Masquer' : 'Afficher'}
                   >
-                    <Feather name={showPwd ? 'eye-off' : 'eye'} size={17} color={INK_3} />
+                    <Feather name={showPwd ? 'eye-off' : 'eye'} size={17} color={colors.INK_3} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -285,7 +281,7 @@ export default function RegisterScreen() {
             >
               <Text style={styles.loginLinkText}>
                 J'ai déjà un compte ·{' '}
-                <Text style={[styles.loginLinkBold, { color: BRAND }]}>Se connecter</Text>
+                <Text style={[styles.loginLinkBold, { color: colors.BRAND }]}>Se connecter</Text>
               </Text>
             </TouchableOpacity>
           </View>
@@ -295,13 +291,14 @@ export default function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BRAND },
-  scrollContent: { flexGrow: 1, backgroundColor: BG },
+function createStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.BRAND },
+  scrollContent: { flexGrow: 1, backgroundColor: colors.BG },
 
   /* Header */
   header: {
-    backgroundColor: BRAND,
+    backgroundColor: colors.BRAND,
     paddingTop: 14,
     paddingBottom: 32,
     paddingHorizontal: 20,
@@ -371,22 +368,22 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: INK,
+    color: colors.INK_1,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   stepHint: {
     fontSize: 11.5,
-    color: INK_3,
+    color: colors.INK_3,
     fontWeight: '500',
   },
 
   /* Role cards */
   roleList: { gap: 8 },
   roleCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.SURFACE,
     borderWidth: 1.5,
-    borderColor: BORDER,
+    borderColor: colors.BORDER,
     borderRadius: 14,
     padding: 14,
     flexDirection: 'row',
@@ -409,7 +406,7 @@ const styles = StyleSheet.create({
   },
   roleSub: {
     fontSize: 12.5,
-    color: INK_2,
+    color: colors.INK_2,
     lineHeight: 17,
   },
   radioCircle: {
@@ -427,28 +424,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.ERROR_TINT,
     borderRadius: 10,
     padding: 12,
     borderLeftWidth: 3,
-    borderLeftColor: '#DC2626',
+    borderLeftColor: colors.ERROR,
   },
-  errorText: { fontSize: 13, color: '#DC2626', flex: 1 },
+  errorText: { fontSize: 13, color: colors.ERROR, flex: 1 },
 
   /* Field */
   field: { gap: 6 },
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: INK,
+    color: colors.INK_1,
     letterSpacing: 0.1,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.SURFACE,
     borderWidth: 1.5,
-    borderColor: BORDER,
+    borderColor: colors.BORDER,
     borderRadius: 12,
     height: 48,
     paddingHorizontal: 14,
@@ -458,7 +455,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
-    color: INK,
+    color: colors.INK_1,
     height: '100%',
   },
   eyeBtn: { padding: 4, flexShrink: 0 },
@@ -512,6 +509,7 @@ const styles = StyleSheet.create({
   },
 
   loginLink: { alignItems: 'center', padding: 8 },
-  loginLinkText: { fontSize: 13.5, color: INK_2 },
+  loginLinkText: { fontSize: 13.5, color: colors.INK_2 },
   loginLinkBold: { fontWeight: '700' },
-});
+  });
+}

@@ -1,21 +1,14 @@
 /**
- * Learn more about light and dark modes:
- * https://docs.expo.dev/guides/color-schemes/
+ * Retourne les tokens de couleur de la palette active (clair/sombre),
+ * résolue depuis la préférence utilisateur (AccessibilityContext) et,
+ * en mode 'auto', le thème système.
  */
 
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useMemo } from 'react';
+import { Palettes, type ColorTokens } from '@/constants/design';
+import { useAccessibility } from '@/context/AccessibilityContext';
 
-export function useThemeColor(
-  props: { light?: string; dark?: string },
-  colorName: keyof typeof Colors.light & keyof typeof Colors.dark
-) {
-  const theme = useColorScheme() ?? 'light';
-  const colorFromProps = props[theme];
-
-  if (colorFromProps) {
-    return colorFromProps;
-  } else {
-    return Colors[theme][colorName];
-  }
+export function useThemeColor(): ColorTokens {
+  const { isDark } = useAccessibility();
+  return useMemo(() => Palettes[isDark ? 'dark' : 'light'], [isDark]);
 }

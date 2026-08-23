@@ -16,7 +16,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
-import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
+import { FontSize, Radius, Spacing } from '@/constants/theme';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import type { ColorTokens } from '@/constants/design';
 import {
   CATEGORY_CONFIG,
   type HealthCategory,
@@ -84,6 +86,8 @@ function isOpenNow(hours: string): boolean {
 /* ─── Pulsing user dot ───────────────────────────────────── */
 
 const UserLocationDot = memo(function UserLocationDot() {
+  const colors = useThemeColor();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const pulse = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -114,6 +118,8 @@ const HealthMarkerView = memo(function HealthMarkerView({
   category: HealthCategory;
   showDoctolib?: boolean;
 }) {
+  const colors = useThemeColor();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const cfg = CATEGORY_CONFIG[category];
   return (
     <View style={styles.markerWrapper}>
@@ -139,20 +145,22 @@ const FilterPill = memo(function FilterPill({
   id: HealthCategory; label: string; emoji: string;
   color: string; active: boolean; onToggle: (id: HealthCategory) => void;
 }) {
+  const colors = useThemeColor();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const handlePress = useCallback(() => onToggle(id), [onToggle, id]);
   return (
     <TouchableOpacity
       style={[
         styles.filterPill,
         { borderColor: color },
-        active ? { backgroundColor: color } : { backgroundColor: Colors.white },
+        active ? { backgroundColor: color } : { backgroundColor: colors.SURFACE },
       ]}
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
     >
       <Text style={styles.filterPillEmoji}>{emoji}</Text>
-      <Text style={[styles.filterPillText, { color: active ? Colors.white : color }]}>
+      <Text style={[styles.filterPillText, { color: active ? '#fff' : color }]}>
         {label}
       </Text>
     </TouchableOpacity>
@@ -168,6 +176,8 @@ function DetailSheet({
 }: {
   item: HealthProfessional; distanceKm: number | null; onClose: () => void;
 }) {
+  const colors = useThemeColor();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const slideY         = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
 
@@ -264,6 +274,8 @@ function DetailSheet({
 
 export default function MalentendantsHome() {
   const { user } = useAuth();
+  const colors = useThemeColor();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const prenom = user?.name?.split(' ')[0] ?? '';
   const { professionals, loading: profLoading } = useHealthProfessionals();
   const { professionals: allProfessionals } = useHealthProfessionalsSearch();
@@ -530,7 +542,7 @@ export default function MalentendantsHome() {
 
       {/* Bandeau informatif : total RPPS dans le rayon */}
       <View style={styles.radiusBanner} accessibilityRole="text">
-        <Feather name="info" size={13} color={Colors.primary} />
+        <Feather name="info" size={13} color={colors.BRAND} />
         <Text style={styles.radiusBannerText}>
           <Text style={styles.radiusBannerCount}>{totalInRadius}</Text>
           {` professionnel${totalInRadius !== 1 ? 's' : ''} de santé dans un rayon de `}
@@ -546,13 +558,13 @@ export default function MalentendantsHome() {
         accessibilityRole="button"
         accessibilityLabel="Rechercher parmi 2 350 professionnels dans le formulaire de RDV"
       >
-        <Feather name="search" size={14} color={Colors.primary} />
+        <Feather name="search" size={14} color={colors.BRAND} />
         <Text style={styles.searchBannerText}>
           Recherchez parmi{' '}
           <Text style={styles.searchBannerBold}>2 350 professionnels</Text>
           {' '}dans le formulaire de RDV
         </Text>
-        <Feather name="chevron-right" size={14} color={Colors.primary} />
+        <Feather name="chevron-right" size={14} color={colors.BRAND} />
       </TouchableOpacity>
 
       {/* List */}
@@ -596,7 +608,7 @@ export default function MalentendantsHome() {
         <TouchableOpacity
           style={[
             styles.rdvMainBtn,
-            { borderWidth: a11y.hcBorder(0), borderColor: '#000000', backgroundColor: a11y.hcBg(Colors.primary) },
+            { borderWidth: a11y.hcBorder(0), borderColor: '#000000', backgroundColor: a11y.hcBg(colors.BRAND) },
           ]}
           onPress={() => router.push('/(tabs)/malentendants/rendez-vous')}
           activeOpacity={0.85}
@@ -604,7 +616,7 @@ export default function MalentendantsHome() {
           accessibilityLabel="Prendre un rendez-vous avec un interprète LSF"
           accessibilityHint="Double-tapez pour accéder au formulaire de rendez-vous"
         >
-          <Text style={[styles.rdvMainBtnText, { fontSize: a11y.scale(FontSize.lg), color: a11y.hcFg(Colors.white) }]}>
+          <Text style={[styles.rdvMainBtnText, { fontSize: a11y.scale(FontSize.lg), color: a11y.hcFg('#fff') }]}>
             📅  Prendre un rendez-vous
           </Text>
         </TouchableOpacity>
@@ -612,7 +624,7 @@ export default function MalentendantsHome() {
         <TouchableOpacity
           style={[
             styles.rdvSecondBtn,
-            { borderWidth: a11y.hcBorder(1), borderColor: a11y.hcFg(Colors.primary), backgroundColor: a11y.hcBg(Colors.white) },
+            { borderWidth: a11y.hcBorder(1), borderColor: a11y.hcFg(colors.BRAND), backgroundColor: a11y.hcBg(colors.SURFACE) },
           ]}
           onPress={() => router.push('/(tabs)/malentendants/mes-rdv')}
           activeOpacity={0.85}
@@ -620,7 +632,7 @@ export default function MalentendantsHome() {
           accessibilityLabel={pendingRdvCount > 0 ? `Mes rendez-vous, ${pendingRdvCount} en attente` : 'Mes rendez-vous'}
           accessibilityHint="Double-tapez pour consulter vos rendez-vous"
         >
-          <Text style={[styles.rdvSecondBtnText, { fontSize: a11y.scale(FontSize.md), color: a11y.hcFg(Colors.primary) }]}>
+          <Text style={[styles.rdvSecondBtnText, { fontSize: a11y.scale(FontSize.md), color: a11y.hcFg(colors.BRAND) }]}>
             📋  Mes rendez-vous
           </Text>
           {pendingRdvCount > 0 && (
@@ -689,7 +701,7 @@ export default function MalentendantsHome() {
 
         {profLoading && (
           <View style={styles.loadingRow}>
-            <ActivityIndicator color={Colors.primary} />
+            <ActivityIndicator color={colors.BRAND} />
             <Text style={styles.loadingText}>Chargement des professionnels…</Text>
           </View>
         )}
@@ -776,352 +788,354 @@ export default function MalentendantsHome() {
 }
 
 /* ─── Styles ─────────────────────────────────────────────── */
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.primary },
+function createStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.BRAND },
 
-  header: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.sm,
-    gap: 4,
-  },
-  headerTopRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  headerTitle: { fontSize: FontSize.xl, fontWeight: '800', color: Colors.white },
-  headerSub: { fontSize: FontSize.sm, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
-  headerProfileBtn: {
-    width: 38, height: 38, borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-  },
-  locationError: { fontSize: FontSize.xs, color: 'rgba(255,220,100,0.9)', marginTop: 4 },
+    header: {
+      backgroundColor: colors.BRAND,
+      paddingHorizontal: Spacing.lg,
+      paddingTop: Spacing.sm,
+      paddingBottom: Spacing.sm,
+      gap: 4,
+    },
+    headerTopRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+    headerTitle: { fontSize: FontSize.xl, fontWeight: '800', color: '#fff' },
+    headerSub: { fontSize: FontSize.sm, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
+    headerProfileBtn: {
+      width: 38, height: 38, borderRadius: 10,
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    },
+    locationError: { fontSize: FontSize.xs, color: 'rgba(255,220,100,0.9)', marginTop: 4 },
 
-  /* Category filter pills */
-  filterBar: { backgroundColor: Colors.primary, flexGrow: 0 },
-  filterBarContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.sm,
-    gap: Spacing.sm,
-    flexDirection: 'row',
-  },
-  filterPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: Radius.full, borderWidth: 1.5,
-  },
-  filterPillEmoji: { fontSize: 14 },
-  filterPillText: { fontSize: FontSize.xs, fontWeight: '700' },
+    /* Category filter pills */
+    filterBar: { backgroundColor: colors.BRAND, flexGrow: 0 },
+    filterBarContent: {
+      paddingHorizontal: Spacing.lg,
+      paddingBottom: Spacing.sm,
+      gap: Spacing.sm,
+      flexDirection: 'row',
+    },
+    filterPill: {
+      flexDirection: 'row', alignItems: 'center', gap: 5,
+      paddingHorizontal: 12, paddingVertical: 6,
+      borderRadius: Radius.full, borderWidth: 1.5,
+    },
+    filterPillEmoji: { fontSize: 14 },
+    filterPillText: { fontSize: FontSize.xs, fontWeight: '700' },
 
-  /* Advanced filter bar */
-  advBar: { backgroundColor: Colors.primaryDark, flexGrow: 0 },
-  advBarContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    gap: Spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  advPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 10, paddingVertical: 5,
-    borderRadius: Radius.full,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)',
-  },
-  advPillActive: {
-    backgroundColor: Colors.white,
-    borderColor: Colors.white,
-  },
-  advPillText: { fontSize: FontSize.xs, fontWeight: '700', color: 'rgba(255,255,255,0.9)' },
-  advPillTextActive: { color: Colors.primaryDark },
-  advPillEmoji: { fontSize: 11 },
-  advDivider: {
-    width: 1, height: 18,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    marginHorizontal: 2,
-  },
+    /* Advanced filter bar */
+    advBar: { backgroundColor: colors.BRAND_DARK, flexGrow: 0 },
+    advBarContent: {
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.sm,
+      gap: Spacing.sm,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    advPill: {
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      paddingHorizontal: 10, paddingVertical: 5,
+      borderRadius: Radius.full,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)',
+    },
+    advPillActive: {
+      backgroundColor: colors.SURFACE,
+      borderColor: colors.SURFACE,
+    },
+    advPillText: { fontSize: FontSize.xs, fontWeight: '700', color: 'rgba(255,255,255,0.9)' },
+    advPillTextActive: { color: colors.BRAND_DARK },
+    advPillEmoji: { fontSize: 11 },
+    advDivider: {
+      width: 1, height: 18,
+      backgroundColor: 'rgba(255,255,255,0.25)',
+      marginHorizontal: 2,
+    },
 
-  /* Map */
-  mapWrapper: { height: 240, position: 'relative' },
-  mapFallback: {
-    flex: 1, backgroundColor: '#C8E6E3',
-    alignItems: 'center', justifyContent: 'center', gap: Spacing.xs,
-  },
-  mapFallbackEmoji: { fontSize: 40 },
-  mapFallbackText: { fontSize: FontSize.md, fontWeight: '700', color: Colors.primaryDark },
-  mapFallbackSub: { fontSize: FontSize.sm, color: Colors.textSecondary },
+    /* Map */
+    mapWrapper: { height: 240, position: 'relative' },
+    mapFallback: {
+      flex: 1, backgroundColor: colors.BRAND_TINT,
+      alignItems: 'center', justifyContent: 'center', gap: Spacing.xs,
+    },
+    mapFallbackEmoji: { fontSize: 40 },
+    mapFallbackText: { fontSize: FontSize.md, fontWeight: '700', color: colors.BRAND_DARK },
+    mapFallbackSub: { fontSize: FontSize.sm, color: colors.INK_2 },
 
-  markerWrapper: { alignItems: 'center' },
-  doctolibMarkerBadge: {
-    marginTop: 2, backgroundColor: '#00B5BA',
-    borderRadius: 3, paddingHorizontal: 4, paddingVertical: 1,
-  },
-  doctolibMarkerText: { fontSize: 7, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
+    markerWrapper: { alignItems: 'center' },
+    doctolibMarkerBadge: {
+      marginTop: 2, backgroundColor: '#00B5BA',
+      borderRadius: 3, paddingHorizontal: 4, paddingVertical: 1,
+    },
+    doctolibMarkerText: { fontSize: 7, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
 
-  userDotWrapper: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
-  userDotRing: {
-    position: 'absolute', width: 24, height: 24,
-    borderRadius: 12, backgroundColor: '#3B82F6',
-  },
-  userDot: {
-    width: 14, height: 14, borderRadius: 7,
-    backgroundColor: '#3B82F6', borderWidth: 2.5, borderColor: Colors.white,
-  },
+    userDotWrapper: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
+    userDotRing: {
+      position: 'absolute', width: 24, height: 24,
+      borderRadius: 12, backgroundColor: '#3B82F6',
+    },
+    userDot: {
+      width: 14, height: 14, borderRadius: 7,
+      backgroundColor: '#3B82F6', borderWidth: 2.5, borderColor: '#fff',
+    },
 
-  healthMarkerOuter: {
-    width: 40, height: 40, borderRadius: 20, borderWidth: 2.5,
-    backgroundColor: Colors.white, alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2, shadowRadius: 3, elevation: 4,
-  },
-  healthMarkerInner: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  healthMarkerEmoji: { fontSize: 15 },
+    healthMarkerOuter: {
+      width: 40, height: 40, borderRadius: 20, borderWidth: 2.5,
+      backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center',
+      shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2, shadowRadius: 3, elevation: 4,
+    },
+    healthMarkerInner: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+    healthMarkerEmoji: { fontSize: 15 },
 
-  centerBtn: {
-    position: 'absolute', bottom: Spacing.sm, right: Spacing.sm,
-    width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.white,
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2, shadowRadius: 4, elevation: 4,
-  },
-  centerBtnText: { fontSize: 20, color: Colors.primary },
+    centerBtn: {
+      position: 'absolute', bottom: Spacing.sm, right: Spacing.sm,
+      width: 40, height: 40, borderRadius: 20, backgroundColor: colors.SURFACE,
+      alignItems: 'center', justifyContent: 'center',
+      shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2, shadowRadius: 4, elevation: 4,
+    },
+    centerBtnText: { fontSize: 20, color: colors.BRAND },
 
-  scroll: { flex: 1, backgroundColor: Colors.background },
-  scrollContent: { padding: Spacing.lg, paddingBottom: Spacing.xxl, gap: Spacing.md },
+    scroll: { flex: 1, backgroundColor: colors.BG },
+    scrollContent: { padding: Spacing.lg, paddingBottom: Spacing.xxl, gap: Spacing.md },
 
-  rdvMainBtn: {
-    backgroundColor: Colors.primary, borderRadius: Radius.lg,
-    padding: Spacing.md, alignItems: 'center',
-    shadowColor: Colors.primary, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 8, elevation: 5,
-  },
-  rdvMainBtnText: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.white },
+    rdvMainBtn: {
+      backgroundColor: colors.BRAND, borderRadius: Radius.lg,
+      padding: Spacing.md, alignItems: 'center',
+      shadowColor: colors.BRAND, shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3, shadowRadius: 8, elevation: 5,
+    },
+    rdvMainBtnText: { fontSize: FontSize.lg, fontWeight: '700', color: '#fff' },
 
-  rdvSecondBtn: {
-    backgroundColor: Colors.white, borderRadius: Radius.lg,
-    padding: Spacing.md, flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'center', gap: Spacing.sm,
-    borderWidth: 2, borderColor: Colors.primary,
-    shadowColor: Colors.primary, shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1, shadowRadius: 6, elevation: 2,
-  },
-  rdvSecondBtnText: { fontSize: FontSize.md, fontWeight: '700', color: Colors.primary },
-  rdvBadge: {
-    backgroundColor: Colors.warning, borderRadius: Radius.full,
-    minWidth: 22, height: 22, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5,
-  },
-  rdvBadgeText: { fontSize: 11, fontWeight: '800', color: Colors.white },
+    rdvSecondBtn: {
+      backgroundColor: colors.SURFACE, borderRadius: Radius.lg,
+      padding: Spacing.md, flexDirection: 'row', alignItems: 'center',
+      justifyContent: 'center', gap: Spacing.sm,
+      borderWidth: 2, borderColor: colors.BRAND,
+      shadowColor: colors.BRAND, shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1, shadowRadius: 6, elevation: 2,
+    },
+    rdvSecondBtnText: { fontSize: FontSize.md, fontWeight: '700', color: colors.BRAND },
+    rdvBadge: {
+      backgroundColor: colors.WARNING, borderRadius: Radius.full,
+      minWidth: 22, height: 22, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5,
+    },
+    rdvBadgeText: { fontSize: 11, fontWeight: '800', color: '#fff' },
 
-  statsRow: { flexDirection: 'row', gap: Spacing.sm },
-  statCard: {
-    flex: 1, backgroundColor: Colors.white, borderRadius: Radius.md,
-    padding: Spacing.md, alignItems: 'center', gap: Spacing.xs,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
-  },
-  statEmoji: { fontSize: 20 },
-  statValue: { fontSize: FontSize.lg, fontWeight: '800', color: Colors.primary },
-  statLabel: { fontSize: FontSize.xs, color: Colors.textSecondary, textAlign: 'center' },
+    statsRow: { flexDirection: 'row', gap: Spacing.sm },
+    statCard: {
+      flex: 1, backgroundColor: colors.SURFACE, borderRadius: Radius.md,
+      padding: Spacing.md, alignItems: 'center', gap: Spacing.xs,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
+    },
+    statEmoji: { fontSize: 20 },
+    statValue: { fontSize: FontSize.lg, fontWeight: '800', color: colors.BRAND },
+    statLabel: { fontSize: FontSize.xs, color: colors.INK_2, textAlign: 'center' },
 
-  loadingRow: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
-    paddingVertical: Spacing.md, justifyContent: 'center',
-  },
-  loadingText: { fontSize: FontSize.sm, color: Colors.textSecondary },
+    loadingRow: {
+      flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
+      paddingVertical: Spacing.md, justifyContent: 'center',
+    },
+    loadingText: { fontSize: FontSize.sm, color: colors.INK_2 },
 
-  emptyState: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xxl },
-  emptyIcon: { fontSize: 44 },
-  emptyTitle: { fontSize: FontSize.md, fontWeight: '700', color: Colors.textPrimary },
-  emptySub: {
-    fontSize: FontSize.sm, color: Colors.textSecondary,
-    textAlign: 'center', paddingHorizontal: Spacing.lg,
-  },
+    emptyState: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xxl },
+    emptyIcon: { fontSize: 44 },
+    emptyTitle: { fontSize: FontSize.md, fontWeight: '700', color: colors.INK_1 },
+    emptySub: {
+      fontSize: FontSize.sm, color: colors.INK_2,
+      textAlign: 'center', paddingHorizontal: Spacing.lg,
+    },
 
-  section: { gap: Spacing.sm },
-  sectionTitle: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.textPrimary },
-  sectionCount: { fontSize: FontSize.sm, fontWeight: '500', color: Colors.textSecondary },
+    section: { gap: Spacing.sm },
+    sectionTitle: { fontSize: FontSize.lg, fontWeight: '700', color: colors.INK_1 },
+    sectionCount: { fontSize: FontSize.sm, fontWeight: '500', color: colors.INK_2 },
 
-  listCard: {
-    backgroundColor: Colors.white, borderRadius: Radius.md,
-    padding: Spacing.md, flexDirection: 'row', alignItems: 'center',
-    gap: Spacing.md, borderWidth: 1.5, borderColor: Colors.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
-  },
-  listAvatarSquare: {
-    width: 46, height: 46, borderRadius: Radius.md,
-    alignItems: 'center', justifyContent: 'center', borderWidth: 2, flexShrink: 0,
-  },
-  listAvatarEmoji: { fontSize: 22 },
-  listInfo: { flex: 1, gap: 2 },
-  listName: { fontSize: FontSize.md, fontWeight: '600', color: Colors.textPrimary },
-  listSub: { fontSize: FontSize.sm, color: Colors.textSecondary },
-  listMeta: { fontSize: FontSize.xs, color: Colors.textSecondary },
-  badge: { paddingHorizontal: Spacing.sm, paddingVertical: 4, borderRadius: Radius.full, flexShrink: 0 },
-  badgeText: { fontSize: FontSize.xs, fontWeight: '700' },
+    listCard: {
+      backgroundColor: colors.SURFACE, borderRadius: Radius.md,
+      padding: Spacing.md, flexDirection: 'row', alignItems: 'center',
+      gap: Spacing.md, borderWidth: 1.5, borderColor: colors.BORDER,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+    },
+    listAvatarSquare: {
+      width: 46, height: 46, borderRadius: Radius.md,
+      alignItems: 'center', justifyContent: 'center', borderWidth: 2, flexShrink: 0,
+    },
+    listAvatarEmoji: { fontSize: 22 },
+    listInfo: { flex: 1, gap: 2 },
+    listName: { fontSize: FontSize.md, fontWeight: '600', color: colors.INK_1 },
+    listSub: { fontSize: FontSize.sm, color: colors.INK_2 },
+    listMeta: { fontSize: FontSize.xs, color: colors.INK_2 },
+    badge: { paddingHorizontal: Spacing.sm, paddingVertical: 4, borderRadius: Radius.full, flexShrink: 0 },
+    badgeText: { fontSize: FontSize.xs, fontWeight: '700' },
 
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.35)', zIndex: 10,
-  },
-  sheet: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    height: SHEET_HEIGHT, backgroundColor: Colors.white,
-    borderTopLeftRadius: 24, borderTopRightRadius: 24, zIndex: 11,
-    shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15, shadowRadius: 16, elevation: 20,
-  },
-  sheetHandle: {
-    width: 40, height: 4, backgroundColor: Colors.border,
-    borderRadius: 2, alignSelf: 'center', marginTop: 12, marginBottom: 4,
-  },
-  sheetBody: { padding: Spacing.lg, gap: Spacing.md },
+    backdrop: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(0,0,0,0.35)', zIndex: 10,
+    },
+    sheet: {
+      position: 'absolute', bottom: 0, left: 0, right: 0,
+      height: SHEET_HEIGHT, backgroundColor: colors.SURFACE,
+      borderTopLeftRadius: 24, borderTopRightRadius: 24, zIndex: 11,
+      shadowColor: '#000', shadowOffset: { width: 0, height: -4 },
+      shadowOpacity: 0.15, shadowRadius: 16, elevation: 20,
+    },
+    sheetHandle: {
+      width: 40, height: 4, backgroundColor: colors.BORDER,
+      borderRadius: 2, alignSelf: 'center', marginTop: 12, marginBottom: 4,
+    },
+    sheetBody: { padding: Spacing.lg, gap: Spacing.md },
 
-  sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  sheetAvatar: {
-    width: 56, height: 56, borderRadius: 28,
-    alignItems: 'center', justifyContent: 'center', borderWidth: 2.5, flexShrink: 0,
-  },
-  sheetAvatarContent: { fontSize: FontSize.lg, fontWeight: '800' },
-  sheetNameBlock: { flex: 1, gap: 2 },
-  sheetName: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.textPrimary, lineHeight: 22 },
-  sheetSubtitle: { fontSize: FontSize.sm, color: Colors.textSecondary },
+    sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+    sheetAvatar: {
+      width: 56, height: 56, borderRadius: 28,
+      alignItems: 'center', justifyContent: 'center', borderWidth: 2.5, flexShrink: 0,
+    },
+    sheetAvatarContent: { fontSize: FontSize.lg, fontWeight: '800' },
+    sheetNameBlock: { flex: 1, gap: 2 },
+    sheetName: { fontSize: FontSize.lg, fontWeight: '700', color: colors.INK_1, lineHeight: 22 },
+    sheetSubtitle: { fontSize: FontSize.sm, color: colors.INK_2 },
 
-  closeBtn: {
-    width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.border,
-    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-  },
-  closeBtnText: { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: '700' },
+    closeBtn: {
+      width: 32, height: 32, borderRadius: 16, backgroundColor: colors.BORDER,
+      alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    },
+    closeBtnText: { fontSize: FontSize.sm, color: colors.INK_2, fontWeight: '700' },
 
-  healthInfo: { gap: 6 },
-  healthInfoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
-  healthInfoIcon: { fontSize: 14, width: 20, textAlign: 'center', marginTop: 1 },
-  healthInfoText: { flex: 1, fontSize: FontSize.sm, color: Colors.textSecondary, lineHeight: 20 },
+    healthInfo: { gap: 6 },
+    healthInfoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
+    healthInfoIcon: { fontSize: 14, width: 20, textAlign: 'center', marginTop: 1 },
+    healthInfoText: { flex: 1, fontSize: FontSize.sm, color: colors.INK_2, lineHeight: 20 },
 
-  sheetActions: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'stretch' },
-  doctolibSheetBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 7,
-    backgroundColor: '#00B5BA', borderRadius: Radius.lg,
-    paddingVertical: Spacing.md, paddingHorizontal: Spacing.md,
-    shadowColor: '#00B5BA', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25, shadowRadius: 8, elevation: 4,
-  },
-  doctolibSheetLogo: {
-    width: 22, height: 22, borderRadius: 5, backgroundColor: '#fff',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  doctolibSheetLogoText: { fontSize: 12, fontWeight: '800', color: '#00B5BA' },
-  doctolibSheetBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: '#fff' },
-  rdvBtn: {
-    borderRadius: Radius.lg, padding: Spacing.md,
-    alignItems: 'center', justifyContent: 'center',
-    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4,
-  },
-  rdvBtnText: { fontSize: FontSize.md, fontWeight: '700', color: Colors.white },
+    sheetActions: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'stretch' },
+    doctolibSheetBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 7,
+      backgroundColor: '#00B5BA', borderRadius: Radius.lg,
+      paddingVertical: Spacing.md, paddingHorizontal: Spacing.md,
+      shadowColor: '#00B5BA', shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25, shadowRadius: 8, elevation: 4,
+    },
+    doctolibSheetLogo: {
+      width: 22, height: 22, borderRadius: 5, backgroundColor: '#fff',
+      alignItems: 'center', justifyContent: 'center',
+    },
+    doctolibSheetLogoText: { fontSize: 12, fontWeight: '800', color: '#00B5BA' },
+    doctolibSheetBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: '#fff' },
+    rdvBtn: {
+      borderRadius: Radius.lg, padding: Spacing.md,
+      alignItems: 'center', justifyContent: 'center',
+      shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4,
+    },
+    rdvBtnText: { fontSize: FontSize.md, fontWeight: '700', color: '#fff' },
 
-  radiusBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: 9,
-    backgroundColor: Colors.primaryLight,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  radiusBannerText: {
-    flex: 1,
-    fontSize: FontSize.xs,
-    color: Colors.primaryDark,
-    lineHeight: 17,
-  },
-  radiusBannerCount: {
-    fontWeight: '800',
-    color: Colors.primary,
-  },
+    radiusBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: 9,
+      backgroundColor: colors.BRAND_TINT,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.BORDER,
+    },
+    radiusBannerText: {
+      flex: 1,
+      fontSize: FontSize.xs,
+      color: colors.BRAND_DARK,
+      lineHeight: 17,
+    },
+    radiusBannerCount: {
+      fontWeight: '800',
+      color: colors.BRAND,
+    },
 
-  searchBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: 10,
-    backgroundColor: Colors.primaryLight,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  searchBannerText: {
-    flex: 1,
-    fontSize: FontSize.xs,
-    color: Colors.primaryDark,
-    lineHeight: 17,
-  },
-  searchBannerBold: {
-    fontWeight: '700',
-    color: Colors.primary,
-  },
+    searchBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: 10,
+      backgroundColor: colors.BRAND_TINT,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.BORDER,
+    },
+    searchBannerText: {
+      flex: 1,
+      fontSize: FontSize.xs,
+      color: colors.BRAND_DARK,
+      lineHeight: 17,
+    },
+    searchBannerBold: {
+      fontWeight: '700',
+      color: colors.BRAND,
+    },
 
-  transcriptionBtn: {
-    backgroundColor: '#1E3A5F',
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    borderWidth: 1.5,
-    borderColor: '#2E5A8A',
-    shadowColor: '#0D1B2A',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  transcriptionBtnEmoji: { fontSize: 26, flexShrink: 0 },
-  transcriptionBtnInfo: { flex: 1 },
-  transcriptionBtnTitle: { fontSize: FontSize.md, fontWeight: '800', color: Colors.white },
-  transcriptionBtnSub: { fontSize: FontSize.xs, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+    transcriptionBtn: {
+      backgroundColor: '#1E3A5F',
+      borderRadius: Radius.lg,
+      padding: Spacing.md,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+      borderWidth: 1.5,
+      borderColor: '#2E5A8A',
+      shadowColor: '#0D1B2A',
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.25,
+      shadowRadius: 6,
+      elevation: 3,
+    },
+    transcriptionBtnEmoji: { fontSize: 26, flexShrink: 0 },
+    transcriptionBtnInfo: { flex: 1 },
+    transcriptionBtnTitle: { fontSize: FontSize.md, fontWeight: '800', color: '#fff' },
+    transcriptionBtnSub: { fontSize: FontSize.xs, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
 
-  sosBtn: {
-    backgroundColor: '#DC2626',
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  sosBtnEmoji: { fontSize: 28, flexShrink: 0 },
-  sosBtnInfo: { flex: 1 },
-  sosBtnTitle: { fontSize: FontSize.lg, fontWeight: '800', color: Colors.white },
-  sosBtnSub: { fontSize: FontSize.xs, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
+    sosBtn: {
+      backgroundColor: '#DC2626',
+      borderRadius: Radius.lg,
+      padding: Spacing.md,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+      shadowColor: '#DC2626',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.35,
+      shadowRadius: 8,
+      elevation: 5,
+    },
+    sosBtnEmoji: { fontSize: 28, flexShrink: 0 },
+    sosBtnInfo: { flex: 1 },
+    sosBtnTitle: { fontSize: FontSize.lg, fontWeight: '800', color: '#fff' },
+    sosBtnSub: { fontSize: FontSize.xs, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
 
-  quickRow: { flexDirection: 'row', gap: Spacing.sm },
-  quickBtn: {
-    flex: 1,
-    backgroundColor: Colors.white,
-    borderRadius: Radius.md,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.sm,
-    alignItems: 'center',
-    gap: Spacing.xs,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  quickBtnEmoji: { fontSize: 26 },
-  quickBtnLabel: {
-    fontSize: FontSize.xs,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    textAlign: 'center',
-    lineHeight: 16,
-  },
-});
+    quickRow: { flexDirection: 'row', gap: Spacing.sm },
+    quickBtn: {
+      flex: 1,
+      backgroundColor: colors.SURFACE,
+      borderRadius: Radius.md,
+      paddingVertical: Spacing.md,
+      paddingHorizontal: Spacing.sm,
+      alignItems: 'center',
+      gap: Spacing.xs,
+      borderWidth: 1.5,
+      borderColor: colors.BORDER,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 4,
+      elevation: 1,
+    },
+    quickBtnEmoji: { fontSize: 26 },
+    quickBtnLabel: {
+      fontSize: FontSize.xs,
+      fontWeight: '700',
+      color: colors.INK_1,
+      textAlign: 'center',
+      lineHeight: 16,
+    },
+  });
+}

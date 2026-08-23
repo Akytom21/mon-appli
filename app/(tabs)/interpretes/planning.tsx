@@ -12,7 +12,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Calendar, DateData } from 'react-native-calendars';
 import { Feather } from '@expo/vector-icons';
-import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
+import { FontSize, Radius, Spacing } from '@/constants/theme';
+import type { ColorTokens } from '@/constants/design';
+import { useThemeColor } from '@/hooks/use-theme-color';
 import { useAppointments, type Appointment } from '@/hooks/useAppointments';
 import { useAuth } from '@/context/AuthContext';
 import { useInterpreterReviews, type Review } from '@/hooks/useReviews';
@@ -46,6 +48,8 @@ export default function PlanningScreen() {
   const { myMissions, history, loading } = useAppointments();
   const { reviews } = useInterpreterReviews();
   const unreadMap = useUnreadMessages();
+  const colors = useThemeColor();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [refreshing, setRefreshing]     = useState(false);
 
@@ -71,23 +75,23 @@ export default function PlanningScreen() {
       const isSelected = selectedDate === appt.date;
       result[appt.date] = {
         marked: true,
-        dotColor: isSelected ? Colors.white : Colors.primary,
+        dotColor: isSelected ? '#fff' : colors.BRAND,
         ...(isSelected && {
           selected: true,
-          selectedColor: Colors.primary,
-          selectedTextColor: Colors.white,
+          selectedColor: colors.BRAND,
+          selectedTextColor: '#fff',
         }),
       };
     }
     if (selectedDate && !result[selectedDate]) {
       result[selectedDate] = {
         selected: true,
-        selectedColor: Colors.primaryLight,
-        selectedTextColor: Colors.textPrimary,
+        selectedColor: colors.BRAND_TINT,
+        selectedTextColor: colors.INK_1,
       };
     }
     return result;
-  }, [myMissions, selectedDate]);
+  }, [myMissions, selectedDate, colors]);
 
   const handleDayPress = useCallback((day: DateData) => {
     setSelectedDate((prev) => (prev === day.dateString ? null : day.dateString));
@@ -108,7 +112,7 @@ export default function PlanningScreen() {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <ActivityIndicator size="large" color={colors.BRAND} />
       </View>
     );
   }
@@ -119,7 +123,7 @@ export default function PlanningScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} colors={[Colors.primary]} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.BRAND} colors={[colors.BRAND]} />
         }
       >
 
@@ -129,18 +133,19 @@ export default function PlanningScreen() {
           markedDates={markedDates}
           onDayPress={handleDayPress}
           theme={{
-            todayTextColor: Colors.primary,
-            selectedDayBackgroundColor: Colors.primary,
-            selectedDayTextColor: Colors.white,
-            dotColor: Colors.primary,
-            selectedDotColor: Colors.white,
-            arrowColor: Colors.primary,
-            monthTextColor: Colors.textPrimary,
+            calendarBackground: colors.SURFACE,
+            todayTextColor: colors.BRAND,
+            selectedDayBackgroundColor: colors.BRAND,
+            selectedDayTextColor: '#fff',
+            dotColor: colors.BRAND,
+            selectedDotColor: '#fff',
+            arrowColor: colors.BRAND,
+            monthTextColor: colors.INK_1,
             textMonthFontWeight: '700',
             textDayFontSize: FontSize.md,
             textDayHeaderFontSize: FontSize.xs,
-            dayTextColor: Colors.textPrimary,
-            textDisabledColor: Colors.textSecondary,
+            dayTextColor: colors.INK_1,
+            textDisabledColor: colors.INK_2,
           }}
           style={styles.calendar}
         />
@@ -226,6 +231,8 @@ const MissionCard = memo(function MissionCard({
   onMessage?: () => void;
   unreadCount?: number;
 }) {
+  const colors = useThemeColor();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={[styles.card, past && styles.cardPast]}>
       <View style={styles.timeColumn}>
@@ -248,7 +255,7 @@ const MissionCard = memo(function MissionCard({
             accessibilityRole="button"
             accessibilityLabel={unreadCount ? `Contacter le patient — ${unreadCount} message${unreadCount > 1 ? 's' : ''} non lu${unreadCount > 1 ? 's' : ''}` : 'Contacter le patient'}
           >
-            <Feather name="message-circle" size={14} color={Colors.white} />
+            <Feather name="message-circle" size={14} color="#fff" />
             <Text style={styles.chatBtnText}>💬 Contacter le patient</Text>
             {!!unreadCount && (
               <View style={styles.chatBtnBadge}>
@@ -262,7 +269,7 @@ const MissionCard = memo(function MissionCard({
             <View style={styles.reviewRow}>
               <View style={{ flexDirection: 'row', gap: 2 }}>
                 {[1,2,3,4,5].map((i) => (
-                  <Text key={i} style={{ fontSize: 13, color: i <= review.rating ? '#F59E0B' : '#CBD5E1' }}>★</Text>
+                  <Text key={i} style={{ fontSize: 13, color: i <= review.rating ? '#F59E0B' : colors.BORDER }}>★</Text>
                 ))}
               </View>
               {review.comment ? (
@@ -278,116 +285,118 @@ const MissionCard = memo(function MissionCard({
   );
 });
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.background,
-  },
-  content: { paddingBottom: Spacing.xxl },
+function createStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.BG },
+    centered: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.BG,
+    },
+    content: { paddingBottom: Spacing.xxl },
 
-  calendar: {
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
+    calendar: {
+      borderBottomWidth: 1,
+      borderBottomColor: colors.BORDER,
+    },
 
-  legend: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    backgroundColor: Colors.white,
-  },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.primary,
-  },
-  legendText: { fontSize: FontSize.xs, color: Colors.textSecondary },
+    legend: {
+      flexDirection: 'row',
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.BORDER,
+      backgroundColor: colors.SURFACE,
+    },
+    legendItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+    legendDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: colors.BRAND,
+    },
+    legendText: { fontSize: FontSize.xs, color: colors.INK_2 },
 
-  section: {
-    padding: Spacing.lg,
-    gap: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  sectionTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-  },
+    section: {
+      padding: Spacing.lg,
+      gap: Spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.BORDER,
+    },
+    sectionTitle: {
+      fontSize: FontSize.lg,
+      fontWeight: '700',
+      color: colors.INK_1,
+    },
 
-  card: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    flexDirection: 'row',
-    gap: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  timeColumn: {
-    alignItems: 'center',
-    gap: 4,
-    width: 44,
-  },
-  timeText: {
-    fontSize: FontSize.sm,
-    fontWeight: '700',
-    color: Colors.primary,
-  },
-  timeLine: {
-    flex: 1,
-    width: 2,
-    backgroundColor: Colors.primaryLight,
-    borderRadius: 1,
-    minHeight: 24,
-  },
-  cardPast: { opacity: 0.8, borderStyle: 'dashed' },
-  cardBody: { flex: 1, gap: 4 },
-  cardType: { fontSize: FontSize.md, fontWeight: '700', color: Colors.textPrimary },
-  cardPatient: { fontSize: FontSize.sm, color: Colors.textSecondary },
-  cardLocation: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.textPrimary },
-  cardAddress: { fontSize: FontSize.xs, color: Colors.textSecondary },
-  timeTextPast: { color: Colors.textSecondary },
-  timeLinePast: { backgroundColor: Colors.border },
-  reviewRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
-  reviewComment: { fontSize: 11, color: '#92400E', fontStyle: 'italic', flex: 1 },
-  noReview: { fontSize: 11, color: Colors.textSecondary, fontStyle: 'italic' },
-  chatBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: Spacing.md, paddingVertical: 7, borderRadius: Radius.lg, backgroundColor: Colors.primary, alignSelf: 'flex-start', marginTop: 4, position: 'relative' },
-  chatBtnText: { fontSize: FontSize.xs, fontWeight: '700', color: Colors.white },
-  chatBtnBadge: { position: 'absolute', top: -5, right: -5, minWidth: 17, height: 17, borderRadius: 9, backgroundColor: '#DC2626', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: Colors.white },
-  chatBtnBadgeTxt: { fontSize: 9, fontWeight: '800', color: Colors.white },
+    card: {
+      backgroundColor: colors.SURFACE,
+      borderRadius: Radius.lg,
+      padding: Spacing.md,
+      flexDirection: 'row',
+      gap: Spacing.md,
+      borderWidth: 1,
+      borderColor: colors.BORDER,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    timeColumn: {
+      alignItems: 'center',
+      gap: 4,
+      width: 44,
+    },
+    timeText: {
+      fontSize: FontSize.sm,
+      fontWeight: '700',
+      color: colors.BRAND,
+    },
+    timeLine: {
+      flex: 1,
+      width: 2,
+      backgroundColor: colors.BRAND_TINT,
+      borderRadius: 1,
+      minHeight: 24,
+    },
+    cardPast: { opacity: 0.8, borderStyle: 'dashed' },
+    cardBody: { flex: 1, gap: 4 },
+    cardType: { fontSize: FontSize.md, fontWeight: '700', color: colors.INK_1 },
+    cardPatient: { fontSize: FontSize.sm, color: colors.INK_2 },
+    cardLocation: { fontSize: FontSize.sm, fontWeight: '600', color: colors.INK_1 },
+    cardAddress: { fontSize: FontSize.xs, color: colors.INK_2 },
+    timeTextPast: { color: colors.INK_2 },
+    timeLinePast: { backgroundColor: colors.BORDER },
+    reviewRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
+    reviewComment: { fontSize: 11, color: colors.WARNING, fontStyle: 'italic', flex: 1 },
+    noReview: { fontSize: 11, color: colors.INK_2, fontStyle: 'italic' },
+    chatBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: Spacing.md, paddingVertical: 7, borderRadius: Radius.lg, backgroundColor: colors.BRAND, alignSelf: 'flex-start', marginTop: 4, position: 'relative' },
+    chatBtnText: { fontSize: FontSize.xs, fontWeight: '700', color: '#fff' },
+    chatBtnBadge: { position: 'absolute', top: -5, right: -5, minWidth: 17, height: 17, borderRadius: 9, backgroundColor: colors.ERROR, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: '#fff' },
+    chatBtnBadgeTxt: { fontSize: 9, fontWeight: '800', color: '#fff' },
 
-  emptyNote: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    fontStyle: 'italic',
-  },
-  emptyState: {
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.xl,
-  },
-  emptyStateIcon: { fontSize: 44 },
-  emptyStateTitle: {
-    fontSize: FontSize.md,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-  },
-  emptyStateSub: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-  },
-});
+    emptyNote: {
+      fontSize: FontSize.sm,
+      color: colors.INK_2,
+      fontStyle: 'italic',
+    },
+    emptyState: {
+      alignItems: 'center',
+      gap: Spacing.sm,
+      paddingVertical: Spacing.xl,
+    },
+    emptyStateIcon: { fontSize: 44 },
+    emptyStateTitle: {
+      fontSize: FontSize.md,
+      fontWeight: '700',
+      color: colors.INK_1,
+    },
+    emptyStateSub: {
+      fontSize: FontSize.sm,
+      color: colors.INK_2,
+      textAlign: 'center',
+    },
+  });
+}

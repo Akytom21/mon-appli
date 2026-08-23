@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -18,18 +18,13 @@ import { Feather } from '@expo/vector-icons';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '@/config/firebase';
 import { useAuth } from '@/context/AuthContext';
-
-const BRAND     = '#0F766E';
-const BRAND_DARK = '#0B5F58';
-const BRAND_TINT = '#E8F4F2';
-const INK       = '#0F1B2D';
-const INK_2     = '#475569';
-const INK_3     = '#94A3B8';
-const BORDER    = '#E5EAF0';
-const BG        = '#F6F8FA';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import type { ColorTokens } from '@/constants/design';
 
 export default function LoginScreen() {
   const { login } = useAuth();
+  const colors = useThemeColor();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd]   = useState(false);
@@ -121,7 +116,7 @@ export default function LoginScreen() {
 
             {error && (
               <View style={styles.errorBox}>
-                <Feather name="alert-circle" size={15} color="#DC2626" />
+                <Feather name="alert-circle" size={15} color={colors.ERROR} />
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             )}
@@ -130,13 +125,13 @@ export default function LoginScreen() {
             <View style={styles.field}>
               <Text style={styles.label}>Adresse email</Text>
               <View style={styles.inputRow}>
-                <Feather name="mail" size={17} color={INK_3} style={styles.inputIcon} />
+                <Feather name="mail" size={17} color={colors.INK_3} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   value={email}
                   onChangeText={setEmail}
                   placeholder="exemple@email.fr"
-                  placeholderTextColor={INK_3}
+                  placeholderTextColor={colors.INK_3}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -149,13 +144,13 @@ export default function LoginScreen() {
             <View style={styles.field}>
               <Text style={styles.label}>Mot de passe</Text>
               <View style={styles.inputRow}>
-                <Feather name="lock" size={17} color={INK_3} style={styles.inputIcon} />
+                <Feather name="lock" size={17} color={colors.INK_3} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   value={password}
                   onChangeText={setPassword}
                   placeholder="••••••••"
-                  placeholderTextColor={INK_3}
+                  placeholderTextColor={colors.INK_3}
                   secureTextEntry={!showPwd}
                   accessibilityLabel="Mot de passe"
                 />
@@ -164,7 +159,7 @@ export default function LoginScreen() {
                   style={styles.eyeBtn}
                   accessibilityLabel={showPwd ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                 >
-                  <Feather name={showPwd ? 'eye-off' : 'eye'} size={17} color={INK_3} />
+                  <Feather name={showPwd ? 'eye-off' : 'eye'} size={17} color={colors.INK_3} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -204,7 +199,7 @@ export default function LoginScreen() {
               accessibilityRole="button"
             >
               <Text style={styles.outlineBtnText}>Créer un compte</Text>
-              <Feather name="arrow-right" size={16} color={BRAND} />
+              <Feather name="arrow-right" size={16} color={colors.BRAND} />
             </TouchableOpacity>
 
             {/* Bandeau confidentialité */}
@@ -262,7 +257,7 @@ export default function LoginScreen() {
 
               {forgotError && (
                 <View style={styles.errorBox}>
-                  <Feather name="alert-circle" size={15} color="#DC2626" />
+                  <Feather name="alert-circle" size={15} color={colors.ERROR} />
                   <Text style={styles.errorText}>{forgotError}</Text>
                 </View>
               )}
@@ -270,7 +265,7 @@ export default function LoginScreen() {
               {forgotSuccess ? (
                 <>
                   <View style={styles.successBox}>
-                    <Feather name="check-circle" size={15} color="#059669" />
+                    <Feather name="check-circle" size={15} color={colors.SUCCESS} />
                     <Text style={styles.successText}>
                       Un email de réinitialisation a été envoyé à {forgotEmail}
                     </Text>
@@ -288,13 +283,13 @@ export default function LoginScreen() {
                   <View style={styles.field}>
                     <Text style={styles.label}>Adresse email</Text>
                     <View style={styles.inputRow}>
-                      <Feather name="mail" size={17} color={INK_3} style={styles.inputIcon} />
+                      <Feather name="mail" size={17} color={colors.INK_3} style={styles.inputIcon} />
                       <TextInput
                         style={styles.input}
                         value={forgotEmail}
                         onChangeText={setForgotEmail}
                         placeholder="exemple@email.fr"
-                        placeholderTextColor={INK_3}
+                        placeholderTextColor={colors.INK_3}
                         keyboardType="email-address"
                         autoCapitalize="none"
                         autoCorrect={false}
@@ -329,19 +324,20 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: ColorTokens) {
+  return StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: BRAND,
+    backgroundColor: colors.BRAND,
   },
   scrollContent: {
     flexGrow: 1,
-    backgroundColor: BG,
+    backgroundColor: colors.BG,
   },
 
   /* Header */
   header: {
-    backgroundColor: BRAND,
+    backgroundColor: colors.BRAND,
     paddingTop: 20,
     paddingBottom: 52,
     paddingHorizontal: 24,
@@ -398,7 +394,7 @@ const styles = StyleSheet.create({
 
   /* Card */
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.SURFACE,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     marginTop: -20,
@@ -407,7 +403,7 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     gap: 18,
     flex: 1,
-    shadowColor: '#0F1B2D',
+    shadowColor: colors.INK_1,
     shadowOffset: { width: 0, height: -8 },
     shadowOpacity: 0.08,
     shadowRadius: 24,
@@ -417,12 +413,12 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 22,
     fontWeight: '800',
-    color: INK,
+    color: colors.INK_1,
     letterSpacing: -0.5,
   },
   cardSub: {
     fontSize: 13.5,
-    color: INK_2,
+    color: colors.INK_2,
   },
 
   /* Error */
@@ -430,28 +426,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.ERROR_TINT,
     borderRadius: 10,
     padding: 12,
     borderLeftWidth: 3,
-    borderLeftColor: '#DC2626',
+    borderLeftColor: colors.ERROR,
   },
-  errorText: { fontSize: 13, color: '#DC2626', flex: 1 },
+  errorText: { fontSize: 13, color: colors.ERROR, flex: 1 },
 
   /* Field */
   field: { gap: 6 },
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: INK,
+    color: colors.INK_1,
     letterSpacing: 0.1,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.SURFACE,
     borderWidth: 1.5,
-    borderColor: BORDER,
+    borderColor: colors.BORDER,
     borderRadius: 12,
     height: 48,
     paddingHorizontal: 14,
@@ -461,7 +457,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
-    color: INK,
+    color: colors.INK_1,
     height: '100%',
   },
   eyeBtn: {
@@ -470,18 +466,18 @@ const styles = StyleSheet.create({
   },
 
   forgotRow: { alignItems: 'flex-end', marginTop: -4 },
-  forgotText: { fontSize: 13, color: BRAND, fontWeight: '600' },
+  forgotText: { fontSize: 13, color: colors.BRAND, fontWeight: '600' },
 
   /* Primary button */
   primaryBtn: {
-    backgroundColor: BRAND,
+    backgroundColor: colors.BRAND,
     borderRadius: 14,
     height: 52,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    shadowColor: BRAND,
+    shadowColor: colors.BRAND,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
     shadowRadius: 14,
@@ -501,14 +497,14 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 4,
   },
-  dividerLine: { flex: 1, height: 1, backgroundColor: BORDER },
-  dividerText: { fontSize: 12, color: INK_3, fontWeight: '500' },
+  dividerLine: { flex: 1, height: 1, backgroundColor: colors.BORDER },
+  dividerText: { fontSize: 12, color: colors.INK_3, fontWeight: '500' },
 
   /* Outline button */
   outlineBtn: {
     borderWidth: 1.5,
-    borderColor: BORDER,
-    backgroundColor: '#fff',
+    borderColor: colors.BORDER,
+    backgroundColor: colors.SURFACE,
     borderRadius: 14,
     height: 50,
     flexDirection: 'row',
@@ -519,7 +515,7 @@ const styles = StyleSheet.create({
   outlineBtnText: {
     fontSize: 14.5,
     fontWeight: '600',
-    color: INK,
+    color: colors.INK_1,
   },
 
   /* Modal forgot password */
@@ -532,17 +528,17 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: '100%',
-    backgroundColor: '#fff',
+    backgroundColor: colors.SURFACE,
     borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: '#0F1B2D',
+    shadowColor: colors.INK_1,
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.2,
     shadowRadius: 32,
     elevation: 12,
   },
   modalHeader: {
-    backgroundColor: BRAND,
+    backgroundColor: colors.BRAND,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -562,22 +558,22 @@ const styles = StyleSheet.create({
   },
   modalDesc: {
     fontSize: 13.5,
-    color: INK_2,
+    color: colors.INK_2,
     lineHeight: 19,
   },
   successBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
-    backgroundColor: '#D1FAE5',
+    backgroundColor: colors.SUCCESS + '22',
     borderRadius: 10,
     padding: 12,
     borderLeftWidth: 3,
-    borderLeftColor: '#059669',
+    borderLeftColor: colors.SUCCESS,
   },
   successText: {
     fontSize: 13,
-    color: '#065F46',
+    color: colors.SUCCESS,
     flex: 1,
     lineHeight: 18,
   },
@@ -587,7 +583,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: BRAND_TINT,
+    backgroundColor: colors.BRAND_TINT,
     borderRadius: 12,
     padding: 12,
     paddingHorizontal: 14,
@@ -596,14 +592,14 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: BRAND,
+    backgroundColor: colors.BRAND,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
   },
   privacyText: {
     fontSize: 12.5,
-    color: BRAND_DARK,
+    color: colors.BRAND_DARK,
     fontWeight: '500',
     lineHeight: 17,
     flex: 1,
@@ -616,15 +612,16 @@ const styles = StyleSheet.create({
   },
   copyright: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: colors.INK_3,
   },
   footerSep: {
     fontSize: 12,
-    color: '#CBD5E1',
+    color: colors.BORDER,
   },
   privacyLink: {
     fontSize: 12,
-    color: BRAND,
+    color: colors.BRAND,
     fontWeight: '600',
   },
-});
+  });
+}

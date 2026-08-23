@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
@@ -18,16 +18,10 @@ import { getDownloadURL, ref as storageRef, uploadBytesResumable } from 'firebas
 import { doc, updateDoc } from 'firebase/firestore';
 import { db, storage } from '@/config/firebase';
 import { useAuth } from '@/context/AuthContext';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import type { ColorTokens } from '@/constants/design';
 
-/* ── Design tokens ───────────────────────────────────────── */
-const BRAND      = '#0F766E';
-const BRAND_DARK = '#0B5F58';
-const BRAND_TINT = '#E8F4F2';
-const INK        = '#0F1B2D';
-const INK_2      = '#475569';
-const INK_3      = '#94A3B8';
-const BORDER     = '#E5EAF0';
-const BG         = '#F6F8FA';
+/* ── Design tokens (accents sans variante sombre) ─────────── */
 const AMBER      = '#B45309';
 const AMBER_BG   = '#FEF3C7';
 const GOLD       = '#F59E0B';
@@ -101,6 +95,8 @@ const st = StyleSheet.create({
 
 /* ── Écran en attente ────────────────────────────────────── */
 function PendingScreen() {
+  const colors = useThemeColor();
+  const s = useMemo(() => createStyles(colors), [colors]);
   const pulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -157,6 +153,8 @@ function PendingScreen() {
 
 /* ── Écran brevet validé ─────────────────────────────────── */
 function ValidatedScreen() {
+  const colors = useThemeColor();
+  const s = useMemo(() => createStyles(colors), [colors]);
   const { upgradeToInterprete } = useAuth();
   const scale = useRef(new Animated.Value(0.6)).current;
   const [upgrading, setUpgrading] = useState(false);
@@ -188,7 +186,7 @@ function ValidatedScreen() {
           Félicitations ! Le jury a validé votre brevet LSF. Vous pouvez désormais devenir Interprète agréé PharmaSign.
         </Text>
         <View style={[s.stepsCard, s.stepsCardSuccess]}>
-          <Text style={[s.stepsCardTitle, { color: BRAND_DARK }]}>Ce que vous obtenez</Text>
+          <Text style={[s.stepsCardTitle, { color: colors.BRAND_DARK }]}>Ce que vous obtenez</Text>
           {[
             "Accès aux missions d'interprétation médicale",
             'Badge Interprète agréé sur votre profil',
@@ -222,6 +220,8 @@ function ValidatedScreen() {
 
 /* ── Formulaire principal ────────────────────────────────── */
 export default function BrevetScreen() {
+  const colors = useThemeColor();
+  const s = useMemo(() => createStyles(colors), [colors]);
   const { user, submitBrevet } = useAuth();
   const [niveau, setNiveau] = useState<string | null>(null);
   const [organisme, setOrganisme] = useState<string | null>(null);
@@ -333,7 +333,7 @@ export default function BrevetScreen() {
       >
         {/* Info card */}
         <View style={s.infoBanner}>
-          <Feather name="info" size={15} color={BRAND} />
+          <Feather name="info" size={15} color={colors.BRAND} />
           <Text style={s.infoBannerText}>
             Pour évoluer vers le statut Interprète agréé, soumettez votre brevet LSF reconnu. Un jury validera votre dossier manuellement.
           </Text>
@@ -397,13 +397,13 @@ export default function BrevetScreen() {
             <View style={s.field}>
               <Text style={s.label}>Année d'obtention</Text>
               <View style={s.inputWrap}>
-                <Feather name="calendar" size={16} color={INK_3} style={s.inputIcon} />
+                <Feather name="calendar" size={16} color={colors.INK_3} style={s.inputIcon} />
                 <TextInput
                   style={s.input}
                   value={annee}
                   onChangeText={setAnnee}
                   placeholder="ex : 2024"
-                  placeholderTextColor={INK_3}
+                  placeholderTextColor={colors.INK_3}
                   keyboardType="numeric"
                   maxLength={4}
                   accessibilityLabel="Année d'obtention du brevet"
@@ -413,13 +413,13 @@ export default function BrevetScreen() {
             <View style={s.field}>
               <Text style={s.label}>Numéro de certificat</Text>
               <View style={s.inputWrap}>
-                <Feather name="hash" size={16} color={INK_3} style={s.inputIcon} />
+                <Feather name="hash" size={16} color={colors.INK_3} style={s.inputIcon} />
                 <TextInput
                   style={s.input}
                   value={numero}
                   onChangeText={setNumero}
                   placeholder="ex : LSF-2024-XXXX"
-                  placeholderTextColor={INK_3}
+                  placeholderTextColor={colors.INK_3}
                   autoCapitalize="characters"
                   accessibilityLabel="Numéro de certificat"
                 />
@@ -447,7 +447,7 @@ export default function BrevetScreen() {
               accessibilityLabel="Choisir un fichier certificat"
             >
               <View style={s.dropZoneIcon}>
-                <Feather name="paperclip" size={26} color={BRAND} />
+                <Feather name="paperclip" size={26} color={colors.BRAND} />
               </View>
               <Text style={s.dropZoneTitle}>
                 Joindre mon certificat <Text style={{ color: '#EF4444' }}>*</Text>
@@ -461,7 +461,7 @@ export default function BrevetScreen() {
                 <Feather
                   name={certAsset.mimeType === 'application/pdf' ? 'file-text' : 'image'}
                   size={22}
-                  color={BRAND}
+                  color={colors.BRAND}
                 />
               </View>
               <View style={{ flex: 1, gap: 2 }}>
@@ -478,7 +478,7 @@ export default function BrevetScreen() {
                 )}
                 {certUrl && (
                   <View style={s.uploadedBadge}>
-                    <Feather name="check-circle" size={12} color={BRAND} />
+                    <Feather name="check-circle" size={12} color={colors.BRAND} />
                     <Text style={s.uploadedText}>Fichier envoyé avec succès</Text>
                   </View>
                 )}
@@ -490,7 +490,7 @@ export default function BrevetScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Supprimer le fichier"
                 >
-                  <Feather name="x" size={16} color={INK_3} />
+                  <Feather name="x" size={16} color={colors.INK_3} />
                 </TouchableOpacity>
               )}
             </View>
@@ -508,12 +508,12 @@ export default function BrevetScreen() {
         {/* Info niveau B2 */}
         <View style={s.infoBox}>
           <View style={s.infoBoxHeader}>
-            <Feather name="info" size={14} color={BRAND} />
+            <Feather name="info" size={14} color={colors.BRAND} />
             <Text style={s.infoBoxTitle}>Niveau requis</Text>
           </View>
           <Text style={s.infoBoxText}>
             Un brevet de niveau{' '}
-            <Text style={{ fontWeight: '700', color: BRAND }}>B2 minimum</Text>
+            <Text style={{ fontWeight: '700', color: colors.BRAND }}>B2 minimum</Text>
             {' '}est requis pour devenir interprète LSF agréé PharmaSign. Les niveaux inférieurs seront examinés au cas par cas.
           </Text>
         </View>
@@ -543,14 +543,15 @@ export default function BrevetScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BRAND },
-  scroll: { flex: 1, backgroundColor: BG },
+function createStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.BRAND },
+  scroll: { flex: 1, backgroundColor: colors.BG },
   content: { padding: 20, paddingBottom: 40, gap: 20 },
 
   /* Form header */
   formHeader: {
-    backgroundColor: BRAND, paddingTop: 16, overflow: 'hidden', position: 'relative',
+    backgroundColor: colors.BRAND, paddingTop: 16, overflow: 'hidden', position: 'relative',
   },
   formHeaderDeco1: {
     position: 'absolute', top: -50, right: -30,
@@ -573,7 +574,7 @@ const s = StyleSheet.create({
 
   /* Pending/validated header (simpler) */
   pendingHeader: {
-    backgroundColor: BRAND,
+    backgroundColor: colors.BRAND,
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 16, paddingVertical: 14, gap: 10,
   },
@@ -581,100 +582,100 @@ const s = StyleSheet.create({
   /* Info banner */
   infoBanner: {
     flexDirection: 'row', gap: 10, alignItems: 'flex-start',
-    backgroundColor: BRAND_TINT, borderRadius: 12, padding: 14,
+    backgroundColor: colors.BRAND_TINT, borderRadius: 12, padding: 14,
     borderWidth: 1, borderColor: '#A7D4D0',
   },
-  infoBannerText: { flex: 1, fontSize: 13.5, color: BRAND_DARK, lineHeight: 19 },
+  infoBannerText: { flex: 1, fontSize: 13.5, color: colors.BRAND_DARK, lineHeight: 19 },
 
   /* Sections */
   section: { gap: 12 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   sectionBadge: {
     width: 26, height: 26, borderRadius: 13,
-    backgroundColor: BRAND, alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    backgroundColor: colors.BRAND, alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
   sectionBadgeText: { fontSize: 13, fontWeight: '700', color: '#fff' },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: INK, letterSpacing: -0.3 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.INK_1, letterSpacing: -0.3 },
 
   optionList: { gap: 8 },
   optionRow: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: '#fff', borderRadius: 12, padding: 14,
-    borderWidth: 1.5, borderColor: BORDER,
+    backgroundColor: colors.SURFACE, borderRadius: 12, padding: 14,
+    borderWidth: 1.5, borderColor: colors.BORDER,
   },
-  optionRowSelected: { borderColor: BRAND, backgroundColor: BRAND_TINT },
+  optionRowSelected: { borderColor: colors.BRAND, backgroundColor: colors.BRAND_TINT },
   radio: {
     width: 22, height: 22, borderRadius: 11,
-    borderWidth: 2, borderColor: BORDER,
+    borderWidth: 2, borderColor: colors.BORDER,
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  radioSelected: { borderColor: BRAND },
-  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: BRAND },
-  optionText: { fontSize: 14, color: INK_2, flex: 1, lineHeight: 19 },
-  optionTextSelected: { color: BRAND, fontWeight: '600' },
+  radioSelected: { borderColor: colors.BRAND },
+  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.BRAND },
+  optionText: { fontSize: 14, color: colors.INK_2, flex: 1, lineHeight: 19 },
+  optionTextSelected: { color: colors.BRAND, fontWeight: '600' },
 
   /* Fields */
   fields: { gap: 12 },
   field: { gap: 6 },
-  label: { fontSize: 13.5, fontWeight: '600', color: INK, marginLeft: 2 },
+  label: { fontSize: 13.5, fontWeight: '600', color: colors.INK_1, marginLeft: 2 },
   inputWrap: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff', borderRadius: 12,
-    borderWidth: 1.5, borderColor: BORDER, overflow: 'hidden',
+    backgroundColor: colors.SURFACE, borderRadius: 12,
+    borderWidth: 1.5, borderColor: colors.BORDER, overflow: 'hidden',
   },
   inputIcon: { paddingLeft: 14 },
   input: {
     flex: 1, paddingHorizontal: 12, paddingVertical: 14,
-    fontSize: 15, color: INK,
+    fontSize: 15, color: colors.INK_1,
   },
 
   /* Section sub-label */
-  sectionSub: { fontSize: 11.5, color: INK_3, marginTop: 1 },
+  sectionSub: { fontSize: 11.5, color: colors.INK_3, marginTop: 1 },
 
   /* Drop zone */
   dropZone: {
-    borderWidth: 1.5, borderColor: BRAND, borderStyle: 'dashed',
+    borderWidth: 1.5, borderColor: colors.BRAND, borderStyle: 'dashed',
     borderRadius: 14, padding: 22, alignItems: 'center', gap: 8,
-    backgroundColor: BRAND_TINT,
+    backgroundColor: colors.BRAND_TINT,
   },
   dropZoneIcon: {
     width: 52, height: 52, borderRadius: 26,
-    backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.SURFACE, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1.5, borderColor: '#A7D4D0',
-    shadowColor: BRAND, shadowOffset: { width: 0, height: 2 },
+    shadowColor: colors.BRAND, shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12, shadowRadius: 6, elevation: 2,
   },
-  dropZoneTitle: { fontSize: 15, fontWeight: '700', color: BRAND },
-  dropZoneSub: { fontSize: 12.5, color: INK_2, textAlign: 'center', lineHeight: 17 },
+  dropZoneTitle: { fontSize: 15, fontWeight: '700', color: colors.BRAND },
+  dropZoneSub: { fontSize: 12.5, color: colors.INK_2, textAlign: 'center', lineHeight: 17 },
 
   /* File card */
   fileCard: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 12,
-    backgroundColor: '#fff', borderRadius: 14, padding: 14,
-    borderWidth: 1.5, borderColor: BRAND,
+    backgroundColor: colors.SURFACE, borderRadius: 14, padding: 14,
+    borderWidth: 1.5, borderColor: colors.BRAND,
     shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
   },
   fileIconWrap: {
     width: 42, height: 42, borderRadius: 10,
-    backgroundColor: BRAND_TINT, alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    backgroundColor: colors.BRAND_TINT, alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  fileName: { fontSize: 14, fontWeight: '600', color: INK },
-  fileMeta: { fontSize: 12, color: INK_3 },
+  fileName: { fontSize: 14, fontWeight: '600', color: colors.INK_1 },
+  fileMeta: { fontSize: 12, color: colors.INK_3 },
   progressTrack: {
-    height: 4, borderRadius: 2, backgroundColor: BORDER,
+    height: 4, borderRadius: 2, backgroundColor: colors.BORDER,
     overflow: 'hidden', marginTop: 4,
   },
   progressFill: {
-    height: 4, borderRadius: 2, backgroundColor: BRAND,
+    height: 4, borderRadius: 2, backgroundColor: colors.BRAND,
   },
   uploadedBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2,
   },
-  uploadedText: { fontSize: 11.5, fontWeight: '600', color: BRAND },
+  uploadedText: { fontSize: 11.5, fontWeight: '600', color: colors.BRAND },
   removeBtn: {
     width: 28, height: 28, borderRadius: 8,
-    backgroundColor: BG, alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    backgroundColor: colors.BG, alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
 
   /* Cert error */
@@ -687,26 +688,26 @@ const s = StyleSheet.create({
 
   /* Info box */
   infoBox: {
-    backgroundColor: BRAND_TINT, borderRadius: 12, padding: 14,
-    gap: 8, borderLeftWidth: 3, borderLeftColor: BRAND,
+    backgroundColor: colors.BRAND_TINT, borderRadius: 12, padding: 14,
+    gap: 8, borderLeftWidth: 3, borderLeftColor: colors.BRAND,
   },
   infoBoxHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  infoBoxTitle: { fontSize: 14, fontWeight: '700', color: BRAND_DARK },
-  infoBoxText: { fontSize: 13.5, color: BRAND_DARK, lineHeight: 19 },
+  infoBoxTitle: { fontSize: 14, fontWeight: '700', color: colors.BRAND_DARK },
+  infoBoxText: { fontSize: 13.5, color: colors.BRAND_DARK, lineHeight: 19 },
 
   /* Submit button */
   submitBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    backgroundColor: BRAND, borderRadius: 16, padding: 16,
-    shadowColor: BRAND, shadowOffset: { width: 0, height: 6 },
+    backgroundColor: colors.BRAND, borderRadius: 16, padding: 16,
+    shadowColor: colors.BRAND, shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3, shadowRadius: 12, elevation: 5,
   },
-  submitBtnDisabled: { backgroundColor: '#94A3B8', shadowOpacity: 0, elevation: 0 },
+  submitBtnDisabled: { backgroundColor: colors.INK_3, shadowOpacity: 0, elevation: 0 },
   submitBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
 
   /* Status screens shared */
   statusContainer: {
-    flex: 1, backgroundColor: BG, padding: 24,
+    flex: 1, backgroundColor: colors.BG, padding: 24,
     alignItems: 'center', justifyContent: 'center', gap: 18,
   },
   statusIconWrap: {
@@ -714,37 +715,37 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   statusIconPending: { backgroundColor: AMBER_BG },
-  statusIconValidated: { backgroundColor: BRAND_TINT },
+  statusIconValidated: { backgroundColor: colors.BRAND_TINT },
   statusTitle: {
-    fontSize: 26, fontWeight: '800', color: INK,
+    fontSize: 26, fontWeight: '800', color: colors.INK_1,
     letterSpacing: -0.5, textAlign: 'center',
   },
   statusText: {
-    fontSize: 15, color: INK_2, textAlign: 'center',
+    fontSize: 15, color: colors.INK_2, textAlign: 'center',
     lineHeight: 22, paddingHorizontal: 8,
   },
   stepsCard: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 20,
+    backgroundColor: colors.SURFACE, borderRadius: 16, padding: 20,
     width: '100%', gap: 14,
-    borderWidth: 1, borderColor: BORDER,
+    borderWidth: 1, borderColor: colors.BORDER,
     borderLeftWidth: 4, borderLeftColor: GOLD,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.07, shadowRadius: 8, elevation: 3,
   },
-  stepsCardSuccess: { borderLeftColor: BRAND },
-  stepsCardTitle: { fontSize: 15, fontWeight: '700', color: INK, letterSpacing: -0.2 },
+  stepsCardSuccess: { borderLeftColor: colors.BRAND },
+  stepsCardTitle: { fontSize: 15, fontWeight: '700', color: colors.INK_1, letterSpacing: -0.2 },
   stepRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
   stepNum: {
     width: 26, height: 26, borderRadius: 13,
-    backgroundColor: BORDER, alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    backgroundColor: colors.BORDER, alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  stepNumActive: { backgroundColor: BRAND },
-  stepNumSuccess: { backgroundColor: BRAND },
+  stepNumActive: { backgroundColor: colors.BRAND },
+  stepNumSuccess: { backgroundColor: colors.BRAND },
   stepNumText: { fontSize: 12, fontWeight: '700', color: '#fff' },
-  stepText: { flex: 1, fontSize: 14, color: INK_2, lineHeight: 20 },
+  stepText: { flex: 1, fontSize: 14, color: colors.INK_2, lineHeight: 20 },
 
   upgradeBtn: {
-    backgroundColor: BRAND_DARK, borderRadius: 16, padding: 16,
+    backgroundColor: colors.BRAND_DARK, borderRadius: 16, padding: 16,
     alignItems: 'center', width: '100%',
     flexDirection: 'row', justifyContent: 'center', gap: 8,
     borderWidth: 2, borderColor: GOLD,
@@ -753,13 +754,14 @@ const s = StyleSheet.create({
   },
   upgradeBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
   laterLink: {
-    fontSize: 14, color: INK_3,
+    fontSize: 14, color: colors.INK_3,
     textDecorationLine: 'underline', marginTop: -8,
   },
 
   retourBtn: {
-    backgroundColor: BRAND, borderRadius: 14, padding: 16,
+    backgroundColor: colors.BRAND, borderRadius: 14, padding: 16,
     alignItems: 'center', width: '100%',
   },
   retourBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
-});
+  });
+}

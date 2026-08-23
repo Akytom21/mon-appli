@@ -1,5 +1,6 @@
 import { StyleSheet, Text, type TextProps } from 'react-native';
 
+import { useAccessibility } from '@/context/AccessibilityContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 export type ThemedTextProps = TextProps & {
@@ -15,7 +16,9 @@ export function ThemedText({
   type = 'default',
   ...rest
 }: ThemedTextProps) {
-  const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
+  const colors = useThemeColor();
+  const { isDark } = useAccessibility();
+  const color = (isDark ? darkColor : lightColor) ?? colors.INK_1;
 
   return (
     <Text

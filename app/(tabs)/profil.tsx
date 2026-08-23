@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -23,26 +23,22 @@ import { sendPasswordResetEmail, deleteUser } from 'firebase/auth';
 import { deleteDoc, doc } from 'firebase/firestore';
 import { auth, db, storage } from '@/config/firebase';
 import { useAuth } from '@/context/AuthContext';
-import { useAccessibility, type TextSize } from '@/context/AccessibilityContext';
-
-/* ── Design tokens ──────────────────────────────────────── */
-const BRAND      = '#0F766E';
-const BRAND_DARK = '#0B5F58';
-const BRAND_TINT = '#E8F4F2';
-const INK        = '#0F1B2D';
-const INK_2      = '#475569';
-const INK_3      = '#94A3B8';
-const BORDER     = '#E5EAF0';
-const BG         = '#F6F8FA';
-const ERROR      = '#DC2626';
-const ERROR_TINT = '#FEF2F2';
+import { useAccessibility, type DarkModePref, type TextSize } from '@/context/AccessibilityContext';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import type { ColorTokens } from '@/constants/design';
 
 const NIVEAUX_LSF  = ['Débutant', 'Intermédiaire', 'Avancé', 'Expert'];
 const PREFS_COMMUN = ['LSF exclusif', 'LSF + lecture labiale', 'Écriture + LSF', 'Toutes méthodes'];
 
 export default function ProfilScreen() {
   const { user, updateProfile, logout } = useAuth();
-  const { textSize, setTextSize, highContrast, setHighContrast, reduceMotion, setReduceMotion } = useAccessibility();
+  const {
+    textSize, setTextSize, highContrast, setHighContrast, reduceMotion, setReduceMotion,
+    darkModePref, setDarkModePref,
+  } = useAccessibility();
+  const colors = useThemeColor();
+  const styles    = useMemo(() => createStyles(colors), [colors]);
+  const a11yStyles = useMemo(() => createA11yStyles(colors), [colors]);
 
   const [name,       setName]       = useState(user?.name ?? '');
   const [phone,      setPhone]      = useState(user?.phone ?? '');
@@ -315,7 +311,7 @@ export default function ProfilScreen() {
                 value={name}
                 onChangeText={setName}
                 placeholder="Jean Dupont"
-                placeholderTextColor={INK_3}
+                placeholderTextColor={colors.INK_3}
                 autoCapitalize="words"
               />
             </View>
@@ -339,7 +335,7 @@ export default function ProfilScreen() {
                 value={phone}
                 onChangeText={setPhone}
                 placeholder="+33 6 12 34 56 78"
-                placeholderTextColor={INK_3}
+                placeholderTextColor={colors.INK_3}
                 keyboardType="phone-pad"
               />
             </View>
@@ -357,7 +353,7 @@ export default function ProfilScreen() {
                   value={zoneKm}
                   onChangeText={setZoneKm}
                   placeholder="20"
-                  placeholderTextColor={INK_3}
+                  placeholderTextColor={colors.INK_3}
                   keyboardType="number-pad"
                   maxLength={3}
                 />
@@ -370,7 +366,7 @@ export default function ProfilScreen() {
                   value={languages}
                   onChangeText={setLanguages}
                   placeholder="LSF, Français, Anglais"
-                  placeholderTextColor={INK_3}
+                  placeholderTextColor={colors.INK_3}
                   autoCapitalize="words"
                 />
                 <Text style={styles.fieldHint}>Séparées par des virgules</Text>
@@ -387,7 +383,7 @@ export default function ProfilScreen() {
                     value={hourlyRate}
                     onChangeText={setHourlyRate}
                     placeholder="25"
-                    placeholderTextColor={INK_3}
+                    placeholderTextColor={colors.INK_3}
                     keyboardType="decimal-pad"
                     maxLength={6}
                   />
@@ -408,8 +404,8 @@ export default function ProfilScreen() {
                 <Switch
                   value={disponible}
                   onValueChange={setDisponible}
-                  trackColor={{ false: BORDER, true: BRAND + '80' }}
-                  thumbColor={disponible ? BRAND : INK_3}
+                  trackColor={{ false: colors.BORDER, true: colors.BRAND + '80' }}
+                  thumbColor={disponible ? colors.BRAND : colors.INK_3}
                 />
               </View>
             </View>
@@ -463,10 +459,10 @@ export default function ProfilScreen() {
             <Text style={styles.cardTitle}>Sécurité</Text>
             <TouchableOpacity style={styles.actionRow} onPress={handlePasswordReset} accessibilityRole="button">
               <View style={styles.actionIcon}>
-                <Feather name="lock" size={16} color={BRAND} />
+                <Feather name="lock" size={16} color={colors.BRAND} />
               </View>
               <Text style={styles.actionText}>Changer mon mot de passe</Text>
-              <Feather name="chevron-right" size={16} color={INK_3} />
+              <Feather name="chevron-right" size={16} color={colors.INK_3} />
             </TouchableOpacity>
           </View>
 
@@ -479,10 +475,10 @@ export default function ProfilScreen() {
               accessibilityRole="button"
             >
               <View style={styles.actionIcon}>
-                <Feather name="info" size={16} color={BRAND} />
+                <Feather name="info" size={16} color={colors.BRAND} />
               </View>
               <Text style={styles.actionText}>À propos de PharmaSign</Text>
-              <Feather name="chevron-right" size={16} color={INK_3} />
+              <Feather name="chevron-right" size={16} color={colors.INK_3} />
             </TouchableOpacity>
           </View>
 
@@ -506,11 +502,42 @@ export default function ProfilScreen() {
                       accessibilityState={{ selected: active }}
                       accessibilityLabel={label}
                     >
-                      <Text style={[a11yStyles.sizePreview, { fontSize: previewFontSize }, active && { color: BRAND }]} accessible={false}>
+                      <Text style={[a11yStyles.sizePreview, { fontSize: previewFontSize }, active && { color: colors.BRAND }]} accessible={false}>
                         A
                       </Text>
-                      <Text style={[a11yStyles.sizeBtnLabel, active && { color: BRAND }]}>
+                      <Text style={[a11yStyles.sizeBtnLabel, active && { color: colors.BRAND }]}>
                         {label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            <View style={styles.field}>
+              <View style={styles.darkModeLabelRow}>
+                <Feather name="moon" size={14} color={colors.INK_2} />
+                <Text style={styles.label}>Mode sombre</Text>
+              </View>
+              <View style={a11yStyles.sizeRow}>
+                {([
+                  { key: 'auto',  label: 'Automatique', icon: 'smartphone' },
+                  { key: 'light', label: 'Clair',        icon: 'sun' },
+                  { key: 'dark',  label: 'Sombre',        icon: 'moon' },
+                ] as const).map((opt) => {
+                  const active = darkModePref === opt.key;
+                  return (
+                    <TouchableOpacity
+                      key={opt.key}
+                      style={[a11yStyles.sizeBtn, active && a11yStyles.sizeBtnActive]}
+                      onPress={() => setDarkModePref(opt.key as DarkModePref)}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: active }}
+                      accessibilityLabel={opt.label}
+                    >
+                      <Feather name={opt.icon} size={16} color={active ? colors.BRAND : colors.INK_2} />
+                      <Text style={[a11yStyles.sizeBtnLabel, active && { color: colors.BRAND }]}>
+                        {opt.label}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -526,8 +553,8 @@ export default function ProfilScreen() {
               <Switch
                 value={highContrast}
                 onValueChange={setHighContrast}
-                trackColor={{ false: BORDER, true: BRAND + '80' }}
-                thumbColor={highContrast ? BRAND : INK_3}
+                trackColor={{ false: colors.BORDER, true: colors.BRAND + '80' }}
+                thumbColor={highContrast ? colors.BRAND : colors.INK_3}
                 accessibilityLabel="Activer le contraste élevé"
               />
             </View>
@@ -540,8 +567,8 @@ export default function ProfilScreen() {
               <Switch
                 value={reduceMotion}
                 onValueChange={setReduceMotion}
-                trackColor={{ false: BORDER, true: BRAND + '80' }}
-                thumbColor={reduceMotion ? BRAND : INK_3}
+                trackColor={{ false: colors.BORDER, true: colors.BRAND + '80' }}
+                thumbColor={reduceMotion ? colors.BRAND : colors.INK_3}
                 accessibilityLabel="Réduire les animations"
               />
             </View>
@@ -551,11 +578,11 @@ export default function ProfilScreen() {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Compte</Text>
             <TouchableOpacity style={styles.actionRow} onPress={handleLogout} accessibilityRole="button">
-              <View style={[styles.actionIcon, { backgroundColor: ERROR_TINT }]}>
-                <Feather name="log-out" size={16} color={ERROR} />
+              <View style={[styles.actionIcon, { backgroundColor: colors.ERROR_TINT }]}>
+                <Feather name="log-out" size={16} color={colors.ERROR} />
               </View>
-              <Text style={[styles.actionText, { color: ERROR }]}>Se déconnecter</Text>
-              <Feather name="chevron-right" size={16} color={ERROR + '80'} />
+              <Text style={[styles.actionText, { color: colors.ERROR }]}>Se déconnecter</Text>
+              <Feather name="chevron-right" size={16} color={colors.ERROR + '80'} />
             </TouchableOpacity>
 
             <View style={styles.cardDivider} />
@@ -568,15 +595,15 @@ export default function ProfilScreen() {
               accessibilityLabel="Supprimer définitivement mon compte"
             >
               <View style={[styles.actionIcon, { backgroundColor: '#fff0f0' }]}>
-                <Feather name="trash-2" size={16} color={ERROR} />
+                <Feather name="trash-2" size={16} color={colors.ERROR} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.deleteRowText}>Supprimer mon compte</Text>
                 <Text style={styles.deleteRowSub}>Action irréversible</Text>
               </View>
               {deleting
-                ? <ActivityIndicator size="small" color={ERROR} />
-                : <Feather name="chevron-right" size={16} color={ERROR + '80'} />
+                ? <ActivityIndicator size="small" color={colors.ERROR} />
+                : <Feather name="chevron-right" size={16} color={colors.ERROR + '80'} />
               }
             </TouchableOpacity>
           </View>
@@ -606,159 +633,164 @@ export default function ProfilScreen() {
 }
 
 /* ── Styles ─────────────────────────────────────────────── */
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BRAND },
+function createStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.BRAND },
 
-  topArea: { backgroundColor: BRAND, paddingBottom: 20 },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 4,
-    paddingBottom: 8,
-  },
-  backBtn: {
-    width: 44, height: 44, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  headerTitle: {
-    flex: 1, textAlign: 'center',
-    fontSize: 18, fontWeight: '700', color: '#fff', letterSpacing: -0.3,
-  },
+    topArea: { backgroundColor: colors.BRAND, paddingBottom: 20 },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingTop: 4,
+      paddingBottom: 8,
+    },
+    backBtn: {
+      width: 44, height: 44, borderRadius: 12,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      alignItems: 'center', justifyContent: 'center',
+    },
+    headerTitle: {
+      flex: 1, textAlign: 'center',
+      fontSize: 18, fontWeight: '700', color: '#fff', letterSpacing: -0.3,
+    },
 
-  avatarArea: { alignItems: 'center', gap: 6 },
-  avatarWrap: {
-    width: 88, height: 88, borderRadius: 44,
-    borderWidth: 3, borderColor: 'rgba(255,255,255,0.55)',
-  },
-  avatarImg: { width: '100%', height: '100%', borderRadius: 44 },
-  avatarPlaceholder: {
-    width: '100%', height: '100%', borderRadius: 44,
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  avatarInitials: { fontSize: 30, fontWeight: '800', color: '#fff' },
-  cameraBtn: {
-    position: 'absolute', bottom: 0, right: 0,
-    width: 26, height: 26, borderRadius: 13,
-    backgroundColor: BRAND_DARK,
-    borderWidth: 2, borderColor: '#fff',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  avatarName: { fontSize: 17, fontWeight: '700', color: '#fff', letterSpacing: -0.2, marginTop: 2 },
-  rolePill: {
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999,
-  },
-  rolePillText: { fontSize: 12, fontWeight: '600', color: '#fff', letterSpacing: 0.2 },
-  changePhotoText: { fontSize: 12, color: 'rgba(255,255,255,0.75)', textDecorationLine: 'underline' },
+    avatarArea: { alignItems: 'center', gap: 6 },
+    avatarWrap: {
+      width: 88, height: 88, borderRadius: 44,
+      borderWidth: 3, borderColor: 'rgba(255,255,255,0.55)',
+    },
+    avatarImg: { width: '100%', height: '100%', borderRadius: 44 },
+    avatarPlaceholder: {
+      width: '100%', height: '100%', borderRadius: 44,
+      backgroundColor: 'rgba(255,255,255,0.22)',
+      alignItems: 'center', justifyContent: 'center',
+    },
+    avatarInitials: { fontSize: 30, fontWeight: '800', color: '#fff' },
+    cameraBtn: {
+      position: 'absolute', bottom: 0, right: 0,
+      width: 26, height: 26, borderRadius: 13,
+      backgroundColor: colors.BRAND_DARK,
+      borderWidth: 2, borderColor: '#fff',
+      alignItems: 'center', justifyContent: 'center',
+    },
+    avatarName: { fontSize: 17, fontWeight: '700', color: '#fff', letterSpacing: -0.2, marginTop: 2 },
+    rolePill: {
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999,
+    },
+    rolePillText: { fontSize: 12, fontWeight: '600', color: '#fff', letterSpacing: 0.2 },
+    changePhotoText: { fontSize: 12, color: 'rgba(255,255,255,0.75)', textDecorationLine: 'underline' },
 
-  scroll: { flex: 1, backgroundColor: BG },
-  content: { padding: 16, paddingBottom: 48, gap: 12 },
+    scroll: { flex: 1, backgroundColor: colors.BG },
+    content: { padding: 16, paddingBottom: 48, gap: 12 },
 
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 16, padding: 16, gap: 12,
-    borderWidth: 1, borderColor: BORDER,
-    shadowColor: INK,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
-  },
-  cardTitle: {
-    fontSize: 11, fontWeight: '700', color: INK_3,
-    textTransform: 'uppercase', letterSpacing: 1,
-  },
+    card: {
+      backgroundColor: colors.SURFACE,
+      borderRadius: 16, padding: 16, gap: 12,
+      borderWidth: 1, borderColor: colors.BORDER,
+      shadowColor: colors.INK_1,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+    },
+    cardTitle: {
+      fontSize: 11, fontWeight: '700', color: colors.INK_3,
+      textTransform: 'uppercase', letterSpacing: 1,
+    },
 
-  field: { gap: 5, marginBottom: 4 },
-  fieldRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  label: { fontSize: 13, fontWeight: '600', color: INK_2 },
-  labelNote: { fontSize: 12, fontWeight: '400', color: INK_3 },
-  input: {
-    borderWidth: 1.5, borderColor: BORDER, borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 11,
-    fontSize: 15, color: INK,
-  },
-  inputDisabled: { backgroundColor: BG, color: INK_3 },
-  fieldHint: { fontSize: 11, color: INK_3, marginTop: 1 },
-  rateInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  rateUnit: {
-    borderWidth: 1.5, borderColor: BORDER, borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 11,
-    backgroundColor: BG,
-  },
-  rateUnitText: { fontSize: 14, fontWeight: '600', color: INK_2 },
+    field: { gap: 5, marginBottom: 4 },
+    fieldRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    darkModeLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    label: { fontSize: 13, fontWeight: '600', color: colors.INK_2 },
+    labelNote: { fontSize: 12, fontWeight: '400', color: colors.INK_3 },
+    input: {
+      borderWidth: 1.5, borderColor: colors.BORDER, borderRadius: 10,
+      paddingHorizontal: 12, paddingVertical: 11,
+      fontSize: 15, color: colors.INK_1,
+    },
+    inputDisabled: { backgroundColor: colors.BG, color: colors.INK_3 },
+    fieldHint: { fontSize: 11, color: colors.INK_3, marginTop: 1 },
+    rateInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    rateUnit: {
+      borderWidth: 1.5, borderColor: colors.BORDER, borderRadius: 10,
+      paddingHorizontal: 12, paddingVertical: 11,
+      backgroundColor: colors.BG,
+    },
+    rateUnitText: { fontSize: 14, fontWeight: '600', color: colors.INK_2 },
 
-  niveauGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  niveauChip: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
-    borderWidth: 1.5, borderColor: BORDER, backgroundColor: BG,
-  },
-  niveauChipActive: { borderColor: BRAND, backgroundColor: BRAND_TINT },
-  niveauChipText: { fontSize: 13, fontWeight: '600', color: INK_2 },
-  niveauChipTextActive: { color: BRAND },
+    niveauGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    niveauChip: {
+      paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999,
+      borderWidth: 1.5, borderColor: colors.BORDER, backgroundColor: colors.BG,
+    },
+    niveauChipActive: { borderColor: colors.BRAND, backgroundColor: colors.BRAND_TINT },
+    niveauChipText: { fontSize: 13, fontWeight: '600', color: colors.INK_2 },
+    niveauChipTextActive: { color: colors.BRAND },
 
-  prefRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 },
-  radio: {
-    width: 20, height: 20, borderRadius: 10,
-    borderWidth: 2, borderColor: BORDER,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  radioSelected: { borderColor: BRAND },
-  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: BRAND },
-  prefLabel: { fontSize: 14, color: INK, fontWeight: '500' },
+    prefRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 },
+    radio: {
+      width: 20, height: 20, borderRadius: 10,
+      borderWidth: 2, borderColor: colors.BORDER,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    radioSelected: { borderColor: colors.BRAND },
+    radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.BRAND },
+    prefLabel: { fontSize: 14, color: colors.INK_1, fontWeight: '500' },
 
-  saveBtn: {
-    backgroundColor: BRAND, borderRadius: 14, padding: 15,
-    alignItems: 'center',
-    shadowColor: BRAND,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3, shadowRadius: 12, elevation: 5,
-  },
-  saveBtnDisabled: { opacity: 0.6 },
-  saveBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+    saveBtn: {
+      backgroundColor: colors.BRAND, borderRadius: 14, padding: 15,
+      alignItems: 'center',
+      shadowColor: colors.BRAND,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.3, shadowRadius: 12, elevation: 5,
+    },
+    saveBtnDisabled: { opacity: 0.6 },
+    saveBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
 
-  actionRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 2,
-  },
-  actionIcon: {
-    width: 34, height: 34, borderRadius: 10,
-    backgroundColor: BRAND_TINT,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  actionText: { flex: 1, fontSize: 14, fontWeight: '600', color: INK },
+    actionRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 2,
+    },
+    actionIcon: {
+      width: 34, height: 34, borderRadius: 10,
+      backgroundColor: colors.BRAND_TINT,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    actionText: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.INK_1 },
 
-  cardDivider: { height: 1, backgroundColor: BORDER, marginVertical: 4 },
-  deleteRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 2,
-  },
-  deleteRowText: { fontSize: 14, fontWeight: '600', color: ERROR },
-  deleteRowSub: { fontSize: 11, color: ERROR + 'AA', marginTop: 1 },
+    cardDivider: { height: 1, backgroundColor: colors.BORDER, marginVertical: 4 },
+    deleteRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 2,
+    },
+    deleteRowText: { fontSize: 14, fontWeight: '600', color: colors.ERROR },
+    deleteRowSub: { fontSize: 11, color: colors.ERROR + 'AA', marginTop: 1 },
 
-  toast: {
-    position: 'absolute',
-    bottom: 36,
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#059669',
-    paddingHorizontal: 20, paddingVertical: 12,
-    borderRadius: 999,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25, shadowRadius: 8, elevation: 8,
-  },
-  toastText: { fontSize: 14, fontWeight: '700', color: '#fff' },
-});
+    toast: {
+      position: 'absolute',
+      bottom: 36,
+      alignSelf: 'center',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: colors.SUCCESS,
+      paddingHorizontal: 20, paddingVertical: 12,
+      borderRadius: 999,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25, shadowRadius: 8, elevation: 8,
+    },
+    toastText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  });
+}
 
-const a11yStyles = StyleSheet.create({
-  sizeRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  sizeBtn: {
-    flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 12,
-    borderWidth: 1.5, borderColor: BORDER, backgroundColor: BG, gap: 4,
-  },
-  sizeBtnActive: { borderColor: BRAND, backgroundColor: BRAND_TINT },
-  sizePreview: { fontWeight: '800', color: INK_2 },
-  sizeBtnLabel: { fontSize: 11, fontWeight: '600', color: INK_2, textAlign: 'center' },
-});
+function createA11yStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+    sizeRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
+    sizeBtn: {
+      flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 12,
+      borderWidth: 1.5, borderColor: colors.BORDER, backgroundColor: colors.BG, gap: 4,
+    },
+    sizeBtnActive: { borderColor: colors.BRAND, backgroundColor: colors.BRAND_TINT },
+    sizePreview: { fontWeight: '800', color: colors.INK_2 },
+    sizeBtnLabel: { fontSize: 11, fontWeight: '600', color: colors.INK_2, textAlign: 'center' },
+  });
+}

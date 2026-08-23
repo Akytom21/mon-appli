@@ -15,7 +15,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
-import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
+import { FontSize, Radius, Spacing } from '@/constants/theme';
+import type { ColorTokens } from '@/constants/design';
+import { useThemeColor } from '@/hooks/use-theme-color';
 import { HEALTH_PROFESSIONALS } from '@/data/healthProfessionals';
 import { useHealthProfessionalsSearch } from '@/hooks/useHealthProfessionals';
 import { useCreateAppointment } from '@/hooks/useAppointments';
@@ -74,6 +76,8 @@ export default function RendezVousScreen() {
   const { professionals, loading: profLoading } = useHealthProfessionalsSearch();
   const createAppointment = useCreateAppointment();
   const a11y = useAccessibility();
+  const colors = useThemeColor();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [selectedCategory, setSelectedCategory] = useState<CategoryId | null>(null);
   const [searchQuery, setSearchQuery]           = useState('');
@@ -145,7 +149,7 @@ export default function RendezVousScreen() {
   };
 
   const markedDates = selectedDate
-    ? { [selectedDate]: { selected: true, selectedColor: Colors.malentendants, selectedTextColor: Colors.white } }
+    ? { [selectedDate]: { selected: true, selectedColor: colors.BRAND, selectedTextColor: '#fff' } }
     : {};
 
   const canSubmit = selectedCategory && selectedProvider && selectedDate && selectedTime;
@@ -225,7 +229,7 @@ export default function RendezVousScreen() {
                       active && styles.categoryCardActive,
                       {
                         borderWidth: a11y.hcBorder(2),
-                        backgroundColor: a11y.hcBg(active ? Colors.malentendantsLight : Colors.white),
+                        backgroundColor: a11y.hcBg(active ? colors.BRAND_TINT : colors.SURFACE),
                       },
                     ]}
                     onPress={() => handleSelectCategory(cat.id)}
@@ -245,7 +249,7 @@ export default function RendezVousScreen() {
                       active && styles.categoryLabelActive,
                       {
                         fontSize: a11y.scale(FontSize.sm),
-                        color: a11y.hcFg(active ? Colors.malentendants : Colors.textSecondary),
+                        color: a11y.hcFg(active ? colors.BRAND : colors.INK_2),
                       },
                     ]}>
                       {cat.label}
@@ -279,13 +283,13 @@ export default function RendezVousScreen() {
                   if (selectedProvider) setSelectedProvider(null);
                 }}
                 placeholder={profLoading ? 'Chargement des professionnels…' : 'Ex : Dr. Lefèvre, Pharmacie Masséna…'}
-                placeholderTextColor={Colors.textSecondary}
+                placeholderTextColor={colors.INK_2}
                 autoCorrect={false}
                 editable={!profLoading}
                 accessibilityLabel="Rechercher un professionnel de santé"
               />
               {profLoading
-                ? <ActivityIndicator style={styles.clearBtn} color={Colors.malentendants} size="small" />
+                ? <ActivityIndicator style={styles.clearBtn} color={colors.BRAND} size="small" />
                 : searchQuery.length > 0 && (
                     <TouchableOpacity style={styles.clearBtn} onPress={handleClearProvider} accessibilityLabel="Effacer">
                       <Text style={styles.clearBtnText}>✕</Text>
@@ -387,16 +391,16 @@ export default function RendezVousScreen() {
                 markedDates={markedDates}
                 minDate={TODAY}
                 theme={{
-                  backgroundColor: Colors.white,
-                  calendarBackground: Colors.white,
-                  selectedDayBackgroundColor: Colors.malentendants,
-                  selectedDayTextColor: Colors.white,
-                  todayTextColor: Colors.malentendants,
-                  todayBackgroundColor: Colors.malentendantsLight,
-                  dayTextColor: Colors.textPrimary,
-                  textDisabledColor: Colors.border,
-                  arrowColor: Colors.malentendants,
-                  monthTextColor: Colors.textPrimary,
+                  backgroundColor: colors.SURFACE,
+                  calendarBackground: colors.SURFACE,
+                  selectedDayBackgroundColor: colors.BRAND,
+                  selectedDayTextColor: '#fff',
+                  todayTextColor: colors.BRAND,
+                  todayBackgroundColor: colors.BRAND_TINT,
+                  dayTextColor: colors.INK_1,
+                  textDisabledColor: colors.BORDER,
+                  arrowColor: colors.BRAND,
+                  monthTextColor: colors.INK_1,
                   textDayFontWeight: '500',
                   textMonthFontWeight: '700',
                   textDayHeaderFontWeight: '600',
@@ -468,7 +472,7 @@ export default function RendezVousScreen() {
             accessibilityLabel="Confirmer la demande de rendez-vous"
           >
             {submitting ? (
-              <ActivityIndicator color={Colors.white} />
+              <ActivityIndicator color="#fff" />
             ) : (
               <Text style={[styles.submitText, { fontSize: a11y.scale(FontSize.lg) }]}>
                 {canSubmit ? '✓  Confirmer la demande' : 'Complétez tous les champs'}
@@ -482,48 +486,49 @@ export default function RendezVousScreen() {
 }
 
 /* ─── Styles ─────────────────────────────────────────────── */
-const styles = StyleSheet.create({
-  safe:    { flex: 1, backgroundColor: Colors.malentendants },
-  scroll:  { flex: 1, backgroundColor: Colors.background },
+function createStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+  safe:    { flex: 1, backgroundColor: colors.BRAND },
+  scroll:  { flex: 1, backgroundColor: colors.BG },
   content: { padding: Spacing.lg, paddingBottom: Spacing.xxl, gap: Spacing.xl },
 
   myRdvLink: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.malentendantsLight,
+    backgroundColor: colors.BRAND_TINT,
     borderRadius: Radius.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderWidth: 1,
-    borderColor: Colors.malentendants,
+    borderColor: colors.BRAND,
   },
-  myRdvLinkText: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.malentendantsDark },
-  myRdvLinkArrow: { fontSize: FontSize.lg, color: Colors.malentendants, fontWeight: '700' },
+  myRdvLinkText: { fontSize: FontSize.sm, fontWeight: '600', color: colors.BRAND_DARK },
+  myRdvLinkArrow: { fontSize: FontSize.lg, color: colors.BRAND, fontWeight: '700' },
 
   intro: {
-    backgroundColor: Colors.malentendantsLight,
+    backgroundColor: colors.BRAND_TINT,
     borderRadius: Radius.md,
     padding: Spacing.md,
     borderLeftWidth: 4,
-    borderLeftColor: Colors.malentendants,
+    borderLeftColor: colors.BRAND,
   },
-  introText: { fontSize: FontSize.sm, color: Colors.malentendantsDark, lineHeight: 20 },
+  introText: { fontSize: FontSize.sm, color: colors.BRAND_DARK, lineHeight: 20 },
 
   section: { gap: Spacing.sm },
-  sectionTitle: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.textPrimary },
-  sectionSub:   { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: -4 },
+  sectionTitle: { fontSize: FontSize.lg, fontWeight: '700', color: colors.INK_1 },
+  sectionSub:   { fontSize: FontSize.sm, color: colors.INK_2, marginTop: -4 },
 
   categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   categoryCard: {
     width: '47.5%',
-    backgroundColor: Colors.white,
+    backgroundColor: colors.SURFACE,
     borderRadius: Radius.lg,
     padding: Spacing.md,
     alignItems: 'center',
     gap: Spacing.xs,
     borderWidth: 2,
-    borderColor: Colors.border,
+    borderColor: colors.BORDER,
     position: 'relative',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -532,8 +537,8 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   categoryCardActive: {
-    borderColor: Colors.malentendants,
-    backgroundColor: Colors.malentendantsLight,
+    borderColor: colors.BRAND,
+    backgroundColor: colors.BRAND_TINT,
     shadowOpacity: 0.1,
     elevation: 4,
   },
@@ -541,11 +546,11 @@ const styles = StyleSheet.create({
   categoryLabel: {
     fontSize: FontSize.sm,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: colors.INK_2,
     textAlign: 'center',
     lineHeight: 18,
   },
-  categoryLabelActive: { color: Colors.malentendants },
+  categoryLabelActive: { color: colors.BRAND },
   categoryCheck: {
     position: 'absolute',
     top: 8,
@@ -553,42 +558,42 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: Colors.malentendants,
+    backgroundColor: colors.BRAND,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  categoryCheckText: { fontSize: 11, fontWeight: '800', color: Colors.white },
+  categoryCheckText: { fontSize: 11, fontWeight: '800', color: '#fff' },
 
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.white,
+    backgroundColor: colors.SURFACE,
     borderRadius: Radius.md,
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: colors.BORDER,
     overflow: 'hidden',
   },
   searchInput: {
     flex: 1,
     padding: Spacing.md,
     fontSize: FontSize.md,
-    color: Colors.textPrimary,
+    color: colors.INK_1,
   },
-  searchInputFilled: { color: Colors.malentendantsDark },
+  searchInputFilled: { color: colors.BRAND_DARK },
   clearBtn: {
     padding: Spacing.md,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  clearBtnText: { fontSize: FontSize.md, color: Colors.textSecondary, fontWeight: '600' },
+  clearBtnText: { fontSize: FontSize.md, color: colors.INK_2, fontWeight: '600' },
 
   suggestions: {
-    backgroundColor: Colors.white,
+    backgroundColor: colors.SURFACE,
     borderRadius: Radius.md,
     borderWidth: 1.5,
-    borderColor: Colors.malentendants,
+    borderColor: colors.BRAND,
     overflow: 'hidden',
-    shadowColor: Colors.malentendants,
+    shadowColor: colors.BRAND,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -600,50 +605,50 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     gap: Spacing.sm,
   },
-  suggestionBorder: { borderBottomWidth: 1, borderBottomColor: Colors.border },
+  suggestionBorder: { borderBottomWidth: 1, borderBottomColor: colors.BORDER },
   suggestionEmoji: { fontSize: 20, flexShrink: 0 },
   suggestionText: { flex: 1 },
-  suggestionName: { fontSize: FontSize.sm, fontWeight: '700', color: Colors.textPrimary },
-  suggestionSpecialite: { fontSize: FontSize.sm, fontWeight: '400', color: Colors.textSecondary },
-  suggestionAddress: { fontSize: FontSize.xs, color: Colors.textSecondary, marginTop: 2 },
+  suggestionName: { fontSize: FontSize.sm, fontWeight: '700', color: colors.INK_1 },
+  suggestionSpecialite: { fontSize: FontSize.sm, fontWeight: '400', color: colors.INK_2 },
+  suggestionAddress: { fontSize: FontSize.xs, color: colors.INK_2, marginTop: 2 },
 
   noResult: {
     backgroundColor: '#FEF3C7',
     borderRadius: Radius.md,
     padding: Spacing.md,
     borderLeftWidth: 4,
-    borderLeftColor: Colors.warning,
+    borderLeftColor: colors.WARNING,
   },
   noResultText: { fontSize: FontSize.sm, color: '#92400E' },
 
   selectedCard: {
-    backgroundColor: Colors.interpretesLight,
+    backgroundColor: colors.BRAND_TINT,
     borderRadius: Radius.md,
     padding: Spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
     borderWidth: 2,
-    borderColor: Colors.interpretes,
+    borderColor: colors.BRAND,
   },
   selectedEmoji:   { fontSize: 24, flexShrink: 0 },
   selectedInfo:    { flex: 1, gap: 2 },
-  selectedName:    { fontSize: FontSize.sm, fontWeight: '700', color: Colors.textPrimary },
-  selectedAddress: { fontSize: FontSize.xs, color: Colors.textSecondary },
+  selectedName:    { fontSize: FontSize.sm, fontWeight: '700', color: colors.INK_1 },
+  selectedAddress: { fontSize: FontSize.xs, color: colors.INK_2 },
   selectedClear: {
     width: 28, height: 28, borderRadius: 14,
-    backgroundColor: Colors.border,
+    backgroundColor: colors.BORDER,
     alignItems: 'center', justifyContent: 'center',
     flexShrink: 0,
   },
-  selectedClearText: { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: '700' },
+  selectedClearText: { fontSize: FontSize.sm, color: colors.INK_2, fontWeight: '700' },
 
   calendarWrapper: {
     borderRadius: Radius.lg,
     overflow: 'hidden',
     borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.white,
+    borderColor: colors.BORDER,
+    backgroundColor: colors.SURFACE,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -657,52 +662,52 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: Radius.md,
     borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.white,
+    borderColor: colors.BORDER,
+    backgroundColor: colors.SURFACE,
     alignItems: 'center',
     justifyContent: 'center',
   },
   timeSlotActive: {
-    borderColor: Colors.malentendants,
-    backgroundColor: Colors.malentendants,
-    shadowColor: Colors.malentendants,
+    borderColor: colors.BRAND,
+    backgroundColor: colors.BRAND,
+    shadowColor: colors.BRAND,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 3,
   },
-  timeSlotText:       { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: '500' },
-  timeSlotTextActive: { color: Colors.white, fontWeight: '700' },
+  timeSlotText:       { fontSize: FontSize.sm, color: colors.INK_2, fontWeight: '500' },
+  timeSlotTextActive: { color: '#fff', fontWeight: '700' },
 
   recap: {
-    backgroundColor: Colors.malentendantsLight,
+    backgroundColor: colors.BRAND_TINT,
     borderRadius: Radius.lg,
     padding: Spacing.md,
     gap: Spacing.xs,
     borderWidth: 2,
-    borderColor: Colors.malentendants,
+    borderColor: colors.BRAND,
   },
-  recapTitle: { fontSize: FontSize.md, fontWeight: '700', color: Colors.malentendantsDark, marginBottom: 4 },
-  recapLine:  { fontSize: FontSize.sm, color: Colors.malentendantsDark, lineHeight: 22 },
+  recapTitle: { fontSize: FontSize.md, fontWeight: '700', color: colors.BRAND_DARK, marginBottom: 4 },
+  recapLine:  { fontSize: FontSize.sm, color: colors.BRAND_DARK, lineHeight: 22 },
 
   submitBtn: {
-    backgroundColor: Colors.malentendants,
+    backgroundColor: colors.BRAND,
     borderRadius: Radius.lg,
     padding: Spacing.md,
     alignItems: 'center',
-    shadowColor: Colors.malentendants,
+    shadowColor: colors.BRAND,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 5,
   },
   submitBtnDisabled: {
-    backgroundColor: Colors.textSecondary,
+    backgroundColor: colors.INK_2,
     shadowOpacity: 0,
     elevation: 0,
     opacity: 0.5,
   },
-  submitText: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.white },
+  submitText: { fontSize: FontSize.lg, fontWeight: '700', color: '#fff' },
 
   doctolibBlock: { gap: Spacing.xs },
   doctolibBtn: {
@@ -732,9 +737,10 @@ const styles = StyleSheet.create({
   doctolibBtnText: { fontSize: FontSize.md, fontWeight: '700', color: '#fff' },
   doctolibHint: {
     fontSize: FontSize.xs,
-    color: Colors.textSecondary,
+    color: colors.INK_2,
     textAlign: 'center',
     lineHeight: 17,
     paddingHorizontal: Spacing.sm,
   },
-});
+  });
+}

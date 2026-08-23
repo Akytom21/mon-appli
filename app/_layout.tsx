@@ -5,8 +5,15 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '@/context/AuthContext';
-import { AccessibilityProvider } from '@/context/AccessibilityContext';
+import { AccessibilityProvider, useAccessibility } from '@/context/AccessibilityContext';
 import SplashOverlay from '@/components/SplashOverlay';
+
+/* Bascule le style de la barre de statut selon le mode sombre effectif —
+   nécessite d'être sous AccessibilityProvider pour lire isDark. */
+function AppStatusBar() {
+  const { isDark } = useAccessibility();
+  return <StatusBar style={isDark ? 'light' : 'dark'} />;
+}
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -32,7 +39,7 @@ export default function RootLayout() {
             <Stack.Screen name="(auth)" options={{ animation: 'slide_from_right' }} />
             <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
           </Stack>
-          <StatusBar style="light" />
+          <AppStatusBar />
           {/* Vérifie si l'onboarding doit être affiché (avant que le splash fade) */}
           <OnboardingGate />
           {/* Splash animé — se superpose sur tout jusqu'à résolution de l'auth */}

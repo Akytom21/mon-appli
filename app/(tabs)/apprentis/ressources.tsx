@@ -14,18 +14,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useVideoProgress } from '@/hooks/useVideoProgress';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import type { ColorTokens } from '@/constants/design';
 
 /* ── Design tokens ───────────────────────────────────────── */
-const BRAND      = '#0F766E';
-const BRAND_DARK = '#0B5F58';
-const BRAND_TINT = '#E8F4F2';
-const INK        = '#0F1B2D';
-const INK_2      = '#475569';
-const INK_3      = '#94A3B8';
-const BORDER     = '#E5EAF0';
-const BG         = '#F6F8FA';
-const AMBER      = '#B45309';
-const AMBER_TINT = '#FEF3C7';
+const AMBER = '#B45309';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const THUMB_H = Math.round(SCREEN_W * (9 / 16));
@@ -181,19 +174,20 @@ const VIDEOS: Video[] = [
 
 const TOTAL = VIDEOS.length;
 
-function getLevelInfo(count: number): { label: string; color: string; next: string | null } {
-  if (count === 0)  return { label: 'Débutant',      color: INK_3,     next: '1 vidéo pour débuter' };
-  if (count <= 3)   return { label: 'Débutant',      color: INK_3,     next: `${4 - count} vidéo(s) pour Intermédiaire` };
-  if (count <= 6)   return { label: 'Intermédiaire', color: AMBER,     next: `${7 - count} vidéo(s) pour Avancé` };
-  if (count <= 10)  return { label: 'Avancé',        color: BRAND,     next: `${11 - count} vidéo(s) pour Expert` };
+function getLevelInfo(count: number, colors: ColorTokens): { label: string; color: string; next: string | null } {
+  if (count === 0)  return { label: 'Débutant',      color: colors.INK_3, next: '1 vidéo pour débuter' };
+  if (count <= 3)   return { label: 'Débutant',      color: colors.INK_3, next: `${4 - count} vidéo(s) pour Intermédiaire` };
+  if (count <= 6)   return { label: 'Intermédiaire', color: AMBER,        next: `${7 - count} vidéo(s) pour Avancé` };
+  if (count <= 10)  return { label: 'Avancé',        color: colors.BRAND, next: `${11 - count} vidéo(s) pour Expert` };
   return               { label: 'Expert',        color: '#7C3AED', next: null };
 }
 
 /* ── Category badge ──────────────────────────────────────── */
 const CategoryBadge = memo(function CategoryBadge({ category }: { category: Video['category'] }) {
+  const colors = useThemeColor();
   const cfg = {
     medical:      { bg: '#FEF2F2', color: '#DC2626', label: 'Médical'   },
-    basics:       { bg: BRAND_TINT, color: BRAND,    label: 'Bases LSF' },
+    basics:       { bg: colors.BRAND_TINT, color: colors.BRAND, label: 'Bases LSF' },
     professional: { bg: '#F5F3FF', color: '#7C3AED', label: 'Pro LSF'   },
   }[category];
   return (
@@ -217,6 +211,8 @@ const VideoCard = memo(function VideoCard({
   watched: boolean;
   onPress: (video: Video) => void;
 }) {
+  const colors = useThemeColor();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const thumbUri = `https://img.youtube.com/vi/${video.youtubeId}/hqdefault.jpg`;
   const handlePress = useCallback(() => onPress(video), [onPress, video]);
 
@@ -258,8 +254,10 @@ const VideoCard = memo(function VideoCard({
 export default function RessourcesScreen() {
   const { isWatched, watchedCount, markWatched } = useVideoProgress();
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+  const colors = useThemeColor();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const levelInfo     = useMemo(() => getLevelInfo(watchedCount), [watchedCount]);
+  const levelInfo     = useMemo(() => getLevelInfo(watchedCount, colors), [watchedCount, colors]);
   const progressPct   = useMemo(() => Math.round((watchedCount / TOTAL) * 100), [watchedCount]);
   const firstUnwatched = useMemo(() => VIDEOS.find((v) => !isWatched(v.id)), [isWatched]);
   const medicalVideos       = useMemo(() => VIDEOS.filter((v) => v.category === 'medical'), []);
@@ -430,7 +428,7 @@ export default function RessourcesScreen() {
 
         {/* ── Info footer ──────────────────────── */}
         <View style={styles.infoFooter}>
-          <Feather name="info" size={14} color={BRAND} />
+          <Feather name="info" size={14} color={colors.BRAND} />
           <Text style={styles.infoFooterText}>
             Les vidéos marquées comme vues contribuent à votre niveau et à la progression globale de votre parcours apprenti.
           </Text>
@@ -543,13 +541,14 @@ export default function RessourcesScreen() {
 }
 
 /* ── Styles ──────────────────────────────────────────────── */
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BG },
+function createStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.BG },
   scrollContent: { paddingBottom: 40 },
 
   /* Progress header */
   progressHeader: {
-    backgroundColor: BRAND,
+    backgroundColor: colors.BRAND,
     paddingBottom: 24,
     paddingHorizontal: 20,
     paddingTop: 16,
@@ -591,19 +590,19 @@ const styles = StyleSheet.create({
   /* Sections */
   section: { paddingHorizontal: 20, paddingTop: 20 },
   sectionRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  sectionDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: BRAND },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: INK, letterSpacing: -0.3, flex: 1 },
+  sectionDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.BRAND },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.INK_1, letterSpacing: -0.3, flex: 1 },
   sectionCount: {
-    backgroundColor: BRAND_TINT, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999,
+    backgroundColor: colors.BRAND_TINT, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999,
   },
-  sectionCountText: { fontSize: 11, fontWeight: '700', color: BRAND },
+  sectionCountText: { fontSize: 11, fontWeight: '700', color: colors.BRAND },
   cardGrid: { gap: 12 },
 
   /* Continuer card */
   continuerCard: {
-    backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden',
-    borderWidth: 1, borderColor: BORDER,
-    shadowColor: BRAND, shadowOffset: { width: 0, height: 4 },
+    backgroundColor: colors.SURFACE, borderRadius: 16, overflow: 'hidden',
+    borderWidth: 1, borderColor: colors.BORDER,
+    shadowColor: colors.BRAND, shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12, shadowRadius: 12, elevation: 3,
   },
   continuerThumb: { width: '100%', height: 180 },
@@ -612,20 +611,20 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.25)', alignItems: 'center', justifyContent: 'center',
   },
   continuerPlayBtn: {
-    width: 52, height: 52, borderRadius: 26, backgroundColor: BRAND,
+    width: 52, height: 52, borderRadius: 26, backgroundColor: colors.BRAND,
     alignItems: 'center', justifyContent: 'center',
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3, shadowRadius: 8, elevation: 4, paddingLeft: 3,
   },
   continuerInfo: { padding: 14, gap: 4 },
-  continuerTitle: { fontSize: 15.5, fontWeight: '700', color: INK, letterSpacing: -0.2, marginTop: 4 },
-  continuerSub: { fontSize: 12.5, color: INK_2 },
+  continuerTitle: { fontSize: 15.5, fontWeight: '700', color: colors.INK_1, letterSpacing: -0.2, marginTop: 4 },
+  continuerSub: { fontSize: 12.5, color: colors.INK_2 },
 
   /* Video card */
   card: {
-    backgroundColor: '#fff', borderRadius: 14, overflow: 'hidden',
-    borderWidth: 1, borderColor: BORDER,
-    shadowColor: '#0F1B2D', shadowOffset: { width: 0, height: 2 },
+    backgroundColor: colors.SURFACE, borderRadius: 14, overflow: 'hidden',
+    borderWidth: 1, borderColor: colors.BORDER,
+    shadowColor: colors.INK_1, shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
   },
   thumbWrap: { position: 'relative', height: 160 },
@@ -643,7 +642,7 @@ const styles = StyleSheet.create({
   watchedBadge: {
     position: 'absolute', top: 10, right: 10,
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: '#059669', borderRadius: 999,
+    backgroundColor: colors.SUCCESS, borderRadius: 999,
     paddingHorizontal: 8, paddingVertical: 4,
   },
   watchedBadgeText: { fontSize: 11, fontWeight: '700', color: '#fff' },
@@ -655,19 +654,19 @@ const styles = StyleSheet.create({
   durationText: { fontSize: 11, color: '#fff', fontWeight: '600' },
   cardBody: { padding: 12, gap: 6 },
   cardTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  channelText: { fontSize: 11.5, color: INK_3, fontWeight: '500' },
-  cardTitle: { fontSize: 14, fontWeight: '700', color: INK, letterSpacing: -0.2, lineHeight: 19 },
+  channelText: { fontSize: 11.5, color: colors.INK_3, fontWeight: '500' },
+  cardTitle: { fontSize: 14, fontWeight: '700', color: colors.INK_1, letterSpacing: -0.2, lineHeight: 19 },
   progressBarTrack: {
-    height: 3, backgroundColor: BORDER, borderRadius: 2, marginTop: 4, overflow: 'hidden',
+    height: 3, backgroundColor: colors.BORDER, borderRadius: 2, marginTop: 4, overflow: 'hidden',
   },
-  progressBarFill: { height: '100%', backgroundColor: BRAND, borderRadius: 2 },
+  progressBarFill: { height: '100%', backgroundColor: colors.BRAND, borderRadius: 2 },
 
   /* Info footer */
   infoFooter: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,
-    margin: 20, padding: 14, backgroundColor: BRAND_TINT, borderRadius: 12,
+    margin: 20, padding: 14, backgroundColor: colors.BRAND_TINT, borderRadius: 12,
   },
-  infoFooterText: { fontSize: 12.5, color: BRAND_DARK, lineHeight: 18, flex: 1 },
+  infoFooterText: { fontSize: 12.5, color: colors.BRAND_DARK, lineHeight: 18, flex: 1 },
 
   /* Modal */
   modalSafe: { flex: 1, backgroundColor: '#000' },
@@ -704,13 +703,13 @@ const styles = StyleSheet.create({
   youtubeBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 
   /* Modal body */
-  modalBody: { flex: 1, backgroundColor: BG },
+  modalBody: { flex: 1, backgroundColor: colors.BG },
   modalBodyContent: { padding: 20, gap: 12, paddingBottom: 40 },
   modalMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  modalDuration: { fontSize: 12.5, color: INK_3, fontWeight: '500' },
-  modalChannel: { fontSize: 12.5, color: INK_3, fontWeight: '500' },
-  modalTitle: { fontSize: 20, fontWeight: '800', color: INK, letterSpacing: -0.5 },
-  modalDesc: { fontSize: 14, color: INK_2, lineHeight: 21 },
+  modalDuration: { fontSize: 12.5, color: colors.INK_3, fontWeight: '500' },
+  modalChannel: { fontSize: 12.5, color: colors.INK_3, fontWeight: '500' },
+  modalTitle: { fontSize: 20, fontWeight: '800', color: colors.INK_1, letterSpacing: -0.5 },
+  modalDesc: { fontSize: 14, color: colors.INK_2, lineHeight: 21 },
 
   openYoutubeBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -723,9 +722,9 @@ const styles = StyleSheet.create({
 
   markDoneBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: BRAND, borderRadius: 14, padding: 14,
+    backgroundColor: colors.BRAND, borderRadius: 14, padding: 14,
     justifyContent: 'center',
-    shadowColor: BRAND, shadowOffset: { width: 0, height: 6 },
+    shadowColor: colors.BRAND, shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35, shadowRadius: 12, elevation: 5,
   },
   markDoneBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
@@ -736,4 +735,5 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#A7F3D0',
   },
   watchedConfirmText: { fontSize: 14, color: '#065F46', fontWeight: '500', flex: 1 },
-});
+  });
+}

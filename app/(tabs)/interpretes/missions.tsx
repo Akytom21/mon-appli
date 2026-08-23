@@ -19,9 +19,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
+import { FontSize, Radius, Spacing } from '@/constants/theme';
 import { useAppointments, type Appointment, type AppointmentType } from '@/hooks/useAppointments';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import type { ColorTokens } from '@/constants/design';
 
 type Tab = 'disponibles' | 'missions' | 'historique';
 type DateFilter = 'today' | 'week' | 'month';
@@ -99,6 +101,8 @@ const FilterSheet = memo(function FilterSheet({
   onToggleType, onSetDistance, onSetDate, onSetUrgentOnly,
   onReset, onApply, onClose,
 }: FilterSheetProps) {
+  const colors = useThemeColor();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const slideY = useRef(new Animated.Value(420)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
 
@@ -135,7 +139,7 @@ const FilterSheet = memo(function FilterSheet({
         <View style={styles.filterTitleRow}>
           <Text style={styles.filterTitle}>Filtres</Text>
           <TouchableOpacity onPress={close} style={styles.filterCloseBtn} accessibilityLabel="Fermer">
-            <Feather name="x" size={18} color={Colors.textSecondary} />
+            <Feather name="x" size={18} color={colors.INK_2} />
           </TouchableOpacity>
         </View>
 
@@ -213,9 +217,9 @@ const FilterSheet = memo(function FilterSheet({
             <Switch
               value={pendingUrgentOnly}
               onValueChange={onSetUrgentOnly}
-              trackColor={{ false: Colors.border, true: Colors.primary }}
-              thumbColor={Colors.white}
-              ios_backgroundColor={Colors.border}
+              trackColor={{ false: colors.BORDER, true: colors.BRAND }}
+              thumbColor={colors.SURFACE}
+              ios_backgroundColor={colors.BORDER}
             />
           </View>
         </ScrollView>
@@ -237,6 +241,8 @@ const FilterSheet = memo(function FilterSheet({
 /* ─── Main screen ────────────────────────────────────────── */
 
 export default function MissionsScreen() {
+  const colors = useThemeColor();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { pending, myMissions, history, loading, acceptMission, declineMission } =
     useAppointments();
   const unreadMap = useUnreadMessages();
@@ -444,7 +450,7 @@ export default function MissionsScreen() {
         </Text>
       </View>
     ),
-    [activeTab, hasActiveSearch],
+    [activeTab, hasActiveSearch, styles],
   );
 
   if (loading) {
@@ -504,11 +510,11 @@ export default function MissionsScreen() {
         ]}
       >
         <View style={styles.searchBar}>
-          <Feather name="search" size={17} color={Colors.textSecondary} />
+          <Feather name="search" size={17} color={colors.INK_2} />
           <TextInput
             style={styles.searchInput}
             placeholder="Patient, type, lieu, adresse…"
-            placeholderTextColor={Colors.textSecondary}
+            placeholderTextColor={colors.INK_2}
             value={searchQuery}
             onChangeText={setSearchQuery}
             returnKeyType="search"
@@ -519,7 +525,7 @@ export default function MissionsScreen() {
               onPress={() => setSearchQuery('')}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Feather name="x" size={15} color={Colors.textSecondary} />
+              <Feather name="x" size={15} color={colors.INK_2} />
             </TouchableOpacity>
           )}
         </View>
@@ -530,7 +536,7 @@ export default function MissionsScreen() {
           accessibilityRole="button"
           accessibilityLabel={`Filtres${activeFilterCount > 0 ? `, ${activeFilterCount} actif${activeFilterCount > 1 ? 's' : ''}` : ''}`}
         >
-          <Feather name="sliders" size={17} color={activeFilterCount > 0 ? Colors.white : Colors.textPrimary} />
+          <Feather name="sliders" size={17} color={activeFilterCount > 0 ? '#fff' : colors.INK_1} />
           {activeFilterCount > 0 && (
             <View style={styles.filterBtnBadge}>
               <Text style={styles.filterBtnBadgeText}>{activeFilterCount}</Text>
@@ -556,7 +562,7 @@ export default function MissionsScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} colors={[Colors.primary]} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.BRAND} colors={[colors.BRAND]} />
         }
         showsVerticalScrollIndicator={false}
         removeClippedSubviews
@@ -604,6 +610,8 @@ type CardProps = {
 const AppointmentCard = memo(function AppointmentCard({
   appt, tab, distance, isAccepting, acceptAnim, onAccept, onDecline, onMessage, unreadCount,
 }: CardProps) {
+  const colors = useThemeColor();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const info = TYPE_INFO[appt.type];
   const isUrgent = appt.type === 'urgences';
   const handleAcceptThis  = useCallback(() => onAccept(appt.id),  [onAccept, appt.id]);
@@ -665,7 +673,7 @@ const AppointmentCard = memo(function AppointmentCard({
               accessibilityRole="button"
               accessibilityLabel={unreadCount ? `Contacter le patient — ${unreadCount} message${unreadCount > 1 ? 's' : ''} non lu${unreadCount > 1 ? 's' : ''}` : 'Contacter le patient'}
             >
-              <Feather name="message-circle" size={15} color={Colors.white} />
+              <Feather name="message-circle" size={15} color="#fff" />
               <Text style={styles.chatBtnText}>Contacter</Text>
               {!!unreadCount && (
                 <View style={styles.chatBtnBadge}>
@@ -681,80 +689,81 @@ const AppointmentCard = memo(function AppointmentCard({
 });
 
 /* ─── Styles ─────────────────────────────────────────────── */
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
+function createStyles(colors: ColorTokens) {
+  return StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.BG },
   centered: {
     flex: 1, justifyContent: 'center', alignItems: 'center',
-    gap: Spacing.md, backgroundColor: Colors.background,
+    gap: Spacing.md, backgroundColor: colors.BG,
   },
-  loadingText: { fontSize: FontSize.sm, color: Colors.textSecondary },
+  loadingText: { fontSize: FontSize.sm, color: colors.INK_2 },
 
   /* Tab bar */
   tabBar: {
-    flexDirection: 'row', backgroundColor: Colors.white,
-    borderBottomWidth: 1, borderBottomColor: Colors.border,
+    flexDirection: 'row', backgroundColor: colors.SURFACE,
+    borderBottomWidth: 1, borderBottomColor: colors.BORDER,
     paddingHorizontal: Spacing.sm,
   },
   tab: {
     flex: 1, paddingVertical: Spacing.md, alignItems: 'center',
     borderBottomWidth: 2.5, borderBottomColor: 'transparent',
   },
-  tabActive: { borderBottomColor: Colors.primary },
+  tabActive: { borderBottomColor: colors.BRAND },
   tabInner: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
-  tabText: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.textSecondary },
-  tabTextActive: { color: Colors.primary },
+  tabText: { fontSize: FontSize.sm, fontWeight: '600', color: colors.INK_2 },
+  tabTextActive: { color: colors.BRAND },
   tabBadge: {
     minWidth: 18, height: 18, borderRadius: 9,
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4,
   },
-  tabBadgeActive: { backgroundColor: Colors.primary },
-  tabBadgeInactive: { backgroundColor: Colors.border },
+  tabBadgeActive: { backgroundColor: colors.BRAND },
+  tabBadgeInactive: { backgroundColor: colors.BORDER },
   tabBadgeText: { fontSize: 10, fontWeight: '800' },
-  tabBadgeTextActive: { color: Colors.white },
-  tabBadgeTextInactive: { color: Colors.textSecondary },
+  tabBadgeTextActive: { color: '#fff' },
+  tabBadgeTextInactive: { color: colors.INK_2 },
 
   /* Search row */
   searchRow: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
-    gap: Spacing.sm, backgroundColor: Colors.white,
-    borderBottomWidth: 1, borderBottomColor: Colors.border,
+    gap: Spacing.sm, backgroundColor: colors.SURFACE,
+    borderBottomWidth: 1, borderBottomColor: colors.BORDER,
   },
   searchBar: {
     flex: 1, flexDirection: 'row', alignItems: 'center',
-    backgroundColor: Colors.primaryLight, borderRadius: Radius.lg,
+    backgroundColor: colors.BRAND_TINT, borderRadius: Radius.lg,
     paddingHorizontal: Spacing.md, paddingVertical: 9,
-    gap: Spacing.sm, borderWidth: 1, borderColor: Colors.border,
+    gap: Spacing.sm, borderWidth: 1, borderColor: colors.BORDER,
   },
   searchInput: {
-    flex: 1, fontSize: FontSize.sm, color: Colors.textPrimary,
+    flex: 1, fontSize: FontSize.sm, color: colors.INK_1,
     padding: 0, margin: 0,
   },
   filterBtn: {
     width: 42, height: 42, borderRadius: Radius.md,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: Colors.border,
-    backgroundColor: Colors.white, position: 'relative',
+    borderWidth: 1.5, borderColor: colors.BORDER,
+    backgroundColor: colors.SURFACE, position: 'relative',
   },
-  filterBtnActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  filterBtnActive: { backgroundColor: colors.BRAND, borderColor: colors.BRAND },
   filterBtnBadge: {
     position: 'absolute', top: -4, right: -4,
     minWidth: 16, height: 16, borderRadius: 8,
-    backgroundColor: Colors.warning,
+    backgroundColor: colors.WARNING,
     alignItems: 'center', justifyContent: 'center',
     paddingHorizontal: 3,
-    borderWidth: 1.5, borderColor: Colors.white,
+    borderWidth: 1.5, borderColor: colors.SURFACE,
   },
-  filterBtnBadgeText: { fontSize: 9, fontWeight: '800', color: Colors.white },
+  filterBtnBadgeText: { fontSize: 9, fontWeight: '800', color: '#fff' },
 
   /* Results bar */
   resultsBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: Spacing.md, paddingVertical: 6,
-    backgroundColor: Colors.primaryLight, borderBottomWidth: 1, borderBottomColor: Colors.border,
+    backgroundColor: colors.BRAND_TINT, borderBottomWidth: 1, borderBottomColor: colors.BORDER,
   },
-  resultsText: { fontSize: FontSize.xs, color: Colors.textSecondary, fontWeight: '500' },
-  resultsClear: { fontSize: FontSize.xs, color: Colors.primary, fontWeight: '700' },
+  resultsText: { fontSize: FontSize.xs, color: colors.INK_2, fontWeight: '500' },
+  resultsClear: { fontSize: FontSize.xs, color: colors.BRAND, fontWeight: '700' },
 
   /* List */
   listContent: { padding: Spacing.md, paddingBottom: Spacing.xxl, gap: Spacing.md },
@@ -762,67 +771,67 @@ const styles = StyleSheet.create({
   /* Empty state */
   emptyState: { paddingVertical: Spacing.xxl, alignItems: 'center', gap: Spacing.sm },
   emptyIcon: { fontSize: 48 },
-  emptyTitle: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.textPrimary },
+  emptyTitle: { fontSize: FontSize.lg, fontWeight: '700', color: colors.INK_1 },
   emptySub: {
-    fontSize: FontSize.sm, color: Colors.textSecondary,
+    fontSize: FontSize.sm, color: colors.INK_2,
     textAlign: 'center', paddingHorizontal: Spacing.lg,
   },
 
   /* Card */
   card: {
-    backgroundColor: Colors.white, borderRadius: Radius.lg,
+    backgroundColor: colors.SURFACE, borderRadius: Radius.lg,
     padding: Spacing.md, gap: Spacing.sm,
-    borderWidth: 1.5, borderColor: Colors.border,
+    borderWidth: 1.5, borderColor: colors.BORDER,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.07, shadowRadius: 8, elevation: 2, overflow: 'hidden',
   },
-  cardUrgent: { borderColor: Colors.error + '80', borderWidth: 2 },
+  cardUrgent: { borderColor: colors.ERROR + '80', borderWidth: 2 },
 
   acceptOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: Colors.primary + 'EC',
+    backgroundColor: colors.BRAND + 'EC',
     borderRadius: Radius.lg, alignItems: 'center',
     justifyContent: 'center', zIndex: 10,
   },
-  acceptOverlayText: { fontSize: FontSize.xl, fontWeight: '800', color: Colors.white, letterSpacing: 0.5 },
+  acceptOverlayText: { fontSize: FontSize.xl, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
 
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   typeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, flex: 1, flexWrap: 'wrap' },
   typeIcon: { fontSize: 18 },
-  typeLabel: { fontSize: FontSize.md, fontWeight: '700', color: Colors.textPrimary },
-  typeLabelUrgent: { color: Colors.error },
-  urgentBadge: { backgroundColor: '#FEE2E2', borderRadius: Radius.full, paddingHorizontal: Spacing.sm, paddingVertical: 2 },
-  urgentText: { fontSize: FontSize.xs, fontWeight: '800', color: Colors.error, letterSpacing: 0.5 },
-  distanceLabel: { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: '500' },
+  typeLabel: { fontSize: FontSize.md, fontWeight: '700', color: colors.INK_1 },
+  typeLabelUrgent: { color: colors.ERROR },
+  urgentBadge: { backgroundColor: colors.ERROR_TINT, borderRadius: Radius.full, paddingHorizontal: Spacing.sm, paddingVertical: 2 },
+  urgentText: { fontSize: FontSize.xs, fontWeight: '800', color: colors.ERROR, letterSpacing: 0.5 },
+  distanceLabel: { fontSize: FontSize.sm, color: colors.INK_2, fontWeight: '500' },
 
-  patientName: { fontSize: FontSize.md, fontWeight: '600', color: Colors.textPrimary },
+  patientName: { fontSize: FontSize.md, fontWeight: '600', color: colors.INK_1 },
   metaRow: { flexDirection: 'row', gap: Spacing.md },
-  metaItem: { fontSize: FontSize.sm, color: Colors.textSecondary },
+  metaItem: { fontSize: FontSize.sm, color: colors.INK_2 },
   locationBox: { gap: 2 },
-  locationName: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.textPrimary },
-  locationAddress: { fontSize: FontSize.xs, color: Colors.textSecondary },
+  locationName: { fontSize: FontSize.sm, fontWeight: '600', color: colors.INK_1 },
+  locationAddress: { fontSize: FontSize.xs, color: colors.INK_2 },
 
   actions: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.xs },
   declineBtn: {
     flex: 1, paddingVertical: Spacing.sm, borderRadius: Radius.md,
-    alignItems: 'center', borderWidth: 1.5, borderColor: Colors.error,
+    alignItems: 'center', borderWidth: 1.5, borderColor: colors.ERROR,
   },
-  declineBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: Colors.error },
+  declineBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: colors.ERROR },
   acceptBtn: {
     flex: 1, paddingVertical: Spacing.sm, borderRadius: Radius.md,
-    alignItems: 'center', backgroundColor: Colors.primary,
+    alignItems: 'center', backgroundColor: colors.BRAND,
   },
-  acceptBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: Colors.white },
+  acceptBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: '#fff' },
 
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, flexWrap: 'wrap', marginTop: Spacing.xs },
   statusChip: { alignSelf: 'flex-start', paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radius.full },
-  statusAccepted: { backgroundColor: Colors.primaryLight },
-  statusDeclined: { backgroundColor: '#FEE2E2' },
-  statusChipText: { fontSize: FontSize.sm, fontWeight: '700', color: Colors.textPrimary },
-  chatBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radius.full, backgroundColor: Colors.primary, position: 'relative' },
-  chatBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: Colors.white },
-  chatBtnBadge: { position: 'absolute', top: -5, right: -5, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#DC2626', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: Colors.white },
-  chatBtnBadgeTxt: { fontSize: 9, fontWeight: '800', color: Colors.white },
+  statusAccepted: { backgroundColor: colors.BRAND_TINT },
+  statusDeclined: { backgroundColor: colors.ERROR_TINT },
+  statusChipText: { fontSize: FontSize.sm, fontWeight: '700', color: colors.INK_1 },
+  chatBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radius.full, backgroundColor: colors.BRAND, position: 'relative' },
+  chatBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: '#fff' },
+  chatBtnBadge: { position: 'absolute', top: -5, right: -5, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: colors.ERROR, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: colors.SURFACE },
+  chatBtnBadgeTxt: { fontSize: 9, fontWeight: '800', color: '#fff' },
 
   /* Filter sheet overlay */
   backdrop: {
@@ -832,7 +841,7 @@ const styles = StyleSheet.create({
   },
   filterSheet: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: Colors.white,
+    backgroundColor: colors.SURFACE,
     borderTopLeftRadius: 24, borderTopRightRadius: 24,
     maxHeight: '85%',
     zIndex: 21,
@@ -840,69 +849,70 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15, shadowRadius: 16, elevation: 24,
   },
   filterHandle: {
-    width: 40, height: 4, backgroundColor: Colors.border,
+    width: 40, height: 4, backgroundColor: colors.BORDER,
     borderRadius: 2, alignSelf: 'center', marginTop: 12, marginBottom: 4,
   },
   filterTitleRow: {
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm,
-    borderBottomWidth: 1, borderBottomColor: Colors.border,
+    borderBottomWidth: 1, borderBottomColor: colors.BORDER,
   },
-  filterTitle: { fontSize: FontSize.lg, fontWeight: '800', color: Colors.textPrimary },
+  filterTitle: { fontSize: FontSize.lg, fontWeight: '800', color: colors.INK_1 },
   filterCloseBtn: {
     width: 32, height: 32, borderRadius: 16,
-    backgroundColor: Colors.border,
+    backgroundColor: colors.BORDER,
     alignItems: 'center', justifyContent: 'center',
   },
   filterScrollContent: { padding: Spacing.lg, gap: Spacing.md, paddingBottom: Spacing.sm },
-  filterSectionLabel: { fontSize: FontSize.sm, fontWeight: '700', color: Colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 },
+  filterSectionLabel: { fontSize: FontSize.sm, fontWeight: '700', color: colors.INK_2, textTransform: 'uppercase', letterSpacing: 0.5 },
   filterChipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   filterChip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
-    borderRadius: Radius.full, borderWidth: 1.5, borderColor: Colors.border,
-    backgroundColor: Colors.white,
+    borderRadius: Radius.full, borderWidth: 1.5, borderColor: colors.BORDER,
+    backgroundColor: colors.SURFACE,
   },
-  filterChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  filterChipActive: { backgroundColor: colors.BRAND, borderColor: colors.BRAND },
   filterChipIcon: { fontSize: 15 },
-  filterChipText: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.textPrimary },
-  filterChipTextActive: { color: Colors.white },
+  filterChipText: { fontSize: FontSize.sm, fontWeight: '600', color: colors.INK_1 },
+  filterChipTextActive: { color: '#fff' },
   filterOptionsRow: { flexDirection: 'row', gap: Spacing.sm, flexWrap: 'wrap' },
   filterOption: {
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
-    borderRadius: Radius.full, borderWidth: 1.5, borderColor: Colors.border,
-    backgroundColor: Colors.white,
+    borderRadius: Radius.full, borderWidth: 1.5, borderColor: colors.BORDER,
+    backgroundColor: colors.SURFACE,
   },
   filterOptionFlex: { flex: 1, alignItems: 'center' },
-  filterOptionActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  filterOptionText: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.textPrimary },
-  filterOptionTextActive: { color: Colors.white },
+  filterOptionActive: { backgroundColor: colors.BRAND, borderColor: colors.BRAND },
+  filterOptionText: { fontSize: FontSize.sm, fontWeight: '600', color: colors.INK_1 },
+  filterOptionTextActive: { color: '#fff' },
   filterToggleRow: {
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: Spacing.sm,
-    borderTopWidth: 1, borderTopColor: Colors.border,
+    borderTopWidth: 1, borderTopColor: colors.BORDER,
     marginTop: Spacing.xs,
   },
   filterToggleLabelRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   filterToggleEmoji: { fontSize: 18 },
-  filterToggleText: { fontSize: FontSize.md, fontWeight: '600', color: Colors.textPrimary },
+  filterToggleText: { fontSize: FontSize.md, fontWeight: '600', color: colors.INK_1 },
   filterActions: {
     flexDirection: 'row', gap: Spacing.sm,
-    padding: Spacing.lg, borderTopWidth: 1, borderTopColor: Colors.border,
+    padding: Spacing.lg, borderTopWidth: 1, borderTopColor: colors.BORDER,
   },
   resetBtn: {
     flex: 1, paddingVertical: Spacing.md, borderRadius: Radius.lg,
-    alignItems: 'center', borderWidth: 1.5, borderColor: Colors.border,
-    backgroundColor: Colors.white,
+    alignItems: 'center', borderWidth: 1.5, borderColor: colors.BORDER,
+    backgroundColor: colors.SURFACE,
   },
-  resetBtnText: { fontSize: FontSize.md, fontWeight: '700', color: Colors.textSecondary },
+  resetBtnText: { fontSize: FontSize.md, fontWeight: '700', color: colors.INK_2 },
   applyBtn: {
     flex: 2, paddingVertical: Spacing.md, borderRadius: Radius.lg,
-    alignItems: 'center', backgroundColor: Colors.primary,
-    shadowColor: Colors.primary, shadowOffset: { width: 0, height: 4 },
+    alignItems: 'center', backgroundColor: colors.BRAND,
+    shadowColor: colors.BRAND, shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3, shadowRadius: 8, elevation: 5,
   },
-  applyBtnText: { fontSize: FontSize.md, fontWeight: '700', color: Colors.white },
-});
+  applyBtnText: { fontSize: FontSize.md, fontWeight: '700', color: '#fff' },
+  });
+}

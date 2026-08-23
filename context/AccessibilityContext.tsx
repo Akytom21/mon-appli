@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { useColorScheme } from 'react-native';
 
 export type TextSize = 'normal' | 'large' | 'xlarge';
+export type DarkModePref = 'auto' | 'light' | 'dark';
 
 const SCALE_FACTOR: Record<TextSize, number> = {
   normal: 1,
@@ -10,6 +12,7 @@ const SCALE_FACTOR: Record<TextSize, number> = {
 };
 
 const STORAGE_KEY = '@pharmasign_a11y';
+const DARK_MODE_KEY = '@pharmasign_dark_mode';
 
 interface A11ySettings {
   textSize:     TextSize;
@@ -29,6 +32,11 @@ interface A11yContextValue extends A11ySettings {
   hcFg:     (def: string) => string;
   /** Ajoute 1 à l'épaisseur de bordure en mode contraste élevé. */
   hcBorder: (def: number) => number;
+  /** Préférence mode sombre : 'auto' suit le thème système. */
+  darkModePref:    DarkModePref;
+  setDarkModePref: (v: DarkModePref) => void;
+  /** Mode sombre effectif, résolu depuis darkModePref + thème système. */
+  isDark: boolean;
 }
 
 const DEFAULT: A11ySettings = {
@@ -46,16 +54,33 @@ const AccessibilityContext = createContext<A11yContextValue>({
   hcBg:     (d) => d,
   hcFg:     (d) => d,
   hcBorder: (d) => d,
+  darkModePref:    'auto',
+  setDarkModePref: () => {},
+  isDark: false,
 });
 
 export function AccessibilityProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<A11ySettings>(DEFAULT);
+  const [darkModePref, setDarkModePrefState] = useState<DarkModePref>('auto');
+  const systemScheme = useColorScheme();
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
       .then((raw) => { if (raw) setSettings({ ...DEFAULT, ...(JSON.parse(raw) as Partial<A11ySettings>) }); })
       .catch(() => {});
+    AsyncStorage.getItem(DARK_MODE_KEY)
+      .then((raw) => {
+        if (raw === 'auto' || raw === 'light' || raw === 'dark') setDarkModePrefState(raw);
+      })
+      .catch(() => {});
   }, []);
+
+  const setDarkModePref = useCallback((v: DarkModePref) => {
+    setDarkModePrefState(v);
+    AsyncStorage.setItem(DARK_MODE_KEY, v).catch(() => {});
+  }, []);
+
+  const isDark = darkModePref === 'auto' ? systemScheme === 'dark' : darkModePref === 'dark';
 
   const persist = useCallback((patch: Partial<A11ySettings>) => {
     setSettings((prev) => {
@@ -81,6 +106,7 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
       ...settings,
       setTextSize, setHighContrast, setReduceMotion,
       scale, hcBg, hcFg, hcBorder,
+      darkModePref, setDarkModePref, isDark,
     }}>
       {children}
     </AccessibilityContext.Provider>
