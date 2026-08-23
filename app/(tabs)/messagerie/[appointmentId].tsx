@@ -98,9 +98,13 @@ export default function ChatScreen() {
     ExpoSpeechRecognitionModule.start({ lang: 'fr-FR', interimResults: true, continuous: false });
   }, [voiceOn]);
 
+  const unreadCount = messages.filter(
+    (m) => m.recipientId === user?.id && !m.read,
+  ).length;
+
   useEffect(() => {
-    markAllRead();
-  }, [messages.length, markAllRead]);
+    if (unreadCount > 0) markAllRead();
+  }, [unreadCount, markAllRead]);
 
   const handleSend = useCallback(async () => {
     const text = input.trim();

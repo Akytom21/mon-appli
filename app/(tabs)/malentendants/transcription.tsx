@@ -43,6 +43,11 @@ export default function TranscriptionScreen() {
   const [saving, setSaving]       = useState(false);
   const scrollRef   = useRef<ScrollView>(null);
   const interimRef  = useRef('');
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => { isMountedRef.current = false; };
+  }, []);
 
   /* ── Pulsing rings ─────────────────────────────────── */
   const ring1 = useRef(new Animated.Value(0)).current;
@@ -75,6 +80,7 @@ export default function TranscriptionScreen() {
 
   /* ── Speech events ─────────────────────────────────── */
   useSpeechRecognitionEvent('result', (event) => {
+    if (!isMountedRef.current) return;
     const transcript = event.results[0]?.transcript ?? '';
     if (!event.isFinal) {
       setInterim(transcript);
@@ -90,9 +96,10 @@ export default function TranscriptionScreen() {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
   });
 
-  useSpeechRecognitionEvent('start', () => setListening(true));
+  useSpeechRecognitionEvent('start', () => { if (isMountedRef.current) setListening(true); });
 
   useSpeechRecognitionEvent('end', () => {
+    if (!isMountedRef.current) return;
     setListening(false);
     const leftover = interimRef.current.trim();
     if (leftover) {
@@ -103,6 +110,7 @@ export default function TranscriptionScreen() {
   });
 
   useSpeechRecognitionEvent('error', (e) => {
+    if (!isMountedRef.current) return;
     setListening(false);
     if (e.error !== 'aborted' && e.error !== 'no-speech') {
       Alert.alert('Erreur micro', 'La reconnaissance vocale a échoué. Réessayez.');

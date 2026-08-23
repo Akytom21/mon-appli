@@ -130,7 +130,7 @@ export default function ProfilScreen() {
       console.log('[profil] uploadAvatar ✓ done');
     } catch (e) {
       console.error('[profil] uploadAvatar ERROR:', e);
-      Alert.alert('Erreur upload', `Impossible d'envoyer la photo.\n${String(e)}`);
+      Alert.alert('Erreur', "Impossible d'envoyer la photo. Veuillez réessayer.");
     } finally {
       setUploadingPhoto(false);
     }

@@ -1,8 +1,11 @@
-import { Stack } from 'expo-router';
+import { Redirect, Stack } from 'expo-router';
+import { useAuth } from '@/context/AuthContext';
 
 const BRAND = '#0F766E';
 
 export default function ApprentisLayout() {
+  const { user } = useAuth();
+  if (user?.role !== 'apprenti') return <Redirect href="/(auth)/login" />;
   return (
     <Stack
       screenOptions={{

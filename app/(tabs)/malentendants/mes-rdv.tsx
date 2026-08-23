@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,6 +19,8 @@ import { SkeletonRDVCard } from '@/components/ui/Skeleton';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/config/firebase';
 import {
   usePatientAppointments,
   type Appointment,
@@ -255,6 +257,17 @@ const RdvCard = memo(function RdvCard({
   const isAccepted = appt.status === 'accepted';
   const isPending  = appt.status === 'pending';
   const isDeclined = appt.status === 'declined';
+
+  const [interpreterPhone, setInterpreterPhone] = useState<string | null>(null);
+  const [phoneLoaded, setPhoneLoaded]           = useState(false);
+
+  useEffect(() => {
+    if (!isAccepted || !appt.interpreterId) { setPhoneLoaded(true); return; }
+    getDoc(doc(db, 'users', appt.interpreterId))
+      .then((snap) => { setInterpreterPhone(snap.data()?.phone ?? null); setPhoneLoaded(true); })
+      .catch(() => setPhoneLoaded(true));
+  }, [appt.interpreterId, isAccepted]);
+
   return (
     <View style={[cSt.card, { borderColor: statusCfg.border }, isAccepted && cSt.cardAccepted]}>
       <View style={cSt.topRow}>
@@ -281,9 +294,15 @@ const RdvCard = memo(function RdvCard({
             <Text style={cSt.acceptedName} numberOfLines={1}>{appt.interpreterName ?? 'Interprète assigné'}</Text>
           </View>
           <TouchableOpacity
-            style={cSt.actionBtn}
-            onPress={() => Linking.openURL('tel:+33600000000').catch(() => Alert.alert('Erreur', 'Impossible de lancer l\'appel.'))}
-            accessibilityLabel="Appeler l'interprète"
+            style={[cSt.actionBtn, phoneLoaded && !interpreterPhone && { opacity: 0.4 }]}
+            onPress={() => {
+              if (!interpreterPhone) {
+                Alert.alert('Numéro non disponible', "Ce numéro n'est pas renseigné par l'interprète.");
+                return;
+              }
+              Linking.openURL(`tel:${interpreterPhone}`).catch(() => Alert.alert('Erreur', "Impossible de lancer l'appel."));
+            }}
+            accessibilityLabel={interpreterPhone ? "Appeler l'interprète" : 'Numéro non disponible'}
           >
             <Feather name="phone" size={14} color="#065F46" />
           </TouchableOpacity>

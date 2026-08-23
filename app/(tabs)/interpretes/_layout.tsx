@@ -1,7 +1,10 @@
-import { Stack } from 'expo-router';
+import { Redirect, Stack } from 'expo-router';
 import { Colors } from '@/constants/theme';
+import { useAuth } from '@/context/AuthContext';
 
 export default function InterpretesLayout() {
+  const { user } = useAuth();
+  if (user?.role !== 'interprete') return <Redirect href="/(auth)/login" />;
   return (
     <Stack
       screenOptions={{

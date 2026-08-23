@@ -73,12 +73,10 @@ export default function LoginScreen() {
       setForgotSuccess(true);
     } catch (e: unknown) {
       const code = (e as { code?: string })?.code;
-      if (code === 'auth/user-not-found') {
-        setForgotError('Aucun compte associé à cet email.');
-      } else if (code === 'auth/invalid-email') {
+      if (code === 'auth/invalid-email') {
         setForgotError('Adresse email invalide.');
       } else {
-        setForgotError('Une erreur est survenue. Veuillez réessayer.');
+        setForgotError('Email ou mot de passe incorrect.');
       }
     } finally {
       setForgotLoading(false);
