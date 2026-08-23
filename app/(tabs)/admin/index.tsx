@@ -402,7 +402,7 @@ export default function AdminScreen() {
     );
   };
 
-  const handleValidate = (u: BrevetUser) => {
+  const handleValidate = useCallback((u: BrevetUser) => {
     Alert.alert('Valider le brevet', `Valider le brevet de ${u.name} ?`, [
       { text: 'Annuler', style: 'cancel' },
       { text: 'Valider ✓', onPress: async () => {
@@ -410,7 +410,7 @@ export default function AdminScreen() {
         catch { Alert.alert('Erreur', 'Impossible de valider le brevet.'); }
       }},
     ]);
-  };
+  }, []);
 
   const confirmRefusal = async (reason: string) => {
     if (!refusalTarget) return;
@@ -427,7 +427,7 @@ export default function AdminScreen() {
   };
 
   /* ── Render cards ── */
-  const renderBrevetCard = ({ item: u }: { item: BrevetUser }) => (
+  const renderBrevetCard = useCallback(({ item: u }: { item: BrevetUser }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <View>
@@ -463,9 +463,9 @@ export default function AdminScreen() {
         </TouchableOpacity>
       </View>
     </View>
-  );
+  ), [handleValidate]);
 
-  const renderUserCard = ({ item: u }: { item: BrevetUser }) => {
+  const renderUserCard = useCallback(({ item: u }: { item: BrevetUser }) => {
     const brevetStatus = u.brevetValidated
       ? '✓ Brevet validé'
       : u.brevetRefused
@@ -497,7 +497,7 @@ export default function AdminScreen() {
         </View>
       </View>
     );
-  };
+  }, []);
 
   /* ── Dashboard tab ── */
   const renderDashboard = () => (

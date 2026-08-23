@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -113,7 +113,7 @@ export default function ChatScreen() {
     await sendMessage(text);
   }, [input, sending, sendMessage]);
 
-  const reversedMessages = [...messages].reverse();
+  const reversedMessages = useMemo(() => [...messages].reverse(), [messages]);
   const myLastMsg  = reversedMessages.find((m) => m.senderId === user?.id);
   const showReadId = myLastMsg?.read ? myLastMsg.id : null;
 

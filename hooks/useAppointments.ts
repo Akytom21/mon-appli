@@ -42,6 +42,13 @@ export type Appointment = {
 
 const TODAY = new Date().toISOString().split('T')[0];
 
+/* Un RDV 'pending' dont la date est passée n'a jamais été traité par
+   un interprète — Firestore ne le marque jamais 'expired' explicitement,
+   ce statut est donc calculé à la volée à partir de la date. */
+export function isExpired(appointment: Pick<Appointment, 'date' | 'status'>): boolean {
+  return appointment.status === 'pending' && appointment.date < TODAY;
+}
+
 /* ── Hook interprète — deux requêtes ciblées ─────────────────
    Q1 : demandes en attente (max 50) — vues par tous les interprètes
    Q2 : missions acceptées par CET interprète (sans limite)

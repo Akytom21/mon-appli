@@ -370,6 +370,15 @@ export default function MalentendantsHome() {
     [selectedItem, userCoords],
   );
 
+  const hospitalCount = useMemo(
+    () => professionals.filter((h) => h.category === 'hospital').length,
+    [professionals],
+  );
+  const pharmacyCount = useMemo(
+    () => professionals.filter((h) => h.category === 'pharmacy').length,
+    [professionals],
+  );
+
   return (
     <SafeAreaView style={styles.safe}>
       {/* Header */}
@@ -665,14 +674,14 @@ export default function MalentendantsHome() {
           <View style={styles.statCard}>
             <Text style={styles.statEmoji}>🏥</Text>
             <Text style={styles.statValue}>
-              {professionals.filter((h) => h.category === 'hospital').length}
+              {hospitalCount}
             </Text>
             <Text style={styles.statLabel}>Hôpitaux</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statEmoji}>💊</Text>
             <Text style={styles.statValue}>
-              {professionals.filter((h) => h.category === 'pharmacy').length}
+              {pharmacyCount}
             </Text>
             <Text style={styles.statLabel}>Pharmacies</Text>
           </View>

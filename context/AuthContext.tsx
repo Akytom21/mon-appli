@@ -60,6 +60,29 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
+function mapFirestoreUser(uid: string, email: string, data: Record<string, any>): User {
+  return {
+    id: uid,
+    email,
+    name: data.name,
+    role: data.role,
+    phone: data.phone,
+    avatarUrl: data.avatarUrl,
+    zoneKm: data.zoneKm,
+    languages: data.languages,
+    disponible: data.disponible,
+    niveauLSF: data.niveauLSF,
+    prefCommun: data.prefCommun,
+    brevetSubmitted: data.brevetSubmitted ?? false,
+    brevetValidated: data.brevetValidated ?? false,
+    brevetRefused: data.brevetRefused,
+    brevetLevel: data.brevetLevel,
+    brevetOrganisme: data.brevetOrganisme,
+    brevetNumero: data.brevetNumero,
+    brevetAnnee: data.brevetAnnee,
+  };
+}
+
 function translateFirebaseError(error: FirebaseError): string {
   switch (error.code) {
     case 'auth/email-already-in-use':
@@ -93,26 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const docSnap = await getDoc(doc(db, 'users', firebaseUser.uid));
         if (docSnap.exists()) {
           const data = docSnap.data();
-          setUser({
-            id: firebaseUser.uid,
-            email: firebaseUser.email ?? '',
-            name: data.name,
-            role: data.role,
-            phone: data.phone,
-            avatarUrl: data.avatarUrl,
-            zoneKm: data.zoneKm,
-            languages: data.languages,
-            disponible: data.disponible,
-            niveauLSF: data.niveauLSF,
-            prefCommun: data.prefCommun,
-            brevetSubmitted: data.brevetSubmitted ?? false,
-            brevetValidated: data.brevetValidated ?? false,
-            brevetRefused: data.brevetRefused,
-            brevetLevel: data.brevetLevel,
-            brevetOrganisme: data.brevetOrganisme,
-            brevetNumero: data.brevetNumero,
-            brevetAnnee: data.brevetAnnee,
-          });
+          setUser(mapFirestoreUser(firebaseUser.uid, firebaseUser.email ?? '', data));
         } else {
           setUser(null);
         }
@@ -131,26 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const docSnap = await getDoc(doc(db, 'users', credential.user.uid));
       if (!docSnap.exists()) return 'Profil introuvable. Contactez le support.';
       const data = docSnap.data();
-      setUser({
-        id: credential.user.uid,
-        email: credential.user.email ?? '',
-        name: data.name,
-        role: data.role,
-        phone: data.phone,
-        avatarUrl: data.avatarUrl,
-        zoneKm: data.zoneKm,
-        languages: data.languages,
-        disponible: data.disponible,
-        niveauLSF: data.niveauLSF,
-        prefCommun: data.prefCommun,
-        brevetSubmitted: data.brevetSubmitted ?? false,
-        brevetValidated: data.brevetValidated ?? false,
-        brevetRefused: data.brevetRefused,
-        brevetLevel: data.brevetLevel,
-        brevetOrganisme: data.brevetOrganisme,
-        brevetNumero: data.brevetNumero,
-        brevetAnnee: data.brevetAnnee,
-      });
+      setUser(mapFirestoreUser(credential.user.uid, credential.user.email ?? '', data));
       return null;
     } catch (err) {
       if (err instanceof FirebaseError) return translateFirebaseError(err);

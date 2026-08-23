@@ -23,6 +23,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import {
   usePatientAppointments,
+  isExpired,
   type Appointment,
   type AppointmentType,
 } from '@/hooks/useAppointments';
@@ -112,9 +113,10 @@ function getInitials(name: string): string {
 }
 
 function getHistKey(appt: Appointment): keyof typeof HIST_BADGE {
+  if (appt.status === 'cancelled') return 'cancelled';
+  if (isExpired(appt))             return 'expired';
   if (appt.status === 'accepted')  return 'accepted';
   if (appt.status === 'declined')  return 'declined';
-  if (appt.status === 'cancelled') return 'cancelled';
   return 'expired';
 }
 
@@ -613,7 +615,7 @@ export default function MesRdvScreen() {
     if (histType !== 'all') list = list.filter((a) => a.type === histType);
     if      (histStat === 'accepted') list = list.filter((a) => a.status === 'accepted');
     else if (histStat === 'declined') list = list.filter((a) => a.status === 'declined');
-    else if (histStat === 'expired')  list = list.filter((a) => a.status === 'pending');
+    else if (histStat === 'expired')  list = list.filter((a) => isExpired(a));
     return histSort === 'oldest' ? [...list].reverse() : list;
   }, [history, histType, histStat, histSort]);
 
@@ -624,7 +626,7 @@ export default function MesRdvScreen() {
       return;
     }
     const lines = history.map((a) => {
-      const s = a.status === 'accepted' ? 'Effectué' : a.status === 'declined' ? 'Refusé' : 'Expiré';
+      const s = HIST_BADGE[getHistKey(a)].label;
       return `• ${formatDateChip(a.date)} à ${a.time} — ${a.location} (${TYPE_LABELS[a.type] ?? a.type}) — ${s}`;
     });
     const message = [

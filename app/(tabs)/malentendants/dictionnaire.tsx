@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   Linking,
@@ -260,7 +260,7 @@ export default function DictionnaireScreen() {
     return map;
   }, [filtered]);
 
-  const openSign = async (entry: DictEntry) => {
+  const openSign = useCallback(async (entry: DictEntry) => {
     // Extract search_query from stored URL to build the native deep-link
     const match = entry.youtubeUrl.match(/search_query=([^&]+)/);
     const query = match ? match[1] : encodeURIComponent(`${entry.word} LSF`);
@@ -283,7 +283,7 @@ export default function DictionnaireScreen() {
         );
       }
     }
-  };
+  }, []);
 
   return (
     <SafeAreaView style={s.safe}>
