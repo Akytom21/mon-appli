@@ -135,7 +135,7 @@ export function useNotifications() {
           knownIds.add(change.doc.id);
         }
       });
-    }, (err) => console.error('[Chat notif]', err));
+    }, () => { /* permissions Firestore non encore accordées — silencieux */ });
   }, [user?.id]);
 
   /* ── Apprenti : validation / refus brevet ───────────────── */

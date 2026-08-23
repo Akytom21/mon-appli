@@ -2,7 +2,19 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { LogBox } from 'react-native';
 import 'react-native-reanimated';
+
+// Ces warnings n'existent que dans Expo Go (pas de push token natif) ;
+// ils disparaissent automatiquement dans un development/production build.
+LogBox.ignoreLogs([
+  'expo-notifications',
+  'Notifications.getExpoPushTokenAsync',
+  'shouldShowAlert',
+  'shouldSetBadge',
+  'shouldPlaySound',
+  'Error: [Notifications]',
+]);
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '@/context/AuthContext';
 import { AccessibilityProvider, useAccessibility } from '@/context/AccessibilityContext';
