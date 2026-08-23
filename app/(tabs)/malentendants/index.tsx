@@ -21,6 +21,7 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import type { ColorTokens } from '@/constants/design';
 import {
   CATEGORY_CONFIG,
+  EQUIPMENT_CATEGORIES,
   type HealthCategory,
   type HealthProfessional,
 } from '@/data/healthProfessionals';
@@ -113,10 +114,11 @@ const UserLocationDot = memo(function UserLocationDot() {
 /* ─── Health professional marker ─────────────────────────── */
 
 const HealthMarkerView = memo(function HealthMarkerView({
-  category, showDoctolib,
+  category, showDoctolib, hasEquipment,
 }: {
   category: HealthCategory;
   showDoctolib?: boolean;
+  hasEquipment?: boolean;
 }) {
   const colors = useThemeColor();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -131,6 +133,11 @@ const HealthMarkerView = memo(function HealthMarkerView({
       {showDoctolib && (
         <View style={styles.doctolibMarkerBadge}>
           <Text style={styles.doctolibMarkerText}>D</Text>
+        </View>
+      )}
+      {hasEquipment && (
+        <View style={styles.equipMarkerBadge}>
+          <Text style={styles.equipMarkerText}>⚕️</Text>
         </View>
       )}
     </View>
@@ -169,12 +176,13 @@ const FilterPill = memo(function FilterPill({
 
 /* ─── Detail bottom sheet ────────────────────────────────── */
 
-const SHEET_HEIGHT = 320;
+const SHEET_HEIGHT = 420;
 
 function DetailSheet({
-  item, distanceKm, onClose,
+  item, distanceKm, onClose, onReport,
 }: {
   item: HealthProfessional; distanceKm: number | null; onClose: () => void;
+  onReport?: (pharmacy: HealthProfessional) => void;
 }) {
   const colors = useThemeColor();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -244,6 +252,28 @@ function DetailSheet({
             )}
           </View>
 
+          {item.category === 'pharmacy' && (
+            <View style={styles.equipSection}>
+              {item.medicalEquipment?.hasEquipment ? (
+                <>
+                  <Text style={styles.equipSectionTitle}>⚕️ Matériel médical disponible</Text>
+                  <View style={styles.equipTags}>
+                    {item.medicalEquipment.categories.map((cat) => {
+                      const cfg2 = EQUIPMENT_CATEGORIES.find((e) => e.id === cat);
+                      return cfg2 ? (
+                        <View key={cat} style={styles.equipTag}>
+                          <Text style={styles.equipTagText}>{cfg2.emoji} {cfg2.label}</Text>
+                        </View>
+                      ) : null;
+                    })}
+                  </View>
+                </>
+              ) : (
+                <Text style={styles.equipUnknown}>🔎 Se renseigner — matériel non encore renseigné</Text>
+              )}
+            </View>
+          )}
+
           <View style={styles.sheetActions}>
             <TouchableOpacity
               style={styles.doctolibSheetBtn}
@@ -264,6 +294,17 @@ function DetailSheet({
               <Text style={styles.rdvBtnText}>📅  Prendre RDV</Text>
             </TouchableOpacity>
           </View>
+
+          {item.category === 'pharmacy' && (
+            <TouchableOpacity
+              style={styles.reportBtn}
+              onPress={() => onReport?.(item)}
+              accessibilityRole="button"
+              accessibilityLabel="Signaler du matériel médical dans cette pharmacie"
+            >
+              <Text style={styles.reportBtnText}>📢  Signaler du matériel médical ici</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </Animated.View>
     </>
@@ -513,7 +554,7 @@ export default function MalentendantsHome() {
                 tracksViewChanges={markerTracking}
                 anchor={{ x: 0.5, y: 0.5 }}
               >
-                <HealthMarkerView category={prof.category} showDoctolib />
+                <HealthMarkerView category={prof.category} showDoctolib hasEquipment={prof.medicalEquipment?.hasEquipment === true} />
               </Marker>
             ))}
           </MapView>
@@ -603,6 +644,21 @@ export default function MalentendantsHome() {
             <Text style={styles.transcriptionBtnSub}>Voix → texte en temps réel pendant la consultation</Text>
           </View>
           <Feather name="chevron-right" size={18} color="rgba(255,255,255,0.7)" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.materielBtn}
+          onPress={() => router.push('/(tabs)/malentendants/materiel-medical')}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Rechercher du matériel médical dans les pharmacies de Nice"
+        >
+          <Text style={styles.materielBtnEmoji}>⚕️</Text>
+          <View style={styles.materielBtnInfo}>
+            <Text style={styles.materielBtnTitle}>Matériel médical</Text>
+            <Text style={styles.materielBtnSub}>Fauteuils roulants, orthopédie, location…</Text>
+          </View>
+          <Feather name="chevron-right" size={18} color="rgba(255,255,255,0.8)" />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -781,6 +837,13 @@ export default function MalentendantsHome() {
           item={selectedItem}
           distanceKm={distanceKm}
           onClose={() => setSelectedItem(null)}
+          onReport={(pharmacy) => {
+            setSelectedItem(null);
+            router.push({
+              pathname: '/(tabs)/malentendants/materiel-medical',
+              params: { reportId: pharmacy.id, reportName: pharmacy.name },
+            });
+          }}
         />
       )}
     </SafeAreaView>
@@ -870,6 +933,11 @@ function createStyles(colors: ColorTokens) {
       borderRadius: 3, paddingHorizontal: 4, paddingVertical: 1,
     },
     doctolibMarkerText: { fontSize: 7, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
+    equipMarkerBadge: {
+      marginTop: 2, backgroundColor: '#059669',
+      borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1,
+    },
+    equipMarkerText: { fontSize: 9 },
 
     userDotWrapper: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
     userDotRing: {
@@ -1073,6 +1141,34 @@ function createStyles(colors: ColorTokens) {
       fontWeight: '700',
       color: colors.BRAND,
     },
+
+    equipSection: { gap: Spacing.xs },
+    equipSectionTitle: { fontSize: FontSize.sm, fontWeight: '700', color: '#059669' },
+    equipTags: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+    equipTag: {
+      backgroundColor: '#DCFCE7', borderRadius: Radius.full,
+      paddingHorizontal: Spacing.sm, paddingVertical: 3,
+    },
+    equipTagText: { fontSize: FontSize.xs, color: '#166534', fontWeight: '600' },
+    equipUnknown: { fontSize: FontSize.xs, color: colors.INK_2, fontStyle: 'italic' },
+
+    reportBtn: {
+      backgroundColor: '#FEF9C3', borderRadius: Radius.md,
+      paddingVertical: Spacing.sm, alignItems: 'center',
+      borderWidth: 1, borderColor: '#FDE047',
+    },
+    reportBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: '#713F12' },
+
+    materielBtn: {
+      backgroundColor: '#059669', borderRadius: Radius.lg,
+      padding: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
+      shadowColor: '#059669', shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.25, shadowRadius: 6, elevation: 3,
+    },
+    materielBtnEmoji: { fontSize: 26, flexShrink: 0 },
+    materielBtnInfo: { flex: 1 },
+    materielBtnTitle: { fontSize: FontSize.md, fontWeight: '800', color: '#fff' },
+    materielBtnSub: { fontSize: FontSize.xs, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
 
     transcriptionBtn: {
       backgroundColor: '#1E3A5F',

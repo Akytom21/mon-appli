@@ -1,5 +1,20 @@
 export type HealthCategory = 'hospital' | 'pharmacy' | 'doctor' | 'specialist';
 
+export type MedicalEquipmentCategory =
+  | 'fauteuil-roulant'
+  | 'location-materiel'
+  | 'orthopedie'
+  | 'incontinence'
+  | 'diabete';
+
+export const EQUIPMENT_CATEGORIES: { id: MedicalEquipmentCategory; label: string; emoji: string }[] = [
+  { id: 'fauteuil-roulant',  label: 'Fauteuils roulants',  emoji: '♿' },
+  { id: 'location-materiel', label: 'Location matériel',   emoji: '🔄' },
+  { id: 'orthopedie',        label: 'Orthopédie',          emoji: '🦴' },
+  { id: 'incontinence',      label: 'Incontinence',        emoji: '💧' },
+  { id: 'diabete',           label: 'Diabète',             emoji: '💉' },
+];
+
 export const CATEGORY_CONFIG: Record<
   HealthCategory,
   { label: string; emoji: string; color: string }
@@ -20,6 +35,11 @@ export type HealthProfessional = {
   phone: string;
   hours: string;
   specialite?: string;
+  medicalEquipment?: {
+    hasEquipment: boolean;
+    categories: MedicalEquipmentCategory[];
+    lastUpdated: any;
+  };
 };
 
 // Hôpitaux réels de Nice — non présents dans les données RPPS, maintenus ici en dur
