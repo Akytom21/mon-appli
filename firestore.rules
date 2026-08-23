@@ -1,0 +1,140 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────────────────────
+    function authed() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    // Lit le rôle dans Firestore (1 get() par évaluation — lazy dans les OR chains)
+    function userRole() {
+      return get(/databases/$(database)/documents/users/$(uid())).data.get('role', '');
+    }
+
+    function isAdmin() {
+      return authed() && userRole() == 'admin';
+    }
+
+    function isInterprete() {
+      return authed() && userRole() == 'interprete';
+    }
+
+    // ── users/{userId} ───────────────────────────────────────────
+    match /users/{userId} {
+      // Chaque utilisateur lit son propre profil ; admin lit tout
+      allow read: if authed() && (userId == uid() || isAdmin());
+
+      // Mise à jour du profil (le rôle ne peut pas être changé par soi-même)
+      allow update: if authed() && userId == uid() &&
+                       !request.resource.data.diff(resource.data)
+                         .affectedKeys().hasAny(['role']);
+
+      // Mise à jour de la note moyenne par submitReview (cross-user write)
+      allow update: if authed() &&
+                       request.resource.data.diff(resource.data)
+                         .affectedKeys().hasOnly(['averageRating', 'reviewCount']);
+
+      // Admin peut créer / supprimer des profils
+      allow create, delete: if isAdmin();
+    }
+
+    // ── appointments/{apptId} ────────────────────────────────────
+    match /appointments/{apptId} {
+      // Patient lit ses propres RDV
+      allow read: if authed() && resource.data.patientId == uid();
+      // Interprète lit ses missions assignées
+      allow read: if authed() && resource.data.interpreterId == uid();
+      // Interprète lit toutes les demandes en attente (bourse de missions)
+      allow read: if isInterprete() && resource.data.status == 'pending';
+      // Admin lit tout
+      allow read: if isAdmin();
+
+      // Patient (sourd) crée un RDV en son nom
+      allow create: if authed() &&
+                       request.resource.data.patientId == uid() &&
+                       request.resource.data.status == 'pending';
+
+      // Patient annule son propre RDV (seul le champ status peut changer → 'cancelled')
+      allow update: if authed() &&
+                       resource.data.patientId == uid() &&
+                       request.resource.data.diff(resource.data)
+                         .affectedKeys().hasOnly(['status']) &&
+                       request.resource.data.status == 'cancelled';
+
+      // Interprète accepte ou décline une mission en attente
+      allow update: if isInterprete() && resource.data.status == 'pending';
+
+      // Participant met à jour la transcription vocale
+      allow update: if authed() &&
+                       (resource.data.patientId == uid() ||
+                        resource.data.interpreterId == uid()) &&
+                       request.resource.data.diff(resource.data)
+                         .affectedKeys().hasOnly(['transcription', 'transcriptionUpdatedAt']);
+
+      allow delete: if isAdmin();
+    }
+
+    // ── messages/{appointmentId}/chatMessages/{msgId} ────────────
+    // Utilisé aussi en collection group (useUnreadMessages, useNotifications)
+    match /messages/{appointmentId}/chatMessages/{msgId} {
+      function appt() {
+        return get(/databases/$(database)/documents/appointments/$(appointmentId)).data;
+      }
+      function isParticipant() {
+        return authed() &&
+               (appt().patientId == uid() || appt().interpreterId == uid());
+      }
+
+      // Lecture : participants du RDV uniquement
+      allow read: if isParticipant();
+      // Envoi : l'auteur doit être l'utilisateur connecté
+      allow create: if isParticipant() &&
+                       request.resource.data.senderId == uid();
+      // Marquer comme lu : uniquement le destinataire, sur le seul champ 'read'
+      allow update: if authed() &&
+                       resource.data.recipientId == uid() &&
+                       request.resource.data.diff(resource.data)
+                         .affectedKeys().hasOnly(['read']);
+    }
+
+    // ── reviews/{reviewId} ───────────────────────────────────────
+    match /reviews/{reviewId} {
+      // Patient voit ses avis ; interprète voit les avis le concernant ; admin voit tout
+      allow read: if authed() && (
+                    resource.data.patientId == uid() ||
+                    resource.data.interpreterId == uid() ||
+                    isAdmin()
+                  );
+      // Patient soumet un avis (dédoublonnage enforced dans le code)
+      allow create: if authed() &&
+                       request.resource.data.patientId == uid();
+      allow update, delete: if isAdmin();
+    }
+
+    // ── formations/{formId} ──────────────────────────────────────
+    match /formations/{formId} {
+      allow read: if authed();
+      allow write: if isAdmin();
+    }
+
+    // ── reservations/{resId} ─────────────────────────────────────
+    // Réservations de formations (useApprentisProgress)
+    match /reservations/{resId} {
+      allow read: if authed() && (resource.data.userId == uid() || isAdmin());
+      allow create: if authed() && request.resource.data.userId == uid();
+      allow update, delete: if authed() && resource.data.userId == uid();
+    }
+
+    // ── healthProfessionals/{profId} ─────────────────────────────
+    match /healthProfessionals/{profId} {
+      allow read: if authed();
+      allow write: if isAdmin();
+    }
+
+  }
+}
