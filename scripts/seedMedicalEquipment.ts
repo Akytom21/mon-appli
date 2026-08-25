@@ -152,6 +152,38 @@ const PHARMACIES: {
     latitude: 43.6876, longitude: 7.2948,
     categories: ['orthopedie', 'fauteuil-roulant', 'diabete'],
   },
+  {
+    name: "GRANDE PHARMACIE DE L'HORLOGE",
+    address: '98 Bd de Cessole, 06100 Nice',
+    phone: '04 93 84 48 86',
+    hours: 'Lun–Sam 8h30–19h30',
+    latitude: 43.7178, longitude: 7.2527,
+    categories: ['fauteuil-roulant', 'location-materiel', 'orthopedie', 'incontinence'],
+  },
+  {
+    name: 'PHARMACIE CHARPENEL VICTOR HUGO',
+    address: '45 Bd Victor Hugo, 06000 Nice',
+    phone: '04 93 88 01 45',
+    hours: 'Lun–Ven 8h30–12h30, 14h–19h30 · Sam 8h30–12h30',
+    latitude: 43.6975, longitude: 7.2625,
+    categories: ['fauteuil-roulant', 'location-materiel', 'orthopedie'],
+  },
+  {
+    name: 'PHARMACIE CLEMENCEAU',
+    address: '14 Av. Georges Clemenceau, 06000 Nice',
+    phone: '04 93 88 51 58',
+    hours: 'Lun–Ven 9h–19h · Sam 9h–12h15',
+    latitude: 43.7043, longitude: 7.2582,
+    categories: ['fauteuil-roulant', 'location-materiel'],
+  },
+  {
+    name: "PHARMACIE DE L'OUEST",
+    address: '44 Av. Saint Augustin, 06200 Nice',
+    phone: '04 93 83 18 14',
+    hours: 'Lun–Ven 8h30–19h30 · Sam 8h30–12h30, 15h–18h',
+    latitude: 43.6928, longitude: 7.1963,
+    categories: ['location-materiel', 'orthopedie'],
+  },
 ];
 
 function normalize(s: string): string {
