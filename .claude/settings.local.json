@@ -48,7 +48,13 @@
       "PowerShell(New-Item *)",
       "PowerShell(Start-Process \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\\\\assets\\\\banner\\\\play-store-banner.html\")",
       "PowerShell(if \\($?\\) { \"CLEE ENCORE DANS app.json\" } else { \"OK - plus dans app.json\" })",
-      "PowerShell(if \\($?\\) { \"CLEE ENCORE DANS firebase.ts\" } else { \"OK - plus dans firebase.ts\" })"
+      "PowerShell(if \\($?\\) { \"CLEE ENCORE DANS firebase.ts\" } else { \"OK - plus dans firebase.ts\" })",
+      "PowerShell(git *)",
+      "Bash(git commit *)",
+      "Bash(perl -i -pe ' *)",
+      "Bash(echo \"---exit: $?---\")",
+      "Bash(perl -i -pe 's/colors\\\\.colors\\\\./colors./g' \"app/\\(tabs\\)/malentendants/mes-rdv.tsx\")",
+      "Bash(grep -n \"^}\\);$\" \"C:\\\\Users\\\\Utilisateur\\\\mon-appli\\\\app\\\\\\(tabs\\)\\\\malentendants\\\\mes-rdv.tsx\")"
     ]
   }
 }
