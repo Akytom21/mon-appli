@@ -7,8 +7,6 @@ import {
   onSnapshot,
   query,
   serverTimestamp,
-  updateDoc,
-  doc,
   where,
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
@@ -70,17 +68,8 @@ export function usePatientReviews() {
         comment: comment.trim(),
         createdAt: serverTimestamp(),
       });
-
-      // Recalcule la note moyenne de l'interprète
-      const snap = await getDocs(
-        query(collection(db, 'reviews'), where('interpreterId', '==', interpreterId)),
-      );
-      const ratings = snap.docs.map((d) => d.data().rating as number);
-      const avg = ratings.reduce((s, r) => s + r, 0) / ratings.length;
-      await updateDoc(doc(db, 'users', interpreterId), {
-        averageRating: Math.round(avg * 10) / 10,
-        reviewCount: ratings.length,
-      });
+      // La note moyenne est calculée côté interprète à partir de ses avis
+      // (un patient ne peut pas lire les avis des autres patients).
     } catch {
       Alert.alert('Erreur', 'Impossible d\'envoyer votre avis. Veuillez réessayer.');
     } finally {

@@ -36,6 +36,7 @@ export type Appointment = {
   interpreterId: string | null;
   interpreterName?: string | null;
   interpreterHourlyRate?: number | null;
+  interpreterPhone?: string | null;
   declinedBy?: string[];
   createdAt?: { toMillis?: () => number };
 };
@@ -124,6 +125,8 @@ export function useAppointments() {
       interpreterId: user.id,
       interpreterName: user.name,
       interpreterHourlyRate: (user as any).hourlyRate ?? null,
+      // Copié dans le RDV : le patient ne peut pas lire le profil de l'interprète
+      interpreterPhone: user.phone ?? null,
     });
   }, [user]);
 
