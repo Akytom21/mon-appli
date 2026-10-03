@@ -6,7 +6,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
 } from 'firebase/auth';
-import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { deleteField, doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/config/firebase';
 
 export type Role = 'sourd' | 'interprete' | 'apprenti' | 'admin';
@@ -178,6 +178,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async (): Promise<void> => {
+    // Ce téléphone ne doit plus recevoir les notifications de ce compte
+    if (user) {
+      try {
+        await updateDoc(doc(db, 'users', user.id), { expoPushToken: deleteField() });
+      } catch {}
+    }
     await signOut(auth);
     setUser(null);
   };

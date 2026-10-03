@@ -35,6 +35,11 @@ yarn-error.*
 .env.local
 .env*.local
 service-account.json
+google-services.json
+
+# Cloud Functions (compilées par npm --prefix functions run build)
+functions/lib/
+firestore-debug.log
 
 # typescript
 *.tsbuildinfo

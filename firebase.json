@@ -3,6 +3,11 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
+  "functions": {
+    "source": "functions",
+    "predeploy": ["npm --prefix functions test"],
+    "ignore": ["node_modules", "src", "lib/**/*.test.js", "lib/**/*.map", "*.log"]
+  },
   "emulators": {
     "firestore": { "port": 8080 },
     "ui": { "enabled": false }
