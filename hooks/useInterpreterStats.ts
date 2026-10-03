@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   collection,
-  doc,
   onSnapshot,
   query,
   where,
@@ -73,12 +72,13 @@ export function useInterpreterStats(): InterpreterStats {
       () => {},
     );
 
-    // Q2 — note moyenne stockée dans users/{uid} (mise à jour par submitReview)
-    const unsubUser = onSnapshot(
-      doc(db, 'users', uid),
+    // Q2 — note moyenne calculée à partir des avis reçus par cet interprète
+    const unsubReviews = onSnapshot(
+      query(collection(db, 'reviews'), where('interpreterId', '==', uid)),
       (snap) => {
-        const rating = snap.data()?.averageRating;
-        setAverageRating(typeof rating === 'number' ? rating : null);
+        const ratings = snap.docs.map((d) => d.data().rating as number);
+        const avg = ratings.reduce((s, r) => s + r, 0) / ratings.length;
+        setAverageRating(ratings.length > 0 ? Math.round(avg * 10) / 10 : null);
       },
       () => {},
     );
@@ -98,7 +98,7 @@ export function useInterpreterStats(): InterpreterStats {
       () => {},
     );
 
-    return () => { unsubAccepted(); unsubUser(); unsubDeclined(); };
+    return () => { unsubAccepted(); unsubReviews(); unsubDeclined(); };
   }, [uid]);
 
   return { missionsThisMonth, averageRating, acceptanceRate };

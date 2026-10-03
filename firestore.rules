@@ -29,18 +29,28 @@ service cloud.firestore {
       // Chaque utilisateur lit son propre profil ; admin lit tout
       allow read: if authed() && (userId == uid() || isAdmin());
 
-      // Mise à jour du profil (le rôle ne peut pas être changé par soi-même)
+      // Inscription : chacun crée son propre profil, jamais admin ni brevet pré-validé
+      allow create: if authed() && userId == uid() &&
+                       request.resource.data.role in ['sourd', 'interprete', 'apprenti'] &&
+                       request.resource.data.get('brevetValidated', false) == false;
+
+      // Mise à jour du profil, sauf les champs décidés par l'admin
       allow update: if authed() && userId == uid() &&
-                       !request.resource.data.diff(resource.data)
-                         .affectedKeys().hasAny(['role']);
+                       !request.resource.data.diff(resource.data).affectedKeys()
+                         .hasAny(['role', 'brevetValidated', 'brevetRefused', 'brevetRefusalReason']);
 
-      // Mise à jour de la note moyenne par submitReview (cross-user write)
-      allow update: if authed() &&
-                       request.resource.data.diff(resource.data)
-                         .affectedKeys().hasOnly(['averageRating', 'reviewCount']);
+      // Apprenti dont le brevet a été validé par l'admin → passe interprète
+      allow update: if authed() && userId == uid() &&
+                       resource.data.role == 'apprenti' &&
+                       resource.data.get('brevetValidated', false) == true &&
+                       request.resource.data.role == 'interprete' &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role']);
 
-      // Admin peut créer / supprimer des profils
-      allow create, delete: if isAdmin();
+      // Admin : validation des brevets, changement de rôle
+      allow update: if isAdmin();
+
+      // Suppression de compte par l'utilisateur lui-même (exigée par le Play Store)
+      allow delete: if authed() && (userId == uid() || isAdmin());
     }
 
     // ── appointments/{apptId} ────────────────────────────────────
@@ -51,13 +61,16 @@ service cloud.firestore {
       allow read: if authed() && resource.data.interpreterId == uid();
       // Interprète lit toutes les demandes en attente (bourse de missions)
       allow read: if isInterprete() && resource.data.status == 'pending';
+      // Interprète lit les demandes qu'il a refusées (taux d'acceptation)
+      allow read: if isInterprete() && uid() in resource.data.get('declinedBy', []);
       // Admin lit tout
       allow read: if isAdmin();
 
-      // Patient (sourd) crée un RDV en son nom
+      // Patient (sourd) crée un RDV en son nom, sans interprète désigné
       allow create: if authed() &&
                        request.resource.data.patientId == uid() &&
-                       request.resource.data.status == 'pending';
+                       request.resource.data.status == 'pending' &&
+                       request.resource.data.interpreterId == null;
 
       // Patient annule son propre RDV (seul le champ status peut changer → 'cancelled')
       allow update: if authed() &&
@@ -66,8 +79,21 @@ service cloud.firestore {
                          .affectedKeys().hasOnly(['status']) &&
                        request.resource.data.status == 'cancelled';
 
-      // Interprète accepte ou décline une mission en attente
-      allow update: if isInterprete() && resource.data.status == 'pending';
+      // Interprète accepte une demande en attente, en son propre nom
+      allow update: if isInterprete() &&
+                       resource.data.status == 'pending' &&
+                       request.resource.data.status == 'accepted' &&
+                       request.resource.data.interpreterId == uid() &&
+                       request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['status', 'interpreterId', 'interpreterName',
+                                   'interpreterHourlyRate', 'interpreterPhone']);
+
+      // Interprète refuse : il ajoute seulement son propre uid à declinedBy
+      allow update: if isInterprete() &&
+                       resource.data.status == 'pending' &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['declinedBy']) &&
+                       request.resource.data.declinedBy.toSet() ==
+                         resource.data.get('declinedBy', []).toSet().union([uid()].toSet());
 
       // Participant met à jour la transcription vocale
       allow update: if authed() &&
@@ -102,6 +128,13 @@ service cloud.firestore {
                          .affectedKeys().hasOnly(['read']);
     }
 
+    // Requêtes collection group (badges non lus, notifications de chat) :
+    // les règles ci-dessus ne s'appliquent pas aux collection groups.
+    match /{path=**}/chatMessages/{msgId} {
+      allow read: if authed() &&
+                     (resource.data.recipientId == uid() || resource.data.senderId == uid());
+    }
+
     // ── reviews/{reviewId} ───────────────────────────────────────
     match /reviews/{reviewId} {
       // Patient voit ses avis ; interprète voit les avis le concernant ; admin voit tout
@@ -110,9 +143,17 @@ service cloud.firestore {
                     resource.data.interpreterId == uid() ||
                     isAdmin()
                   );
-      // Patient soumet un avis (dédoublonnage enforced dans le code)
+      // Patient note l'interprète de l'un de ses RDV (dédoublonnage dans le code)
+      function reviewedAppt() {
+        return get(/databases/$(database)/documents/appointments/$(request.resource.data.appointmentId)).data;
+      }
       allow create: if authed() &&
-                       request.resource.data.patientId == uid();
+                       request.resource.data.patientId == uid() &&
+                       request.resource.data.rating is number &&
+                       request.resource.data.rating >= 1 &&
+                       request.resource.data.rating <= 5 &&
+                       reviewedAppt().patientId == uid() &&
+                       reviewedAppt().interpreterId == request.resource.data.interpreterId;
       allow update, delete: if isAdmin();
     }
 
