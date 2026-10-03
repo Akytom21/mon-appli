@@ -1,129 +1,69 @@
 # Notifications dans PharmaSign
 
-## Etat actuel — Expo Go (SDK 54)
+## Fonctionnement
 
-Les **notifications locales** (`scheduleNotificationAsync`) fonctionnent dans Expo Go et sont utilisées pour toutes les alertes in-app :
+| Rôle | Événement | Envoi |
+|------|-----------|-------|
+| Interprète | Nouvelle demande de RDV (titre d'alerte + priorité haute si urgence) | Push — `notifyNewRequest` |
+| Sourd | RDV accepté par un interprète | Push — `notifyStatusChange` |
+| Interprète | Patient annule une mission acceptée | Push — `notifyStatusChange` |
+| Tous | Nouveau message dans le chat | Push — `notifyChatMessage` |
+| Apprenti | Brevet validé / refusé | Locale (appli ouverte) |
 
-| Rôle | Déclencheur | Notification |
-|------|-------------|--------------|
-| Sourd | RDV accepté par un interprète | "RDV confirmé ✅" |
-| Sourd | RDV refusé | "RDV non attribué" |
-| Interprète | Nouvelle demande en attente | "Nouvelle demande de RDV" |
-| Interprète | Demande urgente | "🚨 Urgence à proximité !" |
-| Apprenti | Brevet validé | "Brevet LSF validé ! 🏆" |
-| Apprenti | Brevet refusé | "Brevet LSF non retenu" |
+- **Push** : envoyées par les Cloud Functions de `functions/` via le service Expo Push, même appli fermée. Au clic, l'appli s'ouvre sur l'écran concerné (`data.url`).
+- **Confidentialité** : les notifications ne contiennent ni le texte des messages ni le nom du patient (elles transitent par Expo/Google/Apple et s'affichent écran verrouillé).
+- **Jeton** : `hooks/useNotifications.ts` enregistre le jeton Expo dans `users/{uid}.expoPushToken` ; il est effacé à la déconnexion, et par les fonctions si l'appareil est désinscrit.
+- **Expo Go** (Android, SDK 53+) n'a pas de push distant : sans jeton, l'appli retombe sur les notifications locales (appli ouverte uniquement), comme avant.
 
-Les notifications push distantes (APNs / FCM) **ne fonctionnent plus dans Expo Go depuis SDK 53**. Le code correspondant a été retiré (`getExpoPushTokenAsync`, stockage du token dans Firestore).
+## Mise en place (une seule fois)
 
----
+### 1. Firebase : appli Android + `google-services.json`
 
-## Activer les notifications push distantes
+Console Firebase → Paramètres du projet → **Ajouter une application** → Android, package `com.tomcaucigh.pharmasign`. Télécharger `google-services.json` et le placer à la racine du projet (non versionné).
 
-Les notifications push permettent d'alerter l'utilisateur même quand l'app est fermée.  
-Elles nécessitent un **development build** (binary natif signé) et non Expo Go.
-
-### 1. Configurer EAS Build
-
-```bash
-npm install -g eas-cli
-eas login
-eas build:configure
-```
-
-Cela crée `eas.json` à la racine du projet.
-
-### 2. Configurer les credentials
-
-**Android (FCM)**
-
-Ajouter dans `app.json` :
-
-```json
-{
-  "expo": {
-    "android": {
-      "googleServicesFile": "./google-services.json"
-    }
-  },
-  "plugins": [
-    [
-      "expo-notifications",
-      {
-        "icon": "./assets/notification-icon.png",
-        "color": "#2A9D8F"
-      }
-    ]
-  ]
-}
-```
-
-Télécharger `google-services.json` depuis la Firebase Console > Paramètres du projet > Android.
-
-**iOS (APNs)**
-
-EAS gère les certificats APNs automatiquement lors du build si vous êtes connecté à votre compte Apple Developer.
-
-### 3. Réactiver le code push dans `hooks/useNotifications.ts`
-
-Remplacer le commentaire par :
-
-```ts
-try {
-  const token = (await Notifications.getExpoPushTokenAsync({
-    projectId: Constants.expoConfig?.extra?.eas?.projectId,
-  })).data;
-  await updateDoc(doc(db, 'users', user.id), { expoPushToken: token });
-} catch {
-  // Token optionnel — les notifications locales fonctionnent sans
-}
-```
-
-Ajouter les imports manquants :
-
-```ts
-import Constants from 'expo-constants';
-import { doc, updateDoc } from 'firebase/firestore';
-```
-
-### 4. Créer le development build
+Pour les builds EAS, l'envoyer comme variable de type fichier :
 
 ```bash
-# Android
-eas build --profile development --platform android
-
-# iOS (nécessite un compte Apple Developer)
-eas build --profile development --platform ios
+eas env:create --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json --visibility secret --environment preview --environment production
 ```
 
-Installer le `.apk` / `.ipa` généré sur l'appareil.  
-Le build contient le client Expo Dev (remplace Expo Go) avec support complet des notifications push.
+### 2. Expo : clé FCM V1
 
-### 5. Envoyer des notifications push depuis le backend
+Expo envoie les push Android via Firebase Cloud Messaging. Lui donner la clé du compte de service Firebase (`service-account.json`) :
 
-Une fois les tokens stockés dans Firestore, une Cloud Function peut envoyer des notifications via l'API Expo Push :
-
-```ts
-// functions/src/sendPushNotification.ts
-import { Expo } from 'expo-server-sdk';
-
-const expo = new Expo();
-
-export async function notify(expoPushToken: string, title: string, body: string) {
-  if (!Expo.isExpoPushToken(expoPushToken)) return;
-  await expo.sendPushNotificationsAsync([{
-    to: expoPushToken,
-    title,
-    body,
-    sound: 'default',
-  }]);
-}
+```bash
+eas credentials --platform android
 ```
 
----
+→ profil `preview` → *Google Service Account* → *Manage your Google Service Account Key for Push Notifications (FCM V1)* → *Upload a new service account key* → `service-account.json`.
 
-## Ressources
+### 3. Déployer les Cloud Functions
 
-- [Expo Notifications docs](https://docs.expo.dev/push-notifications/overview/)
-- [EAS Build docs](https://docs.expo.dev/build/introduction/)
-- [Expo Push API](https://docs.expo.dev/push-notifications/sending-notifications/)
-- [Firebase Cloud Functions](https://firebase.google.com/docs/functions)
+Forfait Blaze requis. Les tests (`npm --prefix functions test`) tournent automatiquement avant chaque déploiement.
+
+```bash
+npx firebase-tools@latest deploy --only functions --project pharmasign
+```
+
+Au premier déploiement, accepter la politique de nettoyage des images (évite des frais de stockage).
+
+### 4. Construire et installer l'appli
+
+```bash
+eas build --profile preview --platform android
+```
+
+Installer l'APK généré sur le téléphone, se connecter, accepter les notifications.
+
+## Vérifier
+
+- Jeton enregistré : champ `expoPushToken` dans `users/{uid}` (console Firestore).
+- Envois : `npx firebase-tools@latest functions:log --project pharmasign` → lignes « N/M notification(s) envoyée(s) ».
+- Test manuel d'un jeton : https://expo.dev/notifications
+
+## Développement
+
+```bash
+npm --prefix functions test   # 11 tests unitaires (service Expo simulé)
+npm run test:rules            # règles Firestore, dont le jeton push
+```
