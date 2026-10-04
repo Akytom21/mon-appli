@@ -29,6 +29,7 @@ import { usePatientReviews, type Review } from '@/hooks/useReviews';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import type { ColorTokens } from '@/constants/design';
+import { formatTimeRange } from '@/utils/appointment';
 
 const TODAY = new Date().toISOString().split('T')[0];
 
@@ -271,7 +272,7 @@ const RdvCard = memo(function RdvCard({
       </View>
       <View style={cSt.chipsRow}>
         <View style={cSt.chip}><Feather name="calendar" size={13} color={colors.INK_2} /><Text style={cSt.chipText}>{formatDateChip(appt.date)}</Text></View>
-        <View style={cSt.chip}><Feather name="clock"    size={13} color={colors.INK_2} /><Text style={cSt.chipText}>{appt.time}</Text></View>
+        <View style={cSt.chip}><Feather name="clock"    size={13} color={colors.INK_2} /><Text style={cSt.chipText}>{formatTimeRange(appt.time, appt.durationMin)}</Text></View>
       </View>
       <View style={cSt.addressRow}>
         <Feather name="map-pin" size={13} color={colors.INK_3} style={{ marginTop: 1 }} />
@@ -405,7 +406,7 @@ const HistoryCard = memo(function HistoryCard({
       </View>
       <View style={hSt.chipsRow}>
         <View style={hSt.chip}><Feather name="calendar" size={12} color={colors.INK_2} /><Text style={hSt.chipText}>{formatDateChip(appt.date)}</Text></View>
-        <View style={hSt.chip}><Feather name="clock"    size={12} color={colors.INK_2} /><Text style={hSt.chipText}>{appt.time}</Text></View>
+        <View style={hSt.chip}><Feather name="clock"    size={12} color={colors.INK_2} /><Text style={hSt.chipText}>{formatTimeRange(appt.time, appt.durationMin)}</Text></View>
       </View>
       <View style={hSt.addressRow}>
         <Feather name="map-pin" size={12} color={colors.INK_3} style={{ marginTop: 1 }} />

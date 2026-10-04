@@ -101,6 +101,8 @@ export function useNotifications() {
           scheduleLocal('RDV confirmé ! ✅', `${name} a accepté votre demande d'interprétation.`);
         } else if (prev === 'pending' && curr === 'declined') {
           scheduleLocal('RDV non attribué', 'Aucun interprète disponible. Vous pouvez reprogrammer.');
+        } else if (prev === 'accepted' && curr === 'pending') {
+          scheduleLocal('Votre interprète s’est désisté', 'Nous recherchons un autre interprète pour votre RDV.');
         }
         prevStatus[change.doc.id] = curr;
       });

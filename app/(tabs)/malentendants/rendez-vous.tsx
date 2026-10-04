@@ -22,6 +22,9 @@ import { HEALTH_PROFESSIONALS } from '@/data/healthProfessionals';
 import { useHealthProfessionalsSearch } from '@/hooks/useHealthProfessionals';
 import { useCreateAppointment } from '@/hooks/useAppointments';
 import { getDoctolibUrl } from '@/utils/doctolib';
+import {
+  DEFAULT_DURATION, DURATION_OPTIONS, formatDuration, formatTimeRange, isPastSlot, localToday,
+} from '@/utils/appointment';
 import { useAccessibility } from '@/context/AccessibilityContext';
 
 /* ─── Locale française ─────────────────────────────────── */
@@ -69,7 +72,7 @@ const CATEGORY_EMOJI: Record<CategoryId, string> = {
   pharmacie: '💊',
 };
 
-const TODAY = new Date().toISOString().split('T')[0];
+const TODAY = localToday();
 
 /* ─── Composant ──────────────────────────────────────────── */
 export default function RendezVousScreen() {
@@ -84,7 +87,14 @@ export default function RendezVousScreen() {
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
   const [selectedDate, setSelectedDate]         = useState('');
   const [selectedTime, setSelectedTime]         = useState('');
+  const [durationMin, setDurationMin]           = useState<number>(DEFAULT_DURATION);
   const [submitting, setSubmitting]             = useState(false);
+
+  const handleSelectDate = (date: string) => {
+    setSelectedDate(date);
+    // Un créneau choisi plus tôt peut être déjà passé pour aujourd'hui
+    if (selectedTime && isPastSlot(date, selectedTime)) setSelectedTime('');
+  };
 
   /* Mapping Firestore → Provider */
   const allProviders = useMemo<Provider[]>(() => {
@@ -156,6 +166,11 @@ export default function RendezVousScreen() {
 
   const handleSubmit = async () => {
     if (!canSubmit || submitting) return;
+    if (isPastSlot(selectedDate, selectedTime)) {
+      setSelectedTime('');
+      Alert.alert('Créneau passé', 'Ce créneau est déjà passé. Choisissez une autre heure.');
+      return;
+    }
     setSubmitting(true);
     try {
       await createAppointment({
@@ -164,6 +179,7 @@ export default function RendezVousScreen() {
         professionalType: selectedCategory!,
         date: selectedDate,
         time: selectedTime,
+        durationMin,
         coordinates: selectedProvider!.latitude
           ? { lat: selectedProvider!.latitude!, lng: selectedProvider!.longitude! }
           : undefined,
@@ -177,6 +193,7 @@ export default function RendezVousScreen() {
           address: selectedProvider!.address,
           date: selectedDate,
           time: selectedTime,
+          durationMin: String(durationMin),
         },
       });
     } catch {
@@ -387,7 +404,7 @@ export default function RendezVousScreen() {
             )}
             <View style={styles.calendarWrapper}>
               <Calendar
-                onDayPress={(day: { dateString: string }) => setSelectedDate(day.dateString)}
+                onDayPress={(day: { dateString: string }) => handleSelectDate(day.dateString)}
                 markedDates={markedDates}
                 minDate={TODAY}
                 theme={{
@@ -421,18 +438,45 @@ export default function RendezVousScreen() {
             <View style={styles.timeGrid}>
               {TIME_SLOTS.map((slot) => {
                 const active = selectedTime === slot;
+                const past = !!selectedDate && isPastSlot(selectedDate, slot);
                 return (
                   <TouchableOpacity
                     key={slot}
-                    style={[styles.timeSlot, active && styles.timeSlotActive]}
+                    style={[styles.timeSlot, active && styles.timeSlotActive, past && styles.timeSlotPast]}
                     onPress={() => setSelectedTime(slot)}
+                    disabled={past}
                     accessibilityRole="radio"
-                    accessibilityState={{ selected: active }}
-                    accessibilityLabel={`Créneau ${slot}`}
+                    accessibilityState={{ selected: active, disabled: past }}
+                    accessibilityLabel={past ? `Créneau ${slot}, déjà passé` : `Créneau ${slot}`}
                     accessibilityHint="Double-tapez pour sélectionner ce créneau"
                   >
                     <Text style={[styles.timeSlotText, active && styles.timeSlotTextActive, { fontSize: a11y.scale(FontSize.sm) }]}>
                       {slot}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* ── 5. Durée ── */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { fontSize: a11y.scale(FontSize.lg) }]}>Durée estimée</Text>
+            <Text style={styles.sectionSub}>Temps de présence de l’interprète, attente comprise</Text>
+            <View style={styles.timeGrid}>
+              {DURATION_OPTIONS.map((min) => {
+                const active = durationMin === min;
+                return (
+                  <TouchableOpacity
+                    key={min}
+                    style={[styles.durationChip, active && styles.timeSlotActive]}
+                    onPress={() => setDurationMin(min)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={`Durée ${formatDuration(min)}`}
+                  >
+                    <Text style={[styles.timeSlotText, active && styles.timeSlotTextActive, { fontSize: a11y.scale(FontSize.sm) }]}>
+                      {formatDuration(min)}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -458,7 +502,9 @@ export default function RendezVousScreen() {
                 </Text>
               )}
               {selectedTime && (
-                <Text style={styles.recapLine}>🕐  {selectedTime}</Text>
+                <Text style={styles.recapLine}>
+                  🕐  {formatTimeRange(selectedTime, durationMin)} ({formatDuration(durationMin)})
+                </Text>
               )}
             </View>
           )}
@@ -675,6 +721,17 @@ function createStyles(colors: ColorTokens) {
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 3,
+  },
+  timeSlotPast: { opacity: 0.35 },
+  durationChip: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.BORDER,
+    backgroundColor: colors.SURFACE,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   timeSlotText:       { fontSize: FontSize.sm, color: colors.INK_2, fontWeight: '500' },
   timeSlotTextActive: { color: '#fff', fontWeight: '700' },
