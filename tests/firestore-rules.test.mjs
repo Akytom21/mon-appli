@@ -44,6 +44,7 @@ async function seed() {
       ...pendingAppt, status: 'accepted', interpreterId: 'interp1', interpreterName: 'I1', createdAt: new Date(),
     });
     await setDoc(doc(db, 'appointments', 'other1'), { ...pendingAppt, patientId: 'sourd2', status: 'accepted', interpreterId: 'interp1' });
+    await setDoc(doc(db, 'appointments', 'past1'), { ...pendingAppt, date: '2020-01-01', status: 'accepted', interpreterId: 'interp1', interpreterName: 'I1' });
     await setDoc(doc(db, 'messages', 'acc1', 'chatMessages', 'm1'), {
       senderId: 'interp1', recipientId: 'sourd1', text: 'Bonjour', read: false, appointmentId: 'acc1', createdAt: new Date(),
     });
@@ -94,6 +95,9 @@ await check("supprimer le compte d'un autre", 'DENY', () => deleteDoc(doc(as('so
 
 // ── RDV (useAppointments.ts, transcription.tsx) ──
 await check('patient crée un RDV', 'ALLOW', () => addDoc(collection(as('sourd1'), 'appointments'), { ...pendingAppt, declinedBy: [], createdAt: serverTimestamp() }));
+await check('patient crée un RDV de 1 h 30', 'ALLOW', () => addDoc(collection(as('sourd1'), 'appointments'), { ...pendingAppt, durationMin: 90 }));
+await check('durée absurde (1000 min)', 'DENY', () => addDoc(collection(as('sourd1'), 'appointments'), { ...pendingAppt, durationMin: 1000 }));
+await check('durée en texte', 'DENY', () => addDoc(collection(as('sourd1'), 'appointments'), { ...pendingAppt, durationMin: '90' }));
 await check('patient se choisit un interprète', 'DENY', () => addDoc(collection(as('sourd1'), 'appointments'), { ...pendingAppt, interpreterId: 'interp1' }));
 await check('patient crée un RDV pour un autre', 'DENY', () => addDoc(collection(as('sourd1'), 'appointments'), { ...pendingAppt, patientId: 'sourd2' }));
 await check('patient liste ses RDV', 'ALLOW', () => getDocs(query(collection(as('sourd1'), 'appointments'), where('patientId', '==', 'sourd1'), orderBy('createdAt', 'desc'), limit(50))));
@@ -113,6 +117,13 @@ await check('interprète reprend une mission déjà acceptée', 'DENY', () => up
 await check('interprète refuse (arrayUnion)', 'ALLOW', () => updateDoc(doc(as('interp1'), 'appointments', 'pend1'), { declinedBy: arrayUnion('interp1') }));
 await check('interprète efface les refus des autres', 'DENY', () => updateDoc(doc(as('interp1'), 'appointments', 'pend1'), { declinedBy: ['interp1'] }));
 await check("interprète refuse au nom d'un autre", 'DENY', () => updateDoc(doc(as('interp1'), 'appointments', 'pend1'), { declinedBy: arrayUnion('sourd1') }));
+const withdraw = { status: 'pending', interpreterId: null, interpreterName: null, interpreterHourlyRate: null, interpreterPhone: null };
+await check('interprète se désiste', 'ALLOW', () => updateDoc(doc(as('interp1'), 'appointments', 'acc1'), { ...withdraw, declinedBy: arrayUnion('interp1') }));
+await check("se désister de la mission d'un autre", 'DENY', () => updateDoc(doc(as('interp2'), 'appointments', 'acc1'), { ...withdraw, declinedBy: arrayUnion('interp2') }));
+await check("se désister d'un RDV passé", 'DENY', () => updateDoc(doc(as('interp1'), 'appointments', 'past1'), { ...withdraw, declinedBy: arrayUnion('interp1') }));
+await check('se désister en gardant son nom', 'DENY', () => updateDoc(doc(as('interp1'), 'appointments', 'acc1'), { ...withdraw, interpreterName: 'I1', declinedBy: arrayUnion('interp1') }));
+await check('se désister sans se retirer de la liste', 'DENY', () => updateDoc(doc(as('interp1'), 'appointments', 'acc1'), withdraw));
+await check('se désister en changeant l\'adresse', 'DENY', () => updateDoc(doc(as('interp1'), 'appointments', 'acc1'), { ...withdraw, address: 'ailleurs', declinedBy: arrayUnion('interp1') }));
 await check('patient sauve la transcription', 'ALLOW', () => updateDoc(doc(as('sourd1'), 'appointments', 'acc1'), { transcription: 'txt', transcriptionUpdatedAt: serverTimestamp() }));
 await check('admin supprime un RDV', 'ALLOW', () => deleteDoc(doc(as('admin1'), 'appointments', 'acc1')));
 
@@ -140,6 +151,10 @@ await check("patient note le RDV d'un autre", 'DENY', () => addDoc(collection(as
 await check('note hors limites', 'DENY', () => addDoc(collection(as('sourd1'), 'reviews'), { ...review, rating: 9 }));
 await check('interprète lit ses avis (note moyenne)', 'ALLOW', () => getDocs(query(collection(as('interp1'), 'reviews'), where('interpreterId', '==', 'interp1'))));
 await check('patient lit les avis des autres', 'DENY', () => getDocs(query(collection(as('sourd1'), 'reviews'), where('interpreterId', '==', 'interp1'))));
+
+// ── Rappels (écrits uniquement par la Cloud Function sendReminders) ──
+await check('client lit les rappels', 'DENY', () => getDoc(doc(as('sourd1'), 'reminders', 'acc1')));
+await check('client écrit un rappel', 'DENY', () => setDoc(doc(as('sourd1'), 'reminders', 'acc1'), { sent: [] }));
 
 await env.cleanup();
 const fails = results.filter((r) => r[0] === 'FAIL').length;

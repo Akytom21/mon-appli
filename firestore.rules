@@ -66,11 +66,15 @@ service cloud.firestore {
       // Admin lit tout
       allow read: if isAdmin();
 
-      // Patient (sourd) crée un RDV en son nom, sans interprète désigné
+      // Patient (sourd) crée un RDV en son nom, sans interprète désigné.
+      // Durée en minutes (absente sur les anciennes versions de l'appli).
       allow create: if authed() &&
                        request.resource.data.patientId == uid() &&
                        request.resource.data.status == 'pending' &&
-                       request.resource.data.interpreterId == null;
+                       request.resource.data.interpreterId == null &&
+                       request.resource.data.get('durationMin', 60) is int &&
+                       request.resource.data.get('durationMin', 60) >= 15 &&
+                       request.resource.data.get('durationMin', 60) <= 480;
 
       // Patient annule son propre RDV (seul le champ status peut changer → 'cancelled')
       allow update: if authed() &&
@@ -92,6 +96,23 @@ service cloud.firestore {
       allow update: if isInterprete() &&
                        resource.data.status == 'pending' &&
                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['declinedBy']) &&
+                       request.resource.data.declinedBy.toSet() ==
+                         resource.data.get('declinedBy', []).toSet().union([uid()].toSet());
+
+      // Interprète se désiste d'une mission qu'il a acceptée, au plus tard le jour du RDV :
+      // la demande redevient « en attente » sans lui (ajouté à declinedBy).
+      allow update: if isInterprete() &&
+                       resource.data.status == 'accepted' &&
+                       resource.data.interpreterId == uid() &&
+                       timestamp.value(resource.data.date + 'T23:59:59Z') > request.time &&
+                       request.resource.data.status == 'pending' &&
+                       request.resource.data.interpreterId == null &&
+                       request.resource.data.get('interpreterName', null) == null &&
+                       request.resource.data.get('interpreterHourlyRate', null) == null &&
+                       request.resource.data.get('interpreterPhone', null) == null &&
+                       request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['status', 'interpreterId', 'interpreterName', 'interpreterHourlyRate',
+                                   'interpreterPhone', 'declinedBy']) &&
                        request.resource.data.declinedBy.toSet() ==
                          resource.data.get('declinedBy', []).toSet().union([uid()].toSet());
 

@@ -29,6 +29,7 @@ export type Appointment = {
   type: AppointmentType;
   date: string;
   time: string;
+  durationMin?: number; // absent sur les RDV créés avant l'ajout de la durée
   location: string;
   address: string;
   coordinates: { lat: number; lng: number };
@@ -137,6 +138,21 @@ export function useAppointments() {
     });
   }, [user]);
 
+  /* Désistement d'une mission acceptée : la demande repasse « en attente »
+     pour les autres interprètes (pas pour celui-ci, ajouté à declinedBy).
+     La Cloud Function notifyStatusChange prévient le patient et relance la demande. */
+  const withdrawMission = useCallback(async (id: string) => {
+    if (!user) return;
+    await updateDoc(doc(db, 'appointments', id), {
+      status: 'pending',
+      interpreterId: null,
+      interpreterName: null,
+      interpreterHourlyRate: null,
+      interpreterPhone: null,
+      declinedBy: arrayUnion(user.id),
+    });
+  }, [user]);
+
   // Demandes disponibles (exclut celles déjà refusées par cet interprète)
   const pending = useMemo(
     () => pendingAppts.filter((a) => !a.declinedBy?.includes(uid)),
@@ -157,7 +173,7 @@ export function useAppointments() {
     [myAppts],
   );
 
-  return { pending, myMissions, history, loading, acceptMission, declineMission, declinedCount };
+  return { pending, myMissions, history, loading, acceptMission, declineMission, withdrawMission, declinedCount };
 }
 
 /* ── Création d'un RDV par le patient ─────────────────────── */
@@ -170,6 +186,7 @@ export function useCreateAppointment() {
     professionalType: AppointmentType;
     date: string;
     time: string;
+    durationMin: number;
     coordinates?: { lat: number; lng: number };
   }): Promise<string> => {
     if (!user) throw new Error('Non authentifié');
@@ -179,6 +196,7 @@ export function useCreateAppointment() {
       type: data.professionalType,
       date: data.date,
       time: data.time,
+      durationMin: data.durationMin,
       location: data.professionalName,
       address: data.professionalAddress,
       coordinates: data.coordinates ?? { lat: 43.7102, lng: 7.262 },

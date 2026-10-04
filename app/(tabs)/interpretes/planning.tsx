@@ -19,6 +19,7 @@ import { useAppointments, type Appointment } from '@/hooks/useAppointments';
 import { useAuth } from '@/context/AuthContext';
 import { useInterpreterReviews, type Review } from '@/hooks/useReviews';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
+import { formatDuration } from '@/utils/appointment';
 
 const TYPE_ICONS: Record<string, string> = {
   generaliste: '🩺',
@@ -237,6 +238,7 @@ const MissionCard = memo(function MissionCard({
     <View style={[styles.card, past && styles.cardPast]}>
       <View style={styles.timeColumn}>
         <Text style={[styles.timeText, past && styles.timeTextPast]}>{appt.time}</Text>
+        {!!appt.durationMin && <Text style={styles.durationText}>{formatDuration(appt.durationMin)}</Text>}
         <View style={[styles.timeLine, past && styles.timeLinePast]} />
       </View>
       <View style={styles.cardBody}>
@@ -368,6 +370,7 @@ function createStyles(colors: ColorTokens) {
     cardLocation: { fontSize: FontSize.sm, fontWeight: '600', color: colors.INK_1 },
     cardAddress: { fontSize: FontSize.xs, color: colors.INK_2 },
     timeTextPast: { color: colors.INK_2 },
+    durationText: { fontSize: FontSize.xs, color: colors.INK_2, fontWeight: '500' },
     timeLinePast: { backgroundColor: colors.BORDER },
     reviewRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
     reviewComment: { fontSize: 11, color: colors.WARNING, fontStyle: 'italic', flex: 1 },

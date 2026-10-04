@@ -17,6 +17,7 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { useAppointments, type Appointment, type AppointmentType } from '@/hooks/useAppointments';
 import { useInterpreterReviews } from '@/hooks/useReviews';
 import { useInterpreterStats } from '@/hooks/useInterpreterStats';
+import { formatTimeRange } from '@/utils/appointment';
 
 const NICE_CENTER = {
   latitude: 43.7102,
@@ -121,7 +122,7 @@ export default function InterpretesHome() {
                       {TYPE_INFO[appt.type].icon} {TYPE_INFO[appt.type].label}
                     </Text>
                     <Text style={styles.calloutMeta}>
-                      🕐 {appt.time} — {appt.date}
+                      🕐 {formatTimeRange(appt.time, appt.durationMin)} — {appt.date}
                     </Text>
                     <Text style={styles.calloutMeta}>👤 {appt.patientName}</Text>
                   </View>
@@ -171,7 +172,7 @@ export default function InterpretesHome() {
                 {TYPE_INFO[selected.type].icon} {TYPE_INFO[selected.type].label}
               </Text>
               <Text style={styles.selectedPatient}>👤 {selected.patientName}</Text>
-              <Text style={styles.selectedMeta}>🕐 {selected.time} — {selected.date}</Text>
+              <Text style={styles.selectedMeta}>🕐 {formatTimeRange(selected.time, selected.durationMin)} — {selected.date}</Text>
               <Text style={styles.selectedMeta} numberOfLines={1}>📍 {selected.location}</Text>
             </View>
             <View style={styles.selectedActions}>
@@ -276,7 +277,7 @@ export default function InterpretesHome() {
                       {info.icon} {info.label}
                     </Text>
                     <Text style={styles.demandePatient}>{appt.patientName}</Text>
-                    <Text style={styles.demandeMeta}>🕐 {appt.time} — {appt.date}</Text>
+                    <Text style={styles.demandeMeta}>🕐 {formatTimeRange(appt.time, appt.durationMin)} — {appt.date}</Text>
                     <Text style={styles.demandeMeta} numberOfLines={1}>📍 {appt.location}</Text>
                   </View>
                   <View style={styles.demandeRight}>

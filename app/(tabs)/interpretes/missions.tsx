@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   FlatList,
   Platform,
@@ -24,6 +25,7 @@ import { useAppointments, type Appointment, type AppointmentType } from '@/hooks
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import type { ColorTokens } from '@/constants/design';
+import { formatDuration, formatTimeRange } from '@/utils/appointment';
 
 type Tab = 'disponibles' | 'missions' | 'historique';
 type DateFilter = 'today' | 'week' | 'month';
@@ -243,7 +245,7 @@ const FilterSheet = memo(function FilterSheet({
 export default function MissionsScreen() {
   const colors = useThemeColor();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { pending, myMissions, history, loading, acceptMission, declineMission } =
+  const { pending, myMissions, history, loading, acceptMission, declineMission, withdrawMission } =
     useAppointments();
   const unreadMap = useUnreadMessages();
   const [activeTab, setActiveTab] = useState<Tab>('disponibles');
@@ -303,6 +305,27 @@ export default function MissionsScreen() {
       setAccepting(null);
     });
   }, [acceptAnim, acceptMission]);
+
+  const handleWithdraw = useCallback((appt: Appointment) => {
+    const hoursLeft = (new Date(`${appt.date}T${appt.time}:00`).getTime() - Date.now()) / 3_600_000;
+    const late = hoursLeft < 24;
+    Alert.alert(
+      late ? 'Désistement tardif' : 'Se désister de cette mission ?',
+      (late
+        ? 'Le RDV a lieu dans moins de 24 h : le patient risque de ne pas trouver de remplaçant à temps.\n\n'
+        : '')
+        + 'Le patient sera prévenu et sa demande sera de nouveau proposée aux autres interprètes.',
+      [
+        { text: 'Garder la mission', style: 'cancel' },
+        {
+          text: 'Me désister',
+          style: 'destructive',
+          onPress: () => withdrawMission(appt.id).catch(() =>
+            Alert.alert('Erreur', 'Impossible de se désister. Vérifiez votre connexion.')),
+        },
+      ],
+    );
+  }, [withdrawMission]);
 
   const getDistanceLabel = useCallback((coords: { lat: number; lng: number }): string => {
     if (!userCoords) return '';
@@ -416,10 +439,13 @@ export default function MissionsScreen() {
         onMessage={activeTab === 'missions' && item.status === 'accepted' && item.patientId
           ? () => router.push(`/(tabs)/messagerie/${item.id}?recipientId=${encodeURIComponent(item.patientId)}&name=${encodeURIComponent(item.patientName)}`)
           : undefined}
+        onWithdraw={activeTab === 'missions' && item.status === 'accepted'
+          ? () => handleWithdraw(item)
+          : undefined}
         unreadCount={unreadMap.get(item.id)}
       />
     ),
-    [activeTab, accepting, acceptAnim, getDistanceLabel, handleAccept, declineMission, unreadMap],
+    [activeTab, accepting, acceptAnim, getDistanceLabel, handleAccept, declineMission, handleWithdraw, unreadMap],
   );
 
   const renderEmpty = useCallback(
@@ -604,11 +630,12 @@ type CardProps = {
   onAccept: (id: string) => void;
   onDecline: (id: string) => void;
   onMessage?: () => void;
+  onWithdraw?: () => void;
   unreadCount?: number;
 };
 
 const AppointmentCard = memo(function AppointmentCard({
-  appt, tab, distance, isAccepting, acceptAnim, onAccept, onDecline, onMessage, unreadCount,
+  appt, tab, distance, isAccepting, acceptAnim, onAccept, onDecline, onMessage, onWithdraw, unreadCount,
 }: CardProps) {
   const colors = useThemeColor();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -642,7 +669,8 @@ const AppointmentCard = memo(function AppointmentCard({
 
       <View style={styles.metaRow}>
         <Text style={styles.metaItem}>🗓 {formatDate(appt.date)}</Text>
-        <Text style={styles.metaItem}>🕐 {appt.time}</Text>
+        <Text style={styles.metaItem}>🕐 {formatTimeRange(appt.time, appt.durationMin)}</Text>
+        {!!appt.durationMin && <Text style={styles.metaItem}>⏱ {formatDuration(appt.durationMin)}</Text>}
       </View>
 
       <View style={styles.locationBox}>
@@ -680,6 +708,16 @@ const AppointmentCard = memo(function AppointmentCard({
                   <Text style={styles.chatBtnBadgeTxt}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
                 </View>
               )}
+            </TouchableOpacity>
+          )}
+          {onWithdraw && (
+            <TouchableOpacity
+              style={styles.withdrawBtn}
+              onPress={onWithdraw}
+              accessibilityRole="button"
+              accessibilityLabel="Se désister de cette mission"
+            >
+              <Text style={styles.withdrawBtnText}>Se désister</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -830,6 +868,8 @@ function createStyles(colors: ColorTokens) {
   statusChipText: { fontSize: FontSize.sm, fontWeight: '700', color: colors.INK_1 },
   chatBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radius.full, backgroundColor: colors.BRAND, position: 'relative' },
   chatBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: '#fff' },
+  withdrawBtn: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radius.full, borderWidth: 1.5, borderColor: colors.ERROR },
+  withdrawBtnText: { fontSize: FontSize.sm, fontWeight: '700', color: colors.ERROR },
   chatBtnBadge: { position: 'absolute', top: -5, right: -5, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: colors.ERROR, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: colors.SURFACE },
   chatBtnBadgeTxt: { fontSize: 9, fontWeight: '800', color: '#fff' },
 

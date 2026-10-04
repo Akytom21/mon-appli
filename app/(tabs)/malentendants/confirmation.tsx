@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
+import { formatDuration, formatTimeRange } from '@/utils/appointment';
 
 type CategoryId = 'generaliste' | 'urgences' | 'specialiste' | 'pharmacie';
 
@@ -39,7 +40,9 @@ export default function ConfirmationScreen() {
     address: string;
     date: string;
     time: string;
+    durationMin?: string;
   }>();
+  const durationMin = Number(params.durationMin) || null;
 
   const category = (params.type as CategoryId) || 'generaliste';
   const info = CATEGORY_INFO[category] ?? CATEGORY_INFO.generaliste;
@@ -150,7 +153,10 @@ export default function ConfirmationScreen() {
 
           <View style={styles.row}>
             <Text style={styles.rowLabel}>Heure</Text>
-            <Text style={styles.rowValue}>🕐 {params.time || '—'}</Text>
+            <Text style={styles.rowValue}>
+              🕐 {params.time ? formatTimeRange(params.time, durationMin) : '—'}
+              {durationMin ? ` (${formatDuration(durationMin)})` : ''}
+            </Text>
           </View>
         </Animated.View>
 

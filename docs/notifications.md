@@ -7,6 +7,8 @@
 | Interprète | Nouvelle demande de RDV (titre d'alerte + priorité haute si urgence) | Push — `notifyNewRequest` |
 | Sourd | RDV accepté par un interprète | Push — `notifyStatusChange` |
 | Interprète | Patient annule une mission acceptée | Push — `notifyStatusChange` |
+| Sourd + interprètes | Interprète se désiste : patient prévenu, demande relancée (« Demande à reprendre ») aux autres interprètes | Push — `notifyStatusChange` |
+| Sourd + interprète | Rappel la veille (2 h à 24 h avant) et moins d'une heure avant un RDV accepté | Push — `sendReminders` (toutes les 15 min, rappels envoyés notés dans `reminders/{apptId}`) |
 | Tous | Nouveau message dans le chat | Push — `notifyChatMessage` |
 | Apprenti | Brevet validé / refusé | Locale (appli ouverte) |
 
@@ -64,6 +66,6 @@ Installer l'APK généré sur le téléphone, se connecter, accepter les notific
 ## Développement
 
 ```bash
-npm --prefix functions test   # 11 tests unitaires (service Expo simulé)
+npm --prefix functions test   # tests unitaires (service Expo simulé, rappels, fuseau de Paris)
 npm run test:rules            # règles Firestore, dont le jeton push
 ```
