@@ -11,6 +11,7 @@ import {
   memoryLocalCache,
   persistentLocalCache,
 } from 'firebase/firestore';
+import { getFunctions } from 'firebase/functions';
 import { getStorage } from 'firebase/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -41,3 +42,6 @@ export const db = initializeFirestore(app, {
 });
 
 export const storage = getStorage(app);
+
+// Cloud Functions appelables (functions/src) — même région que leur déploiement
+export const functions = getFunctions(app, 'europe-west1');

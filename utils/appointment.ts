@@ -22,6 +22,20 @@ export function formatTimeRange(time: string, durationMin?: number | null): stri
   return `${time} – ${hh}:${mm}`;
 }
 
+/* Montant en centimes : même calcul que functions/src/stripe.ts (priceCents) */
+export function priceCents(hourlyRate: number, durationMin: number): number {
+  if (!(hourlyRate > 0) || !(durationMin > 0)) return 0;
+  return Math.round((hourlyRate * 100 * durationMin) / 60);
+}
+
+/* 45 €/h × 90 min → "67,50 € (45 €/h × 1 h 30)" ; sans durée → "45 €/h" */
+export function formatPrice(hourlyRate: number, durationMin?: number | null): string {
+  const rate = `${String(hourlyRate).replace('.', ',')} €/h`;
+  if (!durationMin) return rate;
+  const euros = (priceCents(hourlyRate, durationMin) / 100).toFixed(2).replace('.', ',');
+  return `${euros} € (${rate} × ${formatDuration(durationMin)})`;
+}
+
 /* Date du jour au format "YYYY-MM-DD", en heure locale (pas UTC) */
 export function localToday(now = new Date()): string {
   const y = now.getFullYear();

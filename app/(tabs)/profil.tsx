@@ -26,6 +26,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useAccessibility, type DarkModePref, type TextSize } from '@/context/AccessibilityContext';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import type { ColorTokens } from '@/constants/design';
+import PayoutsCard from '@/components/PayoutsCard';
 
 const NIVEAUX_LSF  = ['Débutant', 'Intermédiaire', 'Avancé', 'Expert'];
 const PREFS_COMMUN = ['LSF exclusif', 'LSF + lecture labiale', 'Écriture + LSF', 'Toutes méthodes'];
@@ -391,7 +392,7 @@ export default function ProfilScreen() {
                     <Text style={styles.rateUnitText}>€/heure</Text>
                   </View>
                 </View>
-                <Text style={styles.fieldHint}>Affiché sur la fiche du rendez-vous confirmé</Text>
+                <Text style={styles.fieldHint}>Montant du RDV pour le patient : tarif × durée</Text>
               </View>
 
               <View style={[styles.field, styles.fieldRow, { marginBottom: 0 }]}>
@@ -410,6 +411,9 @@ export default function ProfilScreen() {
               </View>
             </View>
           )}
+
+          {/* Paiements Stripe — interprète */}
+          {user?.role === 'interprete' && <PayoutsCard />}
 
           {/* Niveau LSF — apprenti */}
           {user?.role === 'apprenti' && (

@@ -22,6 +22,9 @@ export type User = {
   zoneKm?: number;
   languages?: string[];
   disponible?: boolean;
+  hourlyRate?: number | null;
+  // Écrit par les Cloud Functions de paiement (voir functions/src/stripe.ts)
+  stripePayoutStatus?: 'none' | 'incomplete' | 'pending' | 'active';
   // Apprenti
   niveauLSF?: string;
   // Sourd
@@ -71,6 +74,8 @@ function mapFirestoreUser(uid: string, email: string, data: Record<string, any>)
     zoneKm: data.zoneKm,
     languages: data.languages,
     disponible: data.disponible,
+    hourlyRate: data.hourlyRate,
+    stripePayoutStatus: data.stripePayoutStatus,
     niveauLSF: data.niveauLSF,
     prefCommun: data.prefCommun,
     brevetSubmitted: data.brevetSubmitted ?? false,
