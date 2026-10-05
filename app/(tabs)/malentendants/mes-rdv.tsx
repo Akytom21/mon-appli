@@ -29,7 +29,7 @@ import { usePatientReviews, type Review } from '@/hooks/useReviews';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import type { ColorTokens } from '@/constants/design';
-import { formatTimeRange } from '@/utils/appointment';
+import { formatPrice, formatTimeRange } from '@/utils/appointment';
 
 const TODAY = new Date().toISOString().split('T')[0];
 
@@ -317,7 +317,7 @@ const RdvCard = memo(function RdvCard({
           <Feather name="credit-card" size={12} color={colors.INK_3} />
           <Text style={cSt.paymentNoteText}>
             {appt.interpreterHourlyRate
-              ? `💳 Tarif : ${appt.interpreterHourlyRate}€/h · Paiement à convenir avec l'interprète`
+              ? `💳 ${formatPrice(appt.interpreterHourlyRate, appt.durationMin)} · Paiement à convenir avec l'interprète`
               : "💳 Paiement à convenir avec l'interprète"}
           </Text>
         </View>

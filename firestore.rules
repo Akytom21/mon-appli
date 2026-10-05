@@ -29,15 +29,22 @@ service cloud.firestore {
       // Chaque utilisateur lit son propre profil ; admin lit tout
       allow read: if authed() && (userId == uid() || isAdmin());
 
+      // Champs écrits uniquement par les Cloud Functions de paiement (payments.ts)
+      function stripeFields() {
+        return ['stripeAccountId', 'stripePayoutStatus'];
+      }
+
       // Inscription : chacun crée son propre profil, jamais admin ni brevet pré-validé
       allow create: if authed() && userId == uid() &&
                        request.resource.data.role in ['sourd', 'interprete', 'apprenti'] &&
-                       request.resource.data.get('brevetValidated', false) == false;
+                       request.resource.data.get('brevetValidated', false) == false &&
+                       !request.resource.data.keys().hasAny(stripeFields());
 
-      // Mise à jour du profil, sauf les champs décidés par l'admin
+      // Mise à jour du profil, sauf les champs décidés par l'admin ou par Stripe
       allow update: if authed() && userId == uid() &&
                        !request.resource.data.diff(resource.data).affectedKeys()
-                         .hasAny(['role', 'brevetValidated', 'brevetRefused', 'brevetRefusalReason']);
+                         .hasAny(['role', 'brevetValidated', 'brevetRefused', 'brevetRefusalReason']
+                                   .concat(stripeFields()));
 
       // Apprenti dont le brevet a été validé par l'admin → passe interprète
       allow update: if authed() && userId == uid() &&

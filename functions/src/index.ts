@@ -4,9 +4,9 @@
    aucune boucle de déclenchement possible. Écritures : effacer de users/{uid}
    un jeton push devenu invalide, et noter les rappels envoyés dans reminders/
    (collection fermée aux clients par les règles). */
+import './options';
 import { initializeApp } from 'firebase-admin/app';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
-import { setGlobalOptions } from 'firebase-functions/v2';
 import { onDocumentCreated, onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import * as logger from 'firebase-functions/logger';
@@ -19,8 +19,7 @@ import {
 initializeApp();
 const db = getFirestore();
 
-// Base Firestore en eur3 → fonctions en europe-west1. maxInstances plafonne les coûts.
-setGlobalOptions({ region: 'europe-west1', maxInstances: 5 });
+export { stripeOnboardingLink, stripeRefreshStatus, stripeReturn } from './payments';
 
 async function tokenOf(uid: string | null | undefined): Promise<string | null> {
   if (!uid) return null;
