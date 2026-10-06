@@ -25,6 +25,60 @@ export function payoutStatus(account: AccountLike | null | undefined): PayoutSta
   return account.details_submitted ? 'pending' : 'incomplete';
 }
 
+/* ── Paiement d'un RDV par le patient ─────────────────────────── */
+
+export type PaymentAppt = {
+  patientId?: string;
+  status?: string;
+  interpreterId?: string | null;
+  interpreterHourlyRate?: number | null;
+  durationMin?: number;
+};
+
+const DEFAULT_DURATION = 60; // RDV créés avant l'ajout de la durée
+
+/* Montant à payer, ou raison pour laquelle le paiement en ligne est impossible
+   (le patient règle alors directement l'interprète, comme avant). */
+export function paymentQuote(
+  appt: PaymentAppt,
+  uid: string,
+  interpreterPayoutStatus: unknown,
+): { ok: true; amount: number } | { ok: false; code: 'permission-denied' | 'failed-precondition'; message: string } {
+  if (appt.patientId !== uid) {
+    return { ok: false, code: 'permission-denied', message: 'Ce rendez-vous n’est pas le vôtre.' };
+  }
+  if (appt.status !== 'accepted' || !appt.interpreterId) {
+    return { ok: false, code: 'failed-precondition', message: 'Le paiement est possible une fois un interprète trouvé.' };
+  }
+  if (interpreterPayoutStatus !== 'active') {
+    return { ok: false, code: 'failed-precondition', message: 'Cet interprète n’accepte pas encore le paiement en ligne : réglez-le directement.' };
+  }
+  const amount = priceCents(appt.interpreterHourlyRate ?? 0, appt.durationMin ?? DEFAULT_DURATION);
+  if (amount < 50) { // minimum Stripe : 0,50 €
+    return { ok: false, code: 'failed-precondition', message: 'Pas de tarif pour ce rendez-vous : réglez directement l’interprète.' };
+  }
+  return { ok: true, amount };
+}
+
+export type PaymentStatus = 'pending' | 'processing' | 'paid' | 'failed' | 'canceled';
+
+/* Événement Stripe → statut du paiement (null : événement ignoré) */
+export function paymentStatusFromEvent(type: string): PaymentStatus | null {
+  switch (type) {
+    case 'payment_intent.processing': return 'processing';
+    case 'payment_intent.succeeded': return 'paid';
+    case 'payment_intent.payment_failed': return 'failed';
+    case 'payment_intent.canceled': return 'canceled';
+    default: return null;
+  }
+}
+
+/* Les événements Stripe peuvent arriver en double ou dans le désordre :
+   un paiement réussi ne redevient jamais « en attente » ou « échoué ». */
+export function shouldApplyStatus(current: unknown, next: PaymentStatus): boolean {
+  return current !== 'paid' || next === 'paid';
+}
+
 /* Page affichée à la fin (ou à l'expiration) du formulaire Stripe : renvoie dans l'appli */
 export function returnPage(reason: 'done' | 'refresh'): string {
   const deepLink = `pharmasign://stripe-return?r=${reason}`;

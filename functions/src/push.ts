@@ -120,6 +120,13 @@ export function chatPush(msg: ChatMessage, appointmentId: string, token: string)
   return base(token, '💬 Nouveau message', `${name} vous a écrit.`, url);
 }
 
+/* Interprète : le patient a réglé la mission en ligne */
+export function paidPush(appt: Appointment, amountCents: number, token: string): PushMessage {
+  const w = when(appt);
+  const euros = (amountCents / 100).toFixed(2).replace('.', ',');
+  return base(token, '💳 Mission réglée', `Le patient a payé ${euros} € pour le RDV${w ? ' ' + w : ''}.`, '/(tabs)/interpretes/planning');
+}
+
 /* Patient : son interprète s'est désisté, la demande est relancée */
 export function withdrawnPush(appt: Appointment, token: string): PushMessage {
   const w = when(appt);

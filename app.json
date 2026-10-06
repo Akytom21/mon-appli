@@ -69,6 +69,13 @@
         }
       ],
       [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.tomcaucigh.pharmasign",
+          "enableGooglePay": true
+        }
+      ],
+      [
         "expo-notifications",
         {
           "icon": "./assets/images/android-icon-monochrome.png",

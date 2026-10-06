@@ -19,6 +19,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '@/context/AuthContext';
 import { AccessibilityProvider, useAccessibility } from '@/context/AccessibilityContext';
 import SplashOverlay from '@/components/SplashOverlay';
+import StripeRoot from '@/components/StripeRoot';
 
 /* Bascule le style de la barre de statut selon le mode sombre effectif —
    nécessite d'être sous AccessibilityProvider pour lire isDark. */
@@ -44,6 +45,7 @@ function OnboardingGate() {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
+      <StripeRoot>
       <AccessibilityProvider>
         <AuthProvider>
           <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
@@ -58,6 +60,7 @@ export default function RootLayout() {
           <SplashOverlay />
         </AuthProvider>
       </AccessibilityProvider>
+      </StripeRoot>
     </SafeAreaProvider>
   );
 }

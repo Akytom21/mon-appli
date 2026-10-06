@@ -29,7 +29,8 @@ import { usePatientReviews, type Review } from '@/hooks/useReviews';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import type { ColorTokens } from '@/constants/design';
-import { formatPrice, formatTimeRange } from '@/utils/appointment';
+import { formatTimeRange } from '@/utils/appointment';
+import PaymentPanel from '@/components/PaymentPanel';
 
 const TODAY = new Date().toISOString().split('T')[0];
 
@@ -312,16 +313,7 @@ const RdvCard = memo(function RdvCard({
           </TouchableOpacity>
         </View>
       )}
-      {isAccepted && (
-        <View style={cSt.paymentNote}>
-          <Feather name="credit-card" size={12} color={colors.INK_3} />
-          <Text style={cSt.paymentNoteText}>
-            {appt.interpreterHourlyRate
-              ? `💳 ${formatPrice(appt.interpreterHourlyRate, appt.durationMin)} · Paiement à convenir avec l'interprète`
-              : "💳 Paiement à convenir avec l'interprète"}
-          </Text>
-        </View>
-      )}
+      {isAccepted && <PaymentPanel appt={appt} />}
       {isPending && (
         <View style={cSt.pendingBanner}>
           <MaterialCommunityIcons name="timer-sand" size={14} color="#B45309" />
@@ -378,8 +370,6 @@ function createCardStyles(colors: ColorTokens) {
     cancelBtnText: { fontSize: 12.5, fontWeight: '600', color: '#DC2626' },
     msgBadge: { position: 'absolute', top: -5, right: -5, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#DC2626', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: '#ECFDF5' },
     msgBadgeTxt: { fontSize: 9, fontWeight: '800', color: '#fff' },
-    paymentNote: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 2 },
-    paymentNoteText: { fontSize: 11.5, color: colors.INK_3, flex: 1 },
   });
 }
 

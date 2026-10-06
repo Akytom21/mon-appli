@@ -155,6 +155,15 @@ await check('note hors limites', 'DENY', () => addDoc(collection(as('sourd1'), '
 await check('interprète lit ses avis (note moyenne)', 'ALLOW', () => getDocs(query(collection(as('interp1'), 'reviews'), where('interpreterId', '==', 'interp1'))));
 await check('patient lit les avis des autres', 'DENY', () => getDocs(query(collection(as('sourd1'), 'reviews'), where('interpreterId', '==', 'interp1'))));
 
+// ── Paiements (écrits uniquement par createPayment / stripeWebhook) ──
+const seedPayment = () => env.withSecurityRulesDisabled((ctx) =>
+  setDoc(doc(ctx.firestore(), 'payments', 'acc1'), { patientId: 'sourd1', interpreterId: 'interp1', amount: 6750, status: 'pending' }));
+await check('patient suit son paiement', 'ALLOW', async () => { await seedPayment(); return getDoc(doc(as('sourd1'), 'payments', 'acc1')); });
+await check('interprète suit le paiement de sa mission', 'ALLOW', async () => { await seedPayment(); return getDoc(doc(as('interp1'), 'payments', 'acc1')); });
+await check("lire le paiement d'un autre", 'DENY', async () => { await seedPayment(); return getDoc(doc(as('sourd2'), 'payments', 'acc1')); });
+await check('se déclarer « payé »', 'DENY', async () => { await seedPayment(); return updateDoc(doc(as('sourd1'), 'payments', 'acc1'), { status: 'paid' }); });
+await check('créer un paiement depuis l’appli', 'DENY', () => setDoc(doc(as('sourd1'), 'payments', 'pend1'), { patientId: 'sourd1', status: 'paid' }));
+
 // ── Rappels (écrits uniquement par la Cloud Function sendReminders) ──
 await check('client lit les rappels', 'DENY', () => getDoc(doc(as('sourd1'), 'reminders', 'acc1')));
 await check('client écrit un rappel', 'DENY', () => setDoc(doc(as('sourd1'), 'reminders', 'acc1'), { sent: [] }));
