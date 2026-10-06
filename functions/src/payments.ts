@@ -5,14 +5,20 @@
    PharmaSign (transfer_group = id du RDV) jusqu'au versement de l'étape C.
    Suivi du paiement dans payments/{apptId}, écrit uniquement ici. */
 import './options';
-import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp, getFirestore } from 'firebase-admin/firestore';
 import * as logger from 'firebase-functions/logger';
 import { defineSecret } from 'firebase-functions/params';
+import { onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import { HttpsError, onCall, onRequest } from 'firebase-functions/v2/https';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import Stripe from 'stripe';
 import { send, tokenOf } from './notify';
-import { Appointment, paidPush } from './push';
-import { paymentQuote, paymentStatusFromEvent, payoutStatus, returnPage, shouldApplyStatus } from './stripe';
+import { Appointment, paidPush, parisInstant, payoutPush, refundPush } from './push';
+import {
+  DEFAULT_FEE_PERCENT, RefundPlan, ScheduleAppt,
+  isStalePayment, paymentQuote, paymentStatusFromEvent, payoutEligibleAt, payoutSplit, payoutStatus,
+  refundOnChange, returnPage, shouldApplyStatus,
+} from './stripe';
 
 // Saisis hors du code : firebase functions:secrets:set STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET
 const STRIPE_SECRET_KEY = defineSecret('STRIPE_SECRET_KEY');
@@ -128,6 +134,7 @@ export const createPayment = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (req
       // Double appui simultané : Stripe renvoie le même paiement au lieu d'en créer deux
       { idempotencyKey: `pay-${apptId}-${attempt}` },
     );
+    // Nouveau paiement : on repart de zéro (un remboursement précédent reste visible chez Stripe)
     await payRef.set({
       attempt,
       apptId,
@@ -138,7 +145,7 @@ export const createPayment = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (req
       intentId: intent.id,
       status: 'pending',
       createdAt: FieldValue.serverTimestamp(),
-    }, { merge: true });
+    });
   }
   return { clientSecret: intent.client_secret, amount: quote.amount };
 });
@@ -167,11 +174,13 @@ export const stripeWebhook = onRequest(
 
     const db = getFirestore();
     const payRef = db.doc(`payments/${apptId}`);
+    let replacedPaid = false;
     const newlyPaid = await db.runTransaction(async (tx) => {
+      replacedPaid = false;
       const cur = await tx.get(payRef);
       if (cur.get('intentId') && cur.get('intentId') !== intent.id) {
-        // Ancien paiement : ne doit pas arriver ; s'il est réglé, l'argent est à rembourser
-        if (status === 'paid') logger.error(`Paiement ${apptId} : intent ${intent.id} réglé mais remplacé — à rembourser`);
+        // Ancien paiement réglé alors qu'un autre l'a remplacé : remboursé ci-dessous
+        replacedPaid = status === 'paid';
         return false;
       }
       if (!shouldApplyStatus(cur.get('status'), status)) return false;
@@ -186,12 +195,136 @@ export const stripeWebhook = onRequest(
       return status === 'paid' && !wasPaid;
     });
 
+    if (replacedPaid) {
+      logger.warn(`Paiement ${apptId} : ancien intent ${intent.id} réglé — remboursement intégral`);
+      await stripe().refunds.create(
+        { payment_intent: intent.id, metadata: { apptId, reason: 'replaced' } },
+        { idempotencyKey: `refund-${intent.id}-${intent.amount}` },
+      );
+    }
+
     if (newlyPaid) {
       logger.info(`Paiement ${apptId} : réglé (${intent.amount} centimes)`);
-      const appt = (await db.doc(`appointments/${apptId}`).get()).data() as Appointment | undefined;
-      const token = await tokenOf(intent.metadata.interpreterId);
-      if (appt && token) await send([paidPush(appt, intent.amount, token)], `Paiement ${apptId}`);
+      const appt = (await db.doc(`appointments/${apptId}`).get()).data() as
+        (Appointment & ScheduleAppt) | undefined;
+      if (isStalePayment(appt, intent.metadata.interpreterId)) {
+        // RDV annulé ou interprète changé pendant que le patient payait
+        await refundAndRecord(apptId, { reason: 'stale', refund: intent.amount, payoutBase: 0 }, appt);
+      } else {
+        const eligible = payoutEligibleAt(appt!, parisInstant) ?? Date.now() + 24 * 3_600_000;
+        await payRef.update({
+          payoutStatus: 'scheduled',
+          payoutBase: intent.amount,
+          payoutEligibleAt: Timestamp.fromMillis(eligible),
+        });
+        const token = await tokenOf(intent.metadata.interpreterId);
+        if (appt && token) await send([paidPush(appt, intent.amount, token)], `Paiement ${apptId}`);
+      }
     }
     res.json({ received: true });
+  },
+);
+
+/* ── Étape C : remboursements et versements ─────────────────────── */
+
+/* Rembourse le patient (tout ou partie) et note le résultat dans payments/{apptId}.
+   Une seule exécution par paiement, même si plusieurs déclencheurs arrivent ensemble. */
+async function refundAndRecord(apptId: string, plan: RefundPlan, appt: Appointment | undefined): Promise<void> {
+  const db = getFirestore();
+  const payRef = db.doc(`payments/${apptId}`);
+  const claimed = await db.runTransaction(async (tx) => {
+    const cur = await tx.get(payRef);
+    if (cur.get('status') !== 'paid' || cur.get('refundStatus')) return null;
+    if (cur.get('payoutStatus') === 'transferred') return null; // déjà versé : traitement manuel
+    tx.update(payRef, { refundStatus: 'processing' });
+    return { intentId: cur.get('intentId') as string, patientId: cur.get('patientId') as string };
+  });
+  if (!claimed) return;
+
+  try {
+    const refund = await stripe().refunds.create(
+      { payment_intent: claimed.intentId, amount: plan.refund, metadata: { apptId, reason: plan.reason } },
+      { idempotencyKey: `refund-${claimed.intentId}-${plan.refund}` },
+    );
+    await payRef.update({
+      status: plan.payoutBase > 0 ? 'partially_refunded' : 'refunded',
+      refundStatus: 'done',
+      refundId: refund.id,
+      refundedAmount: plan.refund,
+      refundReason: plan.reason,
+      refundedAt: FieldValue.serverTimestamp(),
+      payoutBase: plan.payoutBase,
+      payoutStatus: plan.payoutBase > 0 ? 'scheduled' : 'none',
+      payoutEligibleAt: Timestamp.now(), // dédommagement versé dès la prochaine tournée
+    });
+    logger.info(`Paiement ${apptId} : remboursé ${plan.refund} centimes (${plan.reason})`);
+    const token = await tokenOf(claimed.patientId);
+    if (appt && token) await send([refundPush(appt, plan.refund, plan.reason, token)], `Remboursement ${apptId}`);
+  } catch (err) {
+    logger.error(`Paiement ${apptId} : échec du remboursement (${plan.reason})`, err);
+    await payRef.update({ refundStatus: FieldValue.delete() }); // nouvel essai au prochain déclenchement
+  }
+}
+
+/* Désistement de l'interprète ou annulation par le patient d'un RDV payé */
+export const refundOnAppointmentChange = onDocumentUpdated(
+  { document: 'appointments/{apptId}', secrets: [STRIPE_SECRET_KEY] },
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data() as (Appointment & ScheduleAppt) | undefined;
+    if (!before || !after || before.status === after.status) return;
+    const pay = await getFirestore().doc(`payments/${event.params.apptId}`).get();
+    if (pay.get('status') !== 'paid') return;
+    const plan = refundOnChange(before, after, pay.get('amount'), Date.now(), parisInstant);
+    if (plan) await refundAndRecord(event.params.apptId, plan, after);
+  },
+);
+
+/* Versements aux interprètes, toutes les heures : 24 h après la fin du RDV
+   (ou tout de suite pour un dédommagement d'annulation tardive), moins la commission. */
+export const payoutMissions = onSchedule(
+  { schedule: 'every 60 minutes', timeZone: 'Europe/Paris', maxInstances: 1, secrets: [STRIPE_SECRET_KEY] },
+  async () => {
+    const db = getFirestore();
+    const now = Date.now();
+    const feePercent = (await db.doc('config/payments').get()).get('feePercent') ?? DEFAULT_FEE_PERCENT;
+    const due = (await db.collection('payments').where('payoutStatus', 'in', ['scheduled', 'processing']).get())
+      .docs.filter((d) => ((d.get('payoutEligibleAt') as Timestamp | undefined)?.toMillis() ?? Infinity) <= now);
+
+    for (const d of due) {
+      const p = d.data();
+      const interpreter = await db.doc(`users/${p.interpreterId}`).get();
+      const accountId = interpreter.get('stripeAccountId') as string | undefined;
+      if (!accountId || interpreter.get('stripePayoutStatus') !== 'active' || !p.chargeId || !(p.payoutBase > 0)) {
+        logger.warn(`Versement ${d.id} en attente : compte interprète inactif ou paiement incomplet`);
+        continue;
+      }
+      const { fee, net } = payoutSplit(p.payoutBase, feePercent);
+      await d.ref.update({ payoutStatus: 'processing' });
+      try {
+        const transfer = await stripe().transfers.create(
+          {
+            amount: net,
+            currency: 'eur',
+            destination: accountId,
+            transfer_group: d.id,
+            source_transaction: p.chargeId, // fonds du paiement, même s'ils ne sont pas encore disponibles
+            metadata: { apptId: d.id, feePercent: String(feePercent) },
+          },
+          { idempotencyKey: `payout-${d.id}-${p.attempt ?? 0}` },
+        );
+        await d.ref.update({
+          payoutStatus: 'transferred', transferId: transfer.id, fee, net,
+          transferredAt: FieldValue.serverTimestamp(),
+        });
+        logger.info(`Versement ${d.id} : ${net} centimes à l'interprète (commission ${fee})`);
+        const appt = (await db.doc(`appointments/${d.id}`).get()).data() as Appointment | undefined;
+        const token = await tokenOf(p.interpreterId);
+        if (appt && token) await send([payoutPush(appt, net, token)], `Versement ${d.id}`);
+      } catch (err) {
+        logger.error(`Versement ${d.id} : échec, nouvel essai dans 1 h`, err);
+        await d.ref.update({ payoutStatus: 'scheduled' });
+      }
+    }
   },
 );

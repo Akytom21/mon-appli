@@ -644,7 +644,7 @@ const AppointmentCard = memo(function AppointmentCard({
   const isUrgent = appt.type === 'urgences';
   const handleAcceptThis  = useCallback(() => onAccept(appt.id),  [onAccept, appt.id]);
   const handleDeclineThis = useCallback(() => onDecline(appt.id), [onDecline, appt.id]);
-  const payment = usePaymentStatus(appt.id, tab === 'missions' && appt.status === 'accepted');
+  const payment = usePaymentStatus(appt.id, tab !== 'disponibles' && appt.status === 'accepted');
 
   return (
     <View style={[styles.card, isUrgent && styles.cardUrgent]}>
@@ -696,11 +696,15 @@ const AppointmentCard = memo(function AppointmentCard({
               {appt.status === 'accepted' ? '✓ Acceptée' : '✗ Refusée'}
             </Text>
           </View>
-          {payment?.status === 'paid' && (
-            <View style={[styles.statusChip, styles.statusAccepted]} accessibilityLabel={`Payé par le patient, ${formatCents(payment.amount)}`}>
+          {payment?.status === 'paid' && payment.payoutStatus === 'transferred' && payment.net ? (
+            <View style={[styles.statusChip, styles.statusAccepted]} accessibilityLabel={`Versé sur votre compte, ${formatCents(payment.net)}`}>
+              <Text style={styles.statusChipText}>💶 Versé · {formatCents(payment.net)}</Text>
+            </View>
+          ) : payment?.status === 'paid' ? (
+            <View style={[styles.statusChip, styles.statusAccepted]} accessibilityLabel={`Payé par le patient, ${formatCents(payment.amount)}, versement 24 heures après la mission`}>
               <Text style={styles.statusChipText}>💳 Payé · {formatCents(payment.amount)}</Text>
             </View>
-          )}
+          ) : null}
           {tab === 'missions' && appt.status === 'accepted' && onMessage && (
             <TouchableOpacity
               style={styles.chatBtn}

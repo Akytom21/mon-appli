@@ -18,7 +18,8 @@ import {
 const db = getFirestore();
 
 export {
-  createPayment, stripeOnboardingLink, stripeRefreshStatus, stripeReturn, stripeWebhook,
+  createPayment, payoutMissions, refundOnAppointmentChange,
+  stripeOnboardingLink, stripeRefreshStatus, stripeReturn, stripeWebhook,
 } from './payments';
 
 /* Demande ouverte → interprètes disponibles qui ne l'ont pas refusée */
