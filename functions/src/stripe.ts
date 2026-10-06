@@ -79,6 +79,65 @@ export function shouldApplyStatus(current: unknown, next: PaymentStatus): boolea
   return current !== 'paid' || next === 'paid';
 }
 
+/* ── Étape C : versement à l'interprète et remboursements ─────── */
+
+export const DEFAULT_FEE_PERCENT = 5;
+const DAY = 24 * 3_600_000;
+
+/* Part de PharmaSign et part de l'interprète sur un montant (centimes) */
+export function payoutSplit(baseCents: number, feePercent: number): { fee: number; net: number } {
+  const pct = Number.isFinite(feePercent) && feePercent >= 0 && feePercent <= 50 ? feePercent : DEFAULT_FEE_PERCENT;
+  const fee = Math.round((baseCents * pct) / 100);
+  return { fee, net: baseCents - fee };
+}
+
+export type ScheduleAppt = { date?: string; time?: string; durationMin?: number };
+
+/* Début du RDV (ms UTC) ; les heures sont saisies en heure de Paris */
+export function missionStart(appt: ScheduleAppt, parisInstant: (d: string, t: string) => number): number | null {
+  return appt.date && appt.time ? parisInstant(appt.date, appt.time) : null;
+}
+
+/* Versement possible 24 h après la fin du RDV (délai pour signaler un problème) */
+export function payoutEligibleAt(appt: ScheduleAppt, parisInstant: (d: string, t: string) => number): number | null {
+  const start = missionStart(appt, parisInstant);
+  return start === null ? null : start + (appt.durationMin ?? DEFAULT_DURATION) * 60_000 + DAY;
+}
+
+export type RefundPlan = {
+  reason: 'withdrawn' | 'cancelled_early' | 'cancelled_late' | 'stale';
+  refund: number;      // remboursé au patient (centimes)
+  payoutBase: number;  // reste versé à l'interprète (avant commission)
+};
+
+/* Changement d'un RDV payé → remboursement à faire
+   - l'interprète se désiste (accepted → pending) : 100 %
+   - le patient annule plus de 24 h avant : 100 % ; moins de 24 h avant : 50 % */
+export function refundOnChange(
+  before: { status?: string },
+  after: { status?: string } & ScheduleAppt,
+  paidCents: number,
+  now: number,
+  parisInstant: (d: string, t: string) => number,
+): RefundPlan | null {
+  if (before.status !== 'accepted' || paidCents <= 0) return null;
+  if (after.status === 'pending') return { reason: 'withdrawn', refund: paidCents, payoutBase: 0 };
+  if (after.status !== 'cancelled') return null;
+  const start = missionStart(after, parisInstant);
+  if (start === null || start - now > DAY) return { reason: 'cancelled_early', refund: paidCents, payoutBase: 0 };
+  const refund = Math.round(paidCents / 2);
+  return { reason: 'cancelled_late', refund, payoutBase: paidCents - refund };
+}
+
+/* Paiement confirmé alors que le RDV n'est plus le même (annulé, interprète
+   changé pendant que le patient payait) : à rembourser intégralement. */
+export function isStalePayment(
+  appt: { status?: string; interpreterId?: string | null } | undefined,
+  paidForInterpreterId: string | undefined,
+): boolean {
+  return !appt || appt.status !== 'accepted' || !appt.interpreterId || appt.interpreterId !== paidForInterpreterId;
+}
+
 /* Page affichée à la fin (ou à l'expiration) du formulaire Stripe : renvoie dans l'appli */
 export function returnPage(reason: 'done' | 'refresh'): string {
   const deepLink = `pharmasign://stripe-return?r=${reason}`;

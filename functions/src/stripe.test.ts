@@ -1,9 +1,61 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  paymentQuote, paymentStatusFromEvent, payoutStatus, priceCents, returnPage, shouldApplyStatus,
+  isStalePayment, paymentQuote, paymentStatusFromEvent, payoutEligibleAt, payoutSplit, payoutStatus,
+  priceCents, refundOnChange, returnPage, shouldApplyStatus,
 } from './stripe';
-import { paidPush } from './push';
+import { paidPush, parisInstant, payoutPush, refundPush } from './push';
+
+test('commission : 5 % pour PharmaSign, le reste à l’interprète', () => {
+  assert.deepEqual(payoutSplit(6750, 5), { fee: 338, net: 6412 });   // 67,50 € → 3,38 € / 64,12 €
+  assert.deepEqual(payoutSplit(3375, 5), { fee: 169, net: 3206 });   // dédommagement 50 %
+  assert.deepEqual(payoutSplit(6750, 0), { fee: 0, net: 6750 });
+  assert.deepEqual(payoutSplit(6750, 80), { fee: 338, net: 6412 });  // taux aberrant → 5 % par défaut
+  assert.deepEqual(payoutSplit(6750, Number.NaN), { fee: 338, net: 6412 });
+});
+
+const rdv = { date: '2026-10-12', time: '10:30', durationMin: 90 }; // 08:30Z → 10:00Z
+const at = (iso: string) => Date.parse(iso);
+
+test('versement possible 24 h après la fin du RDV', () => {
+  assert.equal(new Date(payoutEligibleAt(rdv, parisInstant)!).toISOString(), '2026-10-13T10:00:00.000Z');
+  assert.equal(payoutEligibleAt({}, parisInstant), null);
+});
+
+test('désistement de l’interprète → remboursement intégral', () => {
+  const plan = refundOnChange({ status: 'accepted' }, { ...rdv, status: 'pending' }, 6750, at('2026-10-12T08:00:00Z'), parisInstant);
+  assert.deepEqual(plan, { reason: 'withdrawn', refund: 6750, payoutBase: 0 });
+});
+
+test('annulation par le patient : 100 % avant 24 h, 50 % après', () => {
+  const cancel = (iso: string) => refundOnChange({ status: 'accepted' }, { ...rdv, status: 'cancelled' }, 6750, at(iso), parisInstant);
+  assert.deepEqual(cancel('2026-10-11T08:00:00Z'), { reason: 'cancelled_early', refund: 6750, payoutBase: 0 }); // 24 h 30 avant
+  assert.deepEqual(cancel('2026-10-11T09:00:00Z'), { reason: 'cancelled_late', refund: 3375, payoutBase: 3375 }); // 23 h 30 avant
+  assert.deepEqual(cancel('2026-10-12T12:00:00Z'), { reason: 'cancelled_late', refund: 3375, payoutBase: 3375 }); // après le RDV
+});
+
+test('pas de remboursement hors de ces cas', () => {
+  assert.equal(refundOnChange({ status: 'pending' }, { ...rdv, status: 'cancelled' }, 6750, 0, parisInstant), null); // jamais accepté
+  assert.equal(refundOnChange({ status: 'accepted' }, { ...rdv, status: 'accepted' }, 6750, 0, parisInstant), null);
+  assert.equal(refundOnChange({ status: 'accepted' }, { ...rdv, status: 'cancelled' }, 0, 0, parisInstant), null);
+});
+
+test('paiement « périmé » : RDV annulé ou interprète changé pendant le paiement', () => {
+  assert.equal(isStalePayment({ status: 'accepted', interpreterId: 'i1' }, 'i1'), false);
+  assert.equal(isStalePayment({ status: 'accepted', interpreterId: 'i2' }, 'i1'), true);
+  assert.equal(isStalePayment({ status: 'pending', interpreterId: null }, 'i1'), true);
+  assert.equal(isStalePayment({ status: 'cancelled', interpreterId: 'i1' }, 'i1'), true);
+  assert.equal(isStalePayment(undefined, 'i1'), true);
+});
+
+test('notifications de remboursement et de versement', () => {
+  const a = { patientId: 'p1', date: '2026-10-12', time: '10:30' };
+  const late = refundPush(a, 3375, 'cancelled_late', 'ExponentPushToken[x]');
+  assert.equal(late.title, '↩️ Remboursement de 33,75 €');
+  assert.match(late.body, /50 %/);
+  assert.match(refundPush(a, 6750, 'withdrawn', 'ExponentPushToken[x]').body, /désisté/);
+  assert.equal(payoutPush(a, 6412, 'ExponentPushToken[x]').title, '💶 Versement de 64,12 €');
+});
 
 const appt = { patientId: 'p1', status: 'accepted', interpreterId: 'i1', interpreterHourlyRate: 45, durationMin: 90 };
 

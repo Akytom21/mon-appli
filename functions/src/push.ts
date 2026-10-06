@@ -127,6 +127,29 @@ export function paidPush(appt: Appointment, amountCents: number, token: string):
   return base(token, '💳 Mission réglée', `Le patient a payé ${euros} € pour le RDV${w ? ' ' + w : ''}.`, '/(tabs)/interpretes/planning');
 }
 
+const eur = (cents: number) => `${(cents / 100).toFixed(2).replace('.', ',')} €`;
+
+/* Patient : remboursement (total ou partiel) d'un RDV payé */
+export function refundPush(
+  appt: Appointment, refundCents: number, reason: 'withdrawn' | 'cancelled_early' | 'cancelled_late' | 'stale', token: string,
+): PushMessage {
+  const w = when(appt);
+  const why = reason === 'withdrawn' ? 'Votre interprète s’est désisté'
+    : reason === 'cancelled_late' ? 'Annulation moins de 24 h avant : remboursement de 50 %'
+      : 'Votre RDV a été annulé';
+  return base(token, `↩️ Remboursement de ${eur(refundCents)}`,
+    `${why}${w ? ` (RDV ${w})` : ''}. Le remboursement apparaît sous 5 à 10 jours.`,
+    '/(tabs)/malentendants/mes-rdv');
+}
+
+/* Interprète : versement envoyé sur son compte Stripe */
+export function payoutPush(appt: Appointment, netCents: number, token: string): PushMessage {
+  const w = when(appt);
+  return base(token, `💶 Versement de ${eur(netCents)}`,
+    `Pour la mission${w ? ' ' + w : ''}. Il arrive sur votre compte bancaire sous quelques jours.`,
+    '/(tabs)/interpretes/planning');
+}
+
 /* Patient : son interprète s'est désisté, la demande est relancée */
 export function withdrawnPush(appt: Appointment, token: string): PushMessage {
   const w = when(appt);

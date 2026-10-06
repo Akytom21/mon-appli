@@ -31,6 +31,9 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import type { ColorTokens } from '@/constants/design';
 import { formatTimeRange } from '@/utils/appointment';
 import PaymentPanel from '@/components/PaymentPanel';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/config/firebase';
+import { formatCents } from '@/hooks/usePaymentStatus';
 
 const TODAY = new Date().toISOString().split('T')[0];
 
@@ -644,10 +647,25 @@ export default function MesRdvScreen() {
     setReviewTarget(null);
   }, [reviewTarget, submitReview]);
 
-  const handleCancel = useCallback((appt: Appointment) => {
+  const handleCancel = useCallback(async (appt: Appointment) => {
+    // RDV payé en ligne : rappeler la règle de remboursement avant de confirmer
+    let refundNote = '';
+    try {
+      const pay = await getDoc(doc(db, 'payments', appt.id));
+      if (pay.get('status') === 'paid') {
+        const amount = pay.get('amount') as number;
+        const hoursLeft = (new Date(`${appt.date}T${appt.time}:00`).getTime() - Date.now()) / 3_600_000;
+        refundNote = hoursLeft > 24
+          ? `\n\nVous serez remboursé intégralement (${formatCents(amount)}).`
+          : `\n\nAnnulation à moins de 24 h : ${formatCents(Math.round(amount / 2))} remboursés, `
+            + 'le reste est versé à l’interprète pour le créneau bloqué.';
+      }
+    } catch {
+      // pas de paiement en ligne pour ce RDV
+    }
     Alert.alert(
       'Annuler ce rendez-vous',
-      `Voulez-vous vraiment annuler votre RDV du ${formatDateChip(appt.date)} à ${appt.time} ?`,
+      `Voulez-vous vraiment annuler votre RDV du ${formatDateChip(appt.date)} à ${appt.time} ?${refundNote}`,
       [
         { text: 'Non', style: 'cancel' },
         { text: 'Oui, annuler', style: 'destructive', onPress: () => cancelAppointment(appt.id) },

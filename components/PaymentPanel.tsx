@@ -84,6 +84,11 @@ export default function PaymentPanel({ appt }: { appt: Appointment }) {
   return (
     <View style={styles.block}>
       {payment?.status === 'failed' && <Text style={styles.error}>Le dernier paiement a échoué.</Text>}
+      {payment?.status === 'refunded' && (
+        <Text style={styles.hint}>
+          ↩️ Votre paiement précédent ({formatCents(payment.refundedAmount ?? payment.amount)}) a été remboursé.
+        </Text>
+      )}
       {!!error && <Text style={styles.error}>{error}</Text>}
       <TouchableOpacity
         style={[styles.button, busy && { opacity: 0.6 }]}
