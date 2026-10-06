@@ -163,6 +163,16 @@ service cloud.firestore {
                      (resource.data.recipientId == uid() || resource.data.senderId == uid());
     }
 
+    // ── payments/{apptId} ────────────────────────────────────────
+    // Suivi du paiement d'un RDV : écrit uniquement par les Cloud Functions
+    // (createPayment, stripeWebhook) ; lu par le patient et l'interprète du RDV.
+    match /payments/{apptId} {
+      allow read: if authed() &&
+                     (resource.data.patientId == uid() ||
+                      resource.data.interpreterId == uid() ||
+                      isAdmin());
+    }
+
     // ── reviews/{reviewId} ───────────────────────────────────────
     match /reviews/{reviewId} {
       // Patient voit ses avis ; interprète voit les avis le concernant ; admin voit tout

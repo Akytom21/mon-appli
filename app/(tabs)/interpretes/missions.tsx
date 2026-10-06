@@ -23,6 +23,7 @@ import { Feather } from '@expo/vector-icons';
 import { FontSize, Radius, Spacing } from '@/constants/theme';
 import { useAppointments, type Appointment, type AppointmentType } from '@/hooks/useAppointments';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
+import { formatCents, usePaymentStatus } from '@/hooks/usePaymentStatus';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import type { ColorTokens } from '@/constants/design';
 import { formatDuration, formatTimeRange } from '@/utils/appointment';
@@ -643,6 +644,7 @@ const AppointmentCard = memo(function AppointmentCard({
   const isUrgent = appt.type === 'urgences';
   const handleAcceptThis  = useCallback(() => onAccept(appt.id),  [onAccept, appt.id]);
   const handleDeclineThis = useCallback(() => onDecline(appt.id), [onDecline, appt.id]);
+  const payment = usePaymentStatus(appt.id, tab === 'missions' && appt.status === 'accepted');
 
   return (
     <View style={[styles.card, isUrgent && styles.cardUrgent]}>
@@ -694,6 +696,11 @@ const AppointmentCard = memo(function AppointmentCard({
               {appt.status === 'accepted' ? '✓ Acceptée' : '✗ Refusée'}
             </Text>
           </View>
+          {payment?.status === 'paid' && (
+            <View style={[styles.statusChip, styles.statusAccepted]} accessibilityLabel={`Payé par le patient, ${formatCents(payment.amount)}`}>
+              <Text style={styles.statusChipText}>💳 Payé · {formatCents(payment.amount)}</Text>
+            </View>
+          )}
           {tab === 'missions' && appt.status === 'accepted' && onMessage && (
             <TouchableOpacity
               style={styles.chatBtn}

@@ -5,44 +5,21 @@
    un jeton push devenu invalide, et noter les rappels envoyés dans reminders/
    (collection fermée aux clients par les règles). */
 import './options';
-import { initializeApp } from 'firebase-admin/app';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { onDocumentCreated, onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
-import * as logger from 'firebase-functions/logger';
+import { send, tokenOf } from './notify';
 import {
-  Appointment, ChatMessage, PushMessage,
+  Appointment, ChatMessage,
   chatPush, interpreterTokens, isExpoToken, newRequestPushes, parisDate, planReminders,
-  reminderPush, sendPushes, statusChangePush,
+  reminderPush, statusChangePush,
 } from './push';
 
-initializeApp();
 const db = getFirestore();
 
-export { stripeOnboardingLink, stripeRefreshStatus, stripeReturn } from './payments';
-
-async function tokenOf(uid: string | null | undefined): Promise<string | null> {
-  if (!uid) return null;
-  const token = (await db.doc(`users/${uid}`).get()).get('expoPushToken');
-  return isExpoToken(token) ? token : null;
-}
-
-/* false si le service Expo n'a pas pu être joint (l'erreur est journalisée) */
-async function send(messages: PushMessage[], context: string): Promise<boolean> {
-  if (messages.length === 0) return true;
-  try {
-    const { sent, staleTokens } = await sendPushes(messages, fetch);
-    logger.info(`${context} : ${sent}/${messages.length} notification(s) envoyée(s)`);
-    for (const token of staleTokens) {
-      const snap = await db.collection('users').where('expoPushToken', '==', token).get();
-      await Promise.all(snap.docs.map((d) => d.ref.update({ expoPushToken: FieldValue.delete() })));
-    }
-    return true;
-  } catch (err) {
-    logger.error(`${context} : échec de l'envoi`, err);
-    return false;
-  }
-}
+export {
+  createPayment, stripeOnboardingLink, stripeRefreshStatus, stripeReturn, stripeWebhook,
+} from './payments';
 
 /* Demande ouverte → interprètes disponibles qui ne l'ont pas refusée */
 async function broadcastRequest(appt: Appointment, context: string, relaunched = false): Promise<void> {
